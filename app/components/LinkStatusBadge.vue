@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { deriveLinkStatus } from '~~/shared/link-status';
+import { deriveLinkStatus } from '#shared/link-status';
 
 type LinkStatus = 'active' | 'disabled' | 'expired';
 

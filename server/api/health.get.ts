@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { getDb } from '../utils/db';
+import { getDb } from '#server/utils/db';
 
 export default defineEventHandler(async () => {
   try {

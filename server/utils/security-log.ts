@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
-import { securityEvents } from '../database/schema';
-import { getDb } from './db';
+import { securityEvents } from '#server/database/schema';
+import { getDb } from '#server/utils/db';
 
 export async function writeSecurityEvent(
   type: string,

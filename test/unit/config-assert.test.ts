@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertRuntimeConfig } from '../../server/utils/config-assert';
+import { assertRuntimeConfig } from '#server/utils/config-assert';
 
 describe('assertRuntimeConfig', () => {
   it('throws for short session password', () => {

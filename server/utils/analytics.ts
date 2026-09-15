@@ -1,9 +1,9 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
-import type { RequestMeta } from './request-meta';
+import type { RequestMeta } from '#server/utils/request-meta';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { clickEvents, links } from '../database/schema';
-import { getDb } from './db';
+import { clickEvents, links } from '#server/database/schema';
+import { getDb } from '#server/utils/db';
 
 const countAll = sql<number>`count(*)`;
 

@@ -1,5 +1,5 @@
-import { requireUser } from '../../utils/auth';
-import { deleteLink } from '../../utils/link-repo';
+import { requireUser } from '#server/utils/auth';
+import { deleteLink } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);

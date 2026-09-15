@@ -1,4 +1,4 @@
-import type { Link } from '../database/schema';
+import type { Link } from '#server/database/schema';
 
 interface CacheEntry {
   link: Link | null;

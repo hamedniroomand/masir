@@ -1,4 +1,4 @@
-import { runMigrations } from '../database/migrate';
+import { runMigrations } from '#server/database/migrate';
 
 export default defineNitroPlugin(async () => {
   const { databaseUrl } = useRuntimeConfig();

@@ -2,7 +2,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import * as schema from './schema';
+import * as schema from '#server/database/schema';
 
 export type AppDatabase = BunSQLiteDatabase<typeof schema> | BetterSQLite3Database<typeof schema>;
 
@@ -38,14 +38,14 @@ export async function openDatabase(databaseUrl: string): Promise<AppDatabase> {
   return drizzle({ client, schema });
 }
 
-export async function getDb(): Promise<AppDatabase> {
-  if (memoised)
-    return memoised;
-  const { databaseUrl } = useRuntimeConfig();
-  memoised = await openDatabase(databaseUrl);
-  return memoised;
-}
-
 export function closeDatabase() {
   memoised = null;
+}
+
+export function setMemoisedDb(db: AppDatabase | null) {
+  memoised = db;
+}
+
+export function getMemoisedDb() {
+  return memoised;
 }

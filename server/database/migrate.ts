@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openDatabase } from './client';
+import { openDatabase } from '#server/database/client';
 
 export async function runMigrations(databaseUrl: string) {
   const db = await openDatabase(databaseUrl);

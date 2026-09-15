@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
-import { securityEvents } from '../../database/schema';
-import { requireAdmin } from '../../utils/auth';
-import { getDb } from '../../utils/db';
+import { securityEvents } from '#server/database/schema';
+import { requireAdmin } from '#server/utils/auth';
+import { getDb } from '#server/utils/db';
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);

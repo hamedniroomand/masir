@@ -1,6 +1,6 @@
-import { requireAdmin } from '../../../../utils/auth';
-import { adminDisableLink } from '../../../../utils/link-repo';
-import { writeSecurityEvent } from '../../../../utils/security-log';
+import { requireAdmin } from '#server/utils/auth';
+import { adminDisableLink } from '#server/utils/link-repo';
+import { writeSecurityEvent } from '#server/utils/security-log';
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event);

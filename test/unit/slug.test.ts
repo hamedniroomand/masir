@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSlug, normalizeSlug, validateSlug } from '../../shared/slug';
+import { generateSlug, normalizeSlug, validateSlug } from '#shared/slug';
 
 describe('slug', () => {
   it('normalises input', () => {

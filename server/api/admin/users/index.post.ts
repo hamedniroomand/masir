@@ -1,10 +1,10 @@
 import { nanoid } from 'nanoid';
 import * as v from 'valibot';
-import { users } from '../../../database/schema';
-import { requireAdmin } from '../../../utils/auth';
-import { getDb } from '../../../utils/db';
-import { writeSecurityEvent } from '../../../utils/security-log';
-import { generateSlug } from '../../../utils/slug';
+import { users } from '#server/database/schema';
+import { requireAdmin } from '#server/utils/auth';
+import { getDb } from '#server/utils/db';
+import { writeSecurityEvent } from '#server/utils/security-log';
+import { generateSlug } from '#server/utils/slug';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.email()),

@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { RESERVED_SLUGS } from '../../shared/slug';
+import { RESERVED_SLUGS } from '#shared/slug';
 
 const pagesDir = join(import.meta.dirname, '../../app/pages');
 

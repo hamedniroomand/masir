@@ -1,12 +1,12 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { deriveLinkStatus } from '../../shared/link-status';
-import { clickEvents, links, reservedSlugs } from '../database/schema';
-import { getDb } from './db';
-import { invalidateLink } from './link-cache';
-import { generateSlug } from './slug';
-import { destinationHostFromUrl } from './url';
+import { clickEvents, links, reservedSlugs } from '#server/database/schema';
+import { getDb } from '#server/utils/db';
+import { invalidateLink } from '#server/utils/link-cache';
+import { generateSlug } from '#server/utils/slug';
+import { destinationHostFromUrl } from '#server/utils/url';
+import { deriveLinkStatus } from '#shared/link-status';
 
 const countAll = sql<number>`count(*)`;
 

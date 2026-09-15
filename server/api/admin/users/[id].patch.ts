@@ -1,10 +1,10 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { and, eq, sql } from 'drizzle-orm';
 import * as v from 'valibot';
-import { users } from '../../../database/schema';
-import { requireAdmin } from '../../../utils/auth';
-import { getDb } from '../../../utils/db';
-import { writeSecurityEvent } from '../../../utils/security-log';
+import { users } from '#server/database/schema';
+import { requireAdmin } from '#server/utils/auth';
+import { getDb } from '#server/utils/db';
+import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
   isActive: v.optional(v.boolean()),

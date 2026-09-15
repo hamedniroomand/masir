@@ -1,8 +1,8 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { desc } from 'drizzle-orm';
-import { users } from '../../../database/schema';
-import { requireAdmin } from '../../../utils/auth';
-import { getDb } from '../../../utils/db';
+import { users } from '#server/database/schema';
+import { requireAdmin } from '#server/utils/auth';
+import { getDb } from '#server/utils/db';
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);

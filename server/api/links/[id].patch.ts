@@ -1,7 +1,7 @@
 import * as v from 'valibot';
-import { requireUser } from '../../utils/auth';
-import { findLinkByIdForUser, linkToDto, updateLink } from '../../utils/link-repo';
-import { validateDestination } from '../../utils/url';
+import { requireUser } from '#server/utils/auth';
+import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
+import { validateDestination } from '#server/utils/url';
 
 const bodySchema = v.object({
   title: v.optional(v.nullable(v.string())),

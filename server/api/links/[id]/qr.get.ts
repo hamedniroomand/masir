@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
-import { requireUser } from '../../../utils/auth';
-import { findLinkByIdForUser, shortUrlFor } from '../../../utils/link-repo';
+import { requireUser } from '#server/utils/auth';
+import { findLinkByIdForUser, shortUrlFor } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);

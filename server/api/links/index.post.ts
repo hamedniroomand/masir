@@ -1,11 +1,11 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
-import { requireUser } from '../../utils/auth';
-import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '../../utils/link-repo';
-import { rateLimitCheck } from '../../utils/rate-limit';
-import { writeSecurityEvent } from '../../utils/security-log';
-import { normalizeSlug, validateSlug } from '../../utils/slug';
-import { validateDestination } from '../../utils/url';
+import { requireUser } from '#server/utils/auth';
+import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '#server/utils/link-repo';
+import { rateLimitCheck } from '#server/utils/rate-limit';
+import { writeSecurityEvent } from '#server/utils/security-log';
+import { normalizeSlug, validateSlug } from '#server/utils/slug';
+import { validateDestination } from '#server/utils/url';
 
 const bodySchema = v.object({
   destinationUrl: v.pipe(v.string(), v.minLength(1)),

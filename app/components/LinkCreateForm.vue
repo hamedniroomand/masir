@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { LinkItem } from '~/composables/useLinks';
-import { normalizeSlug } from '~~/shared/slug';
+import { normalizeSlug } from '#shared/slug';
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 

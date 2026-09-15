@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
-import { users } from '../../database/schema';
-import { getDb } from '../../utils/db';
-import { writeSecurityEvent } from '../../utils/security-log';
+import { users } from '#server/database/schema';
+import { getDb } from '#server/utils/db';
+import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),

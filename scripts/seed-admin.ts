@@ -1,9 +1,9 @@
 import process from 'node:process';
 import { nanoid } from 'nanoid';
-import { openDatabase } from '../server/database/client';
-import { runMigrations } from '../server/database/migrate';
-import { securityEvents, users } from '../server/database/schema';
-import { hashPassword } from './hash-password';
+import { hashPassword } from '#scripts/hash-password';
+import { openDatabase } from '#server/database/client';
+import { runMigrations } from '#server/database/migrate';
+import { securityEvents, users } from '#server/database/schema';
 
 const email = process.env.ADMIN_EMAIL;
 const password = process.env.ADMIN_PASSWORD;

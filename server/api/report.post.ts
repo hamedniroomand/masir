@@ -1,7 +1,7 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
-import { hashClientKey, rateLimitCheck } from '../utils/rate-limit';
-import { writeSecurityEvent } from '../utils/security-log';
+import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
   slug: v.pipe(v.string(), v.minLength(1)),

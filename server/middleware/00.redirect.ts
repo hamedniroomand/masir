@@ -1,11 +1,11 @@
 import { setResponseHeader } from 'h3';
-import { deriveLinkStatus } from '../../shared/link-status';
-import { recordClick } from '../utils/analytics';
-import { getCachedLink, setCachedLink } from '../utils/link-cache';
-import { findLinkBySlug } from '../utils/link-repo';
-import { hashClientKey, rateLimitCheck } from '../utils/rate-limit';
-import { parseRequestMeta } from '../utils/request-meta';
-import { RESERVED_SLUGS } from '../utils/slug';
+import { recordClick } from '#server/utils/analytics';
+import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
+import { findLinkBySlug } from '#server/utils/link-repo';
+import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { parseRequestMeta } from '#server/utils/request-meta';
+import { RESERVED_SLUGS } from '#server/utils/slug';
+import { deriveLinkStatus } from '#shared/link-status';
 
 export default defineEventHandler(async (event) => {
   const method = event.method;

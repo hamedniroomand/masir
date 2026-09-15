@@ -1,6 +1,6 @@
-import { getLinkAnalytics } from '../../../utils/analytics';
-import { requireUser } from '../../../utils/auth';
-import { findLinkByIdForUser } from '../../../utils/link-repo';
+import { getLinkAnalytics } from '#server/utils/analytics';
+import { requireUser } from '#server/utils/auth';
+import { findLinkByIdForUser } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
