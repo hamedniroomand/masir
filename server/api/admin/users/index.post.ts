@@ -3,8 +3,8 @@ import { users } from '#server/database/schema';
 import { requireAdmin } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
 import { writeSecurityEvent } from '#server/utils/security-log';
-import { generateSlug } from '#server/utils/slug';
 import { newId } from '#shared/id';
+import { generateSlug } from '#shared/slug';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.email()),

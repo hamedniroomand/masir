@@ -1,5 +1,6 @@
+import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
-import { generateSlug, normalizeSlug, validateSlug } from '#shared/slug';
+import { generateSlug, normalizeSlug, slugSchema } from '#shared/slug';
 
 describe('slug', () => {
   it('normalises input', () => {
@@ -12,6 +13,6 @@ describe('slug', () => {
   });
 
   it('rejects short slug', () => {
-    expect(validateSlug('ab').ok).toBe(false);
+    expect(v.safeParse(slugSchema, 'ab').success).toBe(false);
   });
 });

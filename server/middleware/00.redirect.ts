@@ -4,8 +4,8 @@ import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { findLinkBySlug } from '#server/utils/link-repo';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
-import { RESERVED_SLUGS } from '#server/utils/slug';
 import { deriveLinkStatus } from '#shared/link-status';
+import { RESERVED_SLUGS } from '#shared/slug';
 
 export default defineEventHandler(async (event) => {
   const method = event.method;

@@ -4,8 +4,8 @@ import { requireUser } from '#server/utils/auth';
 import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '#server/utils/link-repo';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
-import { normalizeSlug, validateSlug } from '#server/utils/slug';
 import { validateDestination } from '#server/utils/url';
+import { slugSchema } from '#shared/slug';
 
 const bodySchema = v.object({
   destinationUrl: v.pipe(v.string(), v.minLength(1)),
@@ -41,11 +41,12 @@ export default defineEventHandler(async (event) => {
 
   let slug: string | undefined;
   if (body.slug) {
-    slug = normalizeSlug(body.slug);
-    const check = validateSlug(slug);
-    if (!check.ok) {
-      throw createError({ statusCode: 422, statusMessage: check.reason, data: { reason: check.reason } });
+    const parsed = v.safeParse(slugSchema, body.slug);
+    if (!parsed.success) {
+      const reason = parsed.issues[0]!.message;
+      throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
     }
+    slug = parsed.output;
   }
 
   try {
