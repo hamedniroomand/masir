@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { LinkStatus } from '../../shared/link-status';
-import { deriveLinkStatus } from '../../shared/link-status';
+import { deriveLinkStatus } from '~~/shared/link-status';
+
+type LinkStatus = 'active' | 'disabled' | 'expired';
 
 const props = defineProps<{
   status?: LinkStatus;
