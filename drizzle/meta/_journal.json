@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789504959428,
+      "tag": "0000_smooth_trauma",
+      "breakpoints": true
+    }
+  ]
+}

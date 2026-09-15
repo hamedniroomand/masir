@@ -1,0 +1,51 @@
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import * as schema from './schema';
+
+export type AppDatabase = BunSQLiteDatabase<typeof schema> | BetterSQLite3Database<typeof schema>;
+
+let memoised: AppDatabase | null = null;
+
+function databasePath(databaseUrl: string) {
+  return databaseUrl.replace(/^file:/, '');
+}
+
+function ensureParentDir(filePath: string) {
+  mkdirSync(dirname(filePath), { recursive: true });
+}
+
+export async function openDatabase(databaseUrl: string): Promise<AppDatabase> {
+  const path = databasePath(databaseUrl);
+  ensureParentDir(path);
+
+  const isBun = 'Bun' in globalThis;
+  if (isBun) {
+    const { Database } = await import('bun:sqlite');
+    const { drizzle } = await import('drizzle-orm/bun-sqlite');
+    const client = new Database(path, { create: true });
+    client.exec('PRAGMA journal_mode = WAL');
+    client.exec('PRAGMA foreign_keys = ON');
+    return drizzle({ client, schema });
+  }
+
+  const { default: Database } = await import('better-sqlite3');
+  const { drizzle } = await import('drizzle-orm/better-sqlite3');
+  const client = new Database(path);
+  client.pragma('journal_mode = WAL');
+  client.pragma('foreign_keys = ON');
+  return drizzle({ client, schema });
+}
+
+export async function getDb(): Promise<AppDatabase> {
+  if (memoised)
+    return memoised;
+  const { databaseUrl } = useRuntimeConfig();
+  memoised = await openDatabase(databaseUrl);
+  return memoised;
+}
+
+export function closeDatabase() {
+  memoised = null;
+}
