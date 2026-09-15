@@ -1,28 +1,37 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
-    '@nuxt/eslint',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@vueuse/nuxt',
   ],
 
   devtools: {
-    enabled: true
+    enabled: true,
   },
 
   css: ['~/assets/css/main.css'],
 
   routeRules: {
-    '/': { prerender: true }
+    '/': { prerender: true },
   },
 
   compatibilityDate: '2026-06-30',
 
-  eslint: {
-    config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
-  }
-})
+  nitro: {
+    preset: 'bun',
+  },
+
+  ui: {
+    experimental: {
+      componentDetection: true,
+    },
+  },
+
+  experimental: {
+    viewTransition: true,
+  },
+
+  fonts: {
+    families: [{ name: 'Inter', provider: 'google', global: true }],
+  },
+});

@@ -1,28 +1,38 @@
 {
   "name": "linkyard",
-  "private": true,
   "type": "module",
+  "private": true,
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "prepare": "husky"
   },
   "dependencies": {
+    "@antfu/eslint-config": "^9.5.1",
     "@iconify-json/lucide": "^1.2.131",
     "@iconify-json/simple-icons": "^1.2.95",
     "@nuxt/ui": "^4.11.1",
+    "@vueuse/core": "^14.4.0",
+    "@vueuse/nuxt": "^14.4.0",
     "nuxt": "^4.5.2",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "valibot": "^1.5.0"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^1.17.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "eslint": "^10.10.0",
-    "eslint-plugin-better-tailwindcss": "^4.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.11"
   },
-  "packageManager": "pnpm@12.4.1"
+  "lint-staged": {
+    "*": "bun lint --fix"
+  }
 }
