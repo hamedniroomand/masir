@@ -1,4 +1,3 @@
-// @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { and, eq, sql } from 'drizzle-orm';
 import * as v from 'valibot';
 import { users } from '#server/database/schema';
@@ -12,8 +11,8 @@ const bodySchema = v.object({
 });
 
 async function activeAdminCount(db: Awaited<ReturnType<typeof getDb>>) {
-  const [{ n }] = await db.select({ n: sql<number>`count(*)` }).from(users).where(and(eq(users.role, 'admin'), eq(users.isActive, true)));
-  return n;
+  const rows = await db.select({ n: sql<number>`count(*)` }).from(users).where(and(eq(users.role, 'admin'), eq(users.isActive, true)));
+  return rows[0]?.n ?? 0;
 }
 
 export default defineEventHandler(async (event) => {
@@ -28,6 +27,10 @@ export default defineEventHandler(async (event) => {
   const target = rows[0];
   if (!target)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
+  if (target.isSuperAdmin && admin.id !== target.id && (body.isActive === false || (body.role !== undefined && body.role !== target.role))) {
+    throw createError({ statusCode: 403, statusMessage: 'Only the super admin can change their own account.' });
+  }
 
   if (body.isActive === false && target.role === 'admin') {
     const admins = await activeAdminCount(db);

@@ -7,6 +7,7 @@ export const users = sqliteTable('users', {
   name: text('name').notNull(),
   role: text('role', { enum: ['admin', 'member'] }).notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isSuperAdmin: integer('is_super_admin', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 

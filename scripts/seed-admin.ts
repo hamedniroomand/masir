@@ -31,6 +31,7 @@ await db.insert(users).values({
   name: 'Admin',
   role: 'admin',
   isActive: true,
+  isSuperAdmin: true,
   createdAt: new Date(),
 });
 

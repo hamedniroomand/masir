@@ -1,4 +1,3 @@
-// @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { desc } from 'drizzle-orm';
 import { users } from '#server/database/schema';
 import { requireAdmin } from '#server/utils/auth';
@@ -13,6 +12,7 @@ export default defineEventHandler(async (event) => {
     name: users.name,
     role: users.role,
     isActive: users.isActive,
+    isSuperAdmin: users.isSuperAdmin,
     createdAt: users.createdAt,
   }).from(users).orderBy(desc(users.createdAt));
   return { items: rows };
