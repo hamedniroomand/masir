@@ -1,10 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { user } = useUserSession();
-if (user.value?.role !== 'admin')
-  throw createError({ statusCode: 403 });
-
 const type = ref('');
 const { data } = await useFetch('/api/admin/security-events', {
   query: computed(() => ({ type: type.value || undefined })),
