@@ -1,64 +1,62 @@
-# Nuxt Starter Template
+# Linkyard
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Self-hosted link manager for one team. Create short links, change destinations without changing the URL, and view click analytics.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## Quick start
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
-
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
-
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
+```sh
+git clone <repo>
+cd linkyard
+cp .env.example .env
+# Edit .env — set NUXT_SESSION_PASSWORD (32+ chars) and NUXT_PUBLIC_SHORT_DOMAIN
+bun install
+bun run db:migrate
+bun run db:seed:admin
+bun run dev
 ```
 
-## Deploy your own
+Sign in at `/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+## Environment
 
-## Setup
+See `.env.example` for every variable. Boot fails with the variable name if a required value is missing or invalid.
 
-Make sure to install the dependencies:
+## Architecture
 
-```bash
-pnpm install
+- **Redirect path:** Nitro middleware resolves `/:slug` before the Vue app loads. One cached DB read, then `302` to the destination.
+- **302 not 301:** Destinations stay editable; permanent redirects would be cached by browsers.
+- **Cache:** In-memory slug cache (60s TTL), invalidated on edit/delete. Single-node only; use a shared store for multiple nodes.
+- **Analytics:** Clicks recorded after the redirect via `waitUntil`. Read-time aggregation in SQLite.
+- **Privacy:** No raw IP storage. Country comes from a proxy header (`GEO_COUNTRY_HEADER`, `cf-ipcountry`, or `x-vercel-ip-country`). Default Docker deploy has no country data unless you add a proxy.
+
+## Link lifecycle
+
+1. **Create** — random or custom slug; slug is immutable.
+2. **Redirect** — middleware lookup + optional click row.
+3. **Edit** — destination, title, expiry, enabled flag; slug unchanged.
+4. **Disable / expire** — visitor sees a plain 404 state page.
+5. **Delete** — slug moves to `reserved_slugs` so it cannot be reused immediately.
+
+## Backup
+
+Copy the SQLite file (`NUXT_DATABASE_URL`, default `./data/linkyard.db`). Losing the file loses all links and analytics.
+
+## Docker
+
+```sh
+cp .env.example .env
+docker compose up --build
+docker compose exec app bun run db:seed:admin
 ```
 
-## Development Server
+Database file lives on the `linkyard-data` volume at `/data/linkyard.db`.
 
-Start the development server on `http://localhost:3000`:
+## Scripts
 
-```bash
-pnpm dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-pnpm build
-```
-
-Locally preview production build:
-
-```bash
-pnpm preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-
-## Renovate integration
-
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+| Command | Purpose |
+|---------|---------|
+| `bun run dev` | Dev server |
+| `bun run build` | Production build |
+| `bun run db:migrate` | Apply migrations |
+| `bun run db:seed:admin` | First admin user |
+| `bun run test` | Tests |
