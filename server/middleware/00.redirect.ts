@@ -4,8 +4,10 @@ import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { findLinkBySlug } from '#server/utils/link-repo';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
+
 import { deriveLinkStatus } from '#shared/link-status';
 import { RESERVED_SLUGS } from '#shared/slug';
+import { buildDestination } from '#shared/utm';
 
 export default defineEventHandler(async (event) => {
   const method = event.method;
@@ -16,7 +18,11 @@ export default defineEventHandler(async (event) => {
   if (!path || path === '/')
     return;
 
-  const segment = path.replace(/^\//, '').split('/')[0];
+  const queryStart = path.indexOf('?');
+  const pathname = queryStart === -1 ? path : path.slice(0, queryStart);
+  const inboundQuery = queryStart === -1 ? '' : path.slice(queryStart + 1);
+
+  const segment = pathname.replace(/^\//, '').split('/')[0];
   if (!segment || segment.includes('.') || segment.includes('/'))
     return;
   if (RESERVED_SLUGS.has(segment))
@@ -59,5 +65,6 @@ export default defineEventHandler(async (event) => {
   const meta = parseRequestMeta(event);
   event.waitUntil(recordClick(link.id, meta).catch(() => {}));
 
-  await sendRedirect(event, link.destinationUrl, 302);
+  const destination = buildDestination(link.destinationUrl, {}, inboundQuery);
+  await sendRedirect(event, destination, 302);
 });

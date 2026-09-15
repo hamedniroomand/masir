@@ -21,6 +21,13 @@ describe('redirect middleware', async () => {
     expect(res.headers.get('location')).toBe('https://example.com/here');
   });
 
+  it('keeps an inbound query and passes it to the destination', async () => {
+    await insertTestLink(TEST_DB, { userId, slug: 'query-test', destinationUrl: 'https://example.com/here?a=1' });
+    const res = await fetch('/query-test?utm_source=newsletter', { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('https://example.com/here?a=1&utm_source=newsletter');
+  });
+
   it('returns 404 with disabled linkState', async () => {
     await insertTestLink(TEST_DB, { userId, slug: 'off-test', isEnabled: false });
     const res = await fetch('/off-test', { headers: { accept: 'application/json' } });

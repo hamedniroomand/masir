@@ -26,6 +26,7 @@ See `.env.example` for every variable. Boot fails with the variable name if a re
 - **Redirect path:** Nitro middleware resolves `/:slug` before the Vue app loads. One cached DB read, then `302` to the destination.
 - **302 not 301:** Destinations stay editable; permanent redirects would be cached by browsers.
 - **Cache:** In-memory slug cache (60s TTL), invalidated on edit/delete. Single-node only; use a shared store for multiple nodes.
+- **Query passthrough:** The redirect keeps the query a visitor adds to the short link and sends it to the destination.
 - **Analytics:** Clicks recorded after the redirect via `waitUntil`. Read-time aggregation in SQLite.
 - **Privacy:** No raw IP storage. Country comes from a proxy header (`GEO_COUNTRY_HEADER`, `cf-ipcountry`, or `x-vercel-ip-country`). Default Docker deploy has no country data unless you add a proxy.
 
