@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
       slug,
       expiresAt,
     });
+    await writeSecurityEvent('link_created', { slug: link.slug }, user.id, link.id);
     setResponseStatus(event, 201);
     return linkToDto(link);
   }

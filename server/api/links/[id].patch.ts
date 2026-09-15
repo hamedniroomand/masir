@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
+import { writeSecurityEvent } from '#server/utils/security-log';
 import { validateDestination } from '#server/utils/url';
 
 const bodySchema = v.object({
@@ -40,5 +41,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const updated = await updateLink(id, user.id, patch);
+  await writeSecurityEvent('link_updated', { fields: Object.keys(patch) }, user.id, id);
   return linkToDto(updated!);
 });

@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('link_disabled_by_admin', { linkId: id, slug: link.slug }, admin.id);
+  await writeSecurityEvent('link_disabled_by_admin', { slug: link.slug }, admin.id, id);
   return { ok: true };
 });

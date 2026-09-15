@@ -45,8 +45,11 @@ export const securityEvents = sqliteTable('security_events', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   type: text('type').notNull(),
   actorUserId: text('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  linkId: text('link_id').references(() => links.id, { onDelete: 'set null' }),
   detail: text('detail'),
-});
+}, table => [
+  index('security_events_link_id_created_at_idx').on(table.linkId, table.createdAt),
+]);
 
 export const reservedSlugs = sqliteTable('reserved_slugs', {
   slug: text('slug').primaryKey(),

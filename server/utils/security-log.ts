@@ -6,6 +6,7 @@ export async function writeSecurityEvent(
   type: string,
   detail?: Record<string, unknown>,
   actorUserId?: string | null,
+  linkId?: string | null,
 ) {
   const db = await getDb();
   await db.insert(securityEvents).values({
@@ -13,6 +14,7 @@ export async function writeSecurityEvent(
     createdAt: new Date(),
     type,
     actorUserId: actorUserId ?? null,
+    linkId: linkId ?? null,
     detail: detail ? JSON.stringify(detail) : null,
   });
 }
