@@ -18,8 +18,15 @@ watch(() => route.fullPath, () => {
   mobileOpen.value = false;
 });
 
+const showError = useErrorToast();
+
 async function signOut() {
-  await $fetch('/api/auth/logout', { method: 'POST' });
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' });
+  }
+  catch (e) {
+    showError(e);
+  }
   await clear();
   await navigateTo('/login');
 }

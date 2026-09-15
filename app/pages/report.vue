@@ -1,13 +1,33 @@
 <script setup lang="ts">
+import type { FormSubmitEvent } from '@nuxt/ui';
+import * as v from 'valibot';
+
 definePageMeta({ layout: 'auth' });
 
-const slug = ref('');
-const reason = ref('');
+const schema = v.object({
+  slug: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter the short link slug.')),
+  reason: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a reason for your report.')),
+});
+
+type Schema = v.InferOutput<typeof schema>;
+
+const state = reactive({
+  slug: '',
+  reason: '',
+});
+
 const done = ref(false);
 
-async function submit() {
-  await $fetch('/api/report', { method: 'POST', body: { slug: slug.value, reason: reason.value } });
-  done.value = true;
+const showError = useErrorToast();
+
+async function onSubmit(_event: FormSubmitEvent<Schema>) {
+  try {
+    await $fetch('/api/report', { method: 'POST', body: { slug: state.slug, reason: state.reason } });
+    done.value = true;
+  }
+  catch (e) {
+    showError(e);
+  }
 }
 </script>
 
@@ -19,14 +39,14 @@ async function submit() {
     <p v-if="done" class="text-sm">
       Thank you. Your report was received.
     </p>
-    <form v-else class="space-y-3" @submit.prevent="submit">
-      <UFormField label="Short link slug">
-        <UInput v-model="slug" required />
+    <UForm v-else :schema="schema" :state="state" :validate-on="[]" class="space-y-3" @submit="onSubmit">
+      <UFormField label="Short link slug" name="slug" required>
+        <UInput v-model="state.slug" />
       </UFormField>
-      <UFormField label="Reason">
-        <UTextarea v-model="reason" required />
+      <UFormField label="Reason" name="reason" required>
+        <UTextarea v-model="state.reason" />
       </UFormField>
       <UButton type="submit" label="Submit" />
-    </form>
+    </UForm>
   </UCard>
 </template>
