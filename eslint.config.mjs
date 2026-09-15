@@ -5,4 +5,9 @@ export default antfu({
   stylistic: {
     semi: true,
   },
+}, {
+  files: ['server/**/*.ts'],
+  rules: {
+    'ts/ban-ts-comment': 'off',
+  },
 });
