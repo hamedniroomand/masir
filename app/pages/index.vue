@@ -14,7 +14,7 @@ watch(() => route.query.q, (v) => {
 });
 
 const filterOptions = [
-  { label: 'All', value: '' },
+  { label: 'All', value: 'all' },
   { label: 'Active', value: 'active' },
   { label: 'Disabled', value: 'disabled' },
   { label: 'Expired', value: 'expired' },
@@ -32,7 +32,7 @@ const filterOptions = [
       Loading…
     </div>
     <div v-else-if="!data?.items?.length" class="text-muted py-8 text-center">
-      <p v-if="searchInput || status">
+      <p v-if="searchInput || status !== 'all'">
         No links match this filter.
       </p>
       <p v-else>

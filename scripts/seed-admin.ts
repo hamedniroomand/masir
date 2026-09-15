@@ -16,7 +16,7 @@ if (!email || !password) {
 
 await runMigrations(databaseUrl);
 const db = await openDatabase(databaseUrl);
-const existing = await db.select({ id: users.id }).from(users).limit(1);
+const existing = await db.select().from(users).limit(1);
 if (existing.length > 0) {
   console.error('Users already exist; seed refused.');
   process.exit(1);

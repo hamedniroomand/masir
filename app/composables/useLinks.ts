@@ -20,15 +20,17 @@ export function useLinksList() {
     set: (v: string) => navigateTo({ query: { ...route.query, q: v || undefined, page: undefined } }),
   });
   const status = computed({
-    get: () => (route.query.status as string) ?? '',
-    set: (v: string) => navigateTo({ query: { ...route.query, status: v || undefined, page: undefined } }),
+    get: () => (route.query.status as string) || 'all',
+    set: (v: string) => navigateTo({
+      query: { ...route.query, status: v === 'all' ? undefined : v, page: undefined },
+    }),
   });
   const page = computed(() => Number(route.query.page ?? 1) || 1);
 
   const { data, pending, refresh } = useFetch(() => '/api/links', {
     query: computed(() => ({
       q: q.value || undefined,
-      status: status.value || undefined,
+      status: status.value === 'all' ? undefined : status.value,
       page: page.value,
       perPage: 20,
     })),
