@@ -9,6 +9,10 @@ import {
 
 export { type AppDatabase, closeDatabase, openDatabase };
 
+export function isUniqueViolation(e: unknown) {
+  return e instanceof Error && /unique/i.test(e.message);
+}
+
 export async function getDb(): Promise<AppDatabase> {
   const existing = getMemoisedDb();
   if (existing)

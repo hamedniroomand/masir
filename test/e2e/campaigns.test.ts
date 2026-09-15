@@ -55,6 +55,20 @@ describe('campaigns API', async () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('rejects a second campaign with the same utm_campaign', async () => {
+    const cookie = await loginCookie();
+    await $fetch('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'First', utmCampaign: 'shared-value' },
+      headers: { cookie },
+    });
+    await expect($fetch('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Second', utmCampaign: 'shared-value' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
   it('returns campaign analytics with a source breakdown', async () => {
     const cookie = await loginCookie();
     const campaign = await $fetch<CampaignDto>('/api/campaigns', {

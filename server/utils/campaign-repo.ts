@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { campaigns, links } from '#server/database/schema';
-import { getDb } from '#server/utils/db';
+import { getDb, isUniqueViolation } from '#server/utils/db';
 import { invalidateAllLinks } from '#server/utils/link-cache';
 import { newId } from '#shared/id';
 
@@ -42,6 +42,12 @@ export async function findCampaignForUser(id: string, userId: string) {
   return rows[0] ?? null;
 }
 
+export class CampaignTakenError extends Error {
+  constructor() {
+    super('taken');
+  }
+}
+
 export async function createCampaign(input: {
   userId: string;
   name: string;
@@ -51,15 +57,22 @@ export async function createCampaign(input: {
   const db = await getDb();
   const now = new Date();
   const id = newId();
-  await db.insert(campaigns).values({
-    id,
-    userId: input.userId,
-    name: input.name,
-    utmCampaign: input.utmCampaign,
-    utmMedium: input.utmMedium,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    await db.insert(campaigns).values({
+      id,
+      userId: input.userId,
+      name: input.name,
+      utmCampaign: input.utmCampaign,
+      utmMedium: input.utmMedium,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  catch (e) {
+    if (isUniqueViolation(e))
+      throw new CampaignTakenError();
+    throw e;
+  }
   return findCampaignForUser(id, input.userId);
 }
 
@@ -73,7 +86,14 @@ export async function updateCampaign(id: string, userId: string, patch: {
     return null;
 
   const db = await getDb();
-  await db.update(campaigns).set({ ...patch, updatedAt: new Date() }).where(eq(campaigns.id, id));
+  try {
+    await db.update(campaigns).set({ ...patch, updatedAt: new Date() }).where(eq(campaigns.id, id));
+  }
+  catch (e) {
+    if (isUniqueViolation(e))
+      throw new CampaignTakenError();
+    throw e;
+  }
   invalidateAllLinks();
   return findCampaignForUser(id, userId);
 }

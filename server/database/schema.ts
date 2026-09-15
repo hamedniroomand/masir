@@ -21,6 +21,7 @@ export const campaigns = sqliteTable('campaigns', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, table => [
   index('campaigns_user_id_created_at_idx').on(table.userId, table.createdAt),
+  uniqueIndex('campaigns_user_id_utm_campaign_unique_idx').on(table.userId, table.utmCampaign),
 ]);
 
 export const links = sqliteTable('links', {

@@ -36,6 +36,13 @@
       "when": 1789514234681,
       "tag": "0004_fix_security_event_link_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789514324019,
+      "tag": "0005_third_yellow_claw",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,11 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     emit('saved', saved);
   }
   catch (e: unknown) {
-    showError(e);
+    const err = e as { statusCode?: number; statusMessage?: string };
+    if (err.statusCode === 409)
+      form.value?.setErrors([{ name: 'utmCampaign', message: err.statusMessage! }]);
+    else
+      showError(e);
   }
   finally {
     loading.value = false;

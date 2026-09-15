@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
-import { campaignToDto, findCampaignForUser, updateCampaign } from '#server/utils/campaign-repo';
+import { CampaignTakenError, campaignToDto, findCampaignForUser, updateCampaign } from '#server/utils/campaign-repo';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
 
@@ -29,7 +29,14 @@ export default defineEventHandler(async (event) => {
   if (body.utmMedium !== undefined)
     patch.utmMedium = emptyToNull(body.utmMedium);
 
-  const updated = await updateCampaign(id, user.id, patch);
-  await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, user.id);
-  return campaignToDto(updated!);
+  try {
+    const updated = await updateCampaign(id, user.id, patch);
+    await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, user.id);
+    return campaignToDto(updated!);
+  }
+  catch (e) {
+    if (e instanceof CampaignTakenError)
+      throw createError({ statusCode: 409, statusMessage: 'Another campaign already uses this utm_campaign value.', data: { reason: 'Another campaign already uses this utm_campaign value.' } });
+    throw e;
+  }
 });

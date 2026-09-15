@@ -1,6 +1,6 @@
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, reservedSlugs } from '#server/database/schema';
-import { getDb } from '#server/utils/db';
+import { getDb, isUniqueViolation } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
 import { destinationHostFromUrl } from '#server/utils/url';
 import { newId } from '#shared/id';
@@ -146,10 +146,6 @@ export class SlugExhaustedError extends Error {
   constructor() {
     super('exhausted');
   }
-}
-
-function isUniqueViolation(e: unknown) {
-  return e instanceof Error && /unique/i.test(e.message);
 }
 
 export async function listLinks(userId: string, query: {
