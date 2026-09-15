@@ -1,9 +1,9 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
 import type { RequestMeta } from '#server/utils/request-meta';
 import { and, eq, gte, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { clickEvents, links } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
+import { newId } from '#shared/id';
 
 const countAll = sql<number>`count(*)`;
 
@@ -11,7 +11,7 @@ export async function recordClick(linkId: string, meta: RequestMeta) {
   const db = await getDb();
   await db.transaction(async (tx) => {
     await tx.insert(clickEvents).values({
-      id: nanoid(),
+      id: newId(),
       linkId,
       createdAt: new Date(),
       referrerHost: meta.referrerHost,

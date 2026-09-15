@@ -1,6 +1,6 @@
-import { nanoid } from 'nanoid';
 import { securityEvents } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
+import { newId } from '#shared/id';
 
 export async function writeSecurityEvent(
   type: string,
@@ -9,7 +9,7 @@ export async function writeSecurityEvent(
 ) {
   const db = await getDb();
   await db.insert(securityEvents).values({
-    id: nanoid(),
+    id: newId(),
     createdAt: new Date(),
     type,
     actorUserId: actorUserId ?? null,

@@ -1,9 +1,9 @@
 import process from 'node:process';
-import { nanoid } from 'nanoid';
 import { hashPassword } from '#scripts/hash-password';
 import { openDatabase } from '#server/database/client';
 import { runMigrations } from '#server/database/migrate';
 import { securityEvents, users } from '#server/database/schema';
+import { newId } from '#shared/id';
 
 const email = process.env.ADMIN_EMAIL;
 const password = process.env.ADMIN_PASSWORD;
@@ -22,7 +22,7 @@ if (existing.length > 0) {
   process.exit(1);
 }
 
-const id = nanoid();
+const id = newId();
 const normalizedEmail = email.toLowerCase();
 await db.insert(users).values({
   id,
@@ -35,7 +35,7 @@ await db.insert(users).values({
 });
 
 await db.insert(securityEvents).values({
-  id: nanoid(),
+  id: newId(),
   createdAt: new Date(),
   type: 'admin_seeded',
   actorUserId: id,

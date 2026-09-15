@@ -1,11 +1,11 @@
 // @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { clickEvents, links, reservedSlugs } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
 import { generateSlug } from '#server/utils/slug';
 import { destinationHostFromUrl } from '#server/utils/url';
+import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
 
 const countAll = sql<number>`count(*)`;
@@ -71,7 +71,7 @@ export async function createLink(input: {
     if (await isSlugReserved(slug))
       throw new SlugTakenError();
     try {
-      const id = nanoid();
+      const id = newId();
       await db.insert(links).values({
         id,
         userId: input.userId,

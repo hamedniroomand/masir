@@ -1,10 +1,10 @@
-import { nanoid } from 'nanoid';
 import * as v from 'valibot';
 import { users } from '#server/database/schema';
 import { requireAdmin } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { generateSlug } from '#server/utils/slug';
+import { newId } from '#shared/id';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.email()),
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const body = v.parse(bodySchema, await readBody(event));
   const db = await getDb();
   const password = initialPassword();
-  const id = nanoid();
+  const id = newId();
 
   try {
     await db.insert(users).values({

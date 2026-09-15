@@ -1,7 +1,7 @@
 import { rmSync } from 'node:fs';
-import { nanoid } from 'nanoid';
 import { hashPassword } from '#scripts/hash-password';
 import { links, users } from '#server/database/schema';
+import { newId } from '#shared/id';
 import { migrateTestDatabase, openTestDatabase } from './test-db';
 
 const sharedEnv = {
@@ -36,7 +36,7 @@ export async function resetTestDb(databaseUrl: string) {
   rmSync(dbFilePath(databaseUrl), { force: true });
   migrateTestDatabase(databaseUrl);
   const db = openTestDatabase(databaseUrl);
-  const userId = nanoid();
+  const userId = newId();
   await db.insert(users).values({
     id: userId,
     email: TEST_EMAIL,
@@ -57,7 +57,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   expiresAt?: Date | null;
 }) {
   const db = openTestDatabase(databaseUrl);
-  const id = nanoid();
+  const id = newId();
   const now = new Date();
   await db.insert(links).values({
     id,
