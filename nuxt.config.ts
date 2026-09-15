@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/ui',
     '@vueuse/nuxt',
+    'nuxt-auth-utils',
   ],
 
   devtools: {
@@ -11,8 +12,22 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    sessionPassword: '',
+    databaseUrl: 'file:./data/linkyard.db',
+    allowPrivateDestinations: false,
+    geoCountryHeader: '',
+    rateLimitCreatePerHour: 30,
+    rateLimitRedirectPerMinute: 120,
+    public: {
+      shortDomain: 'http://localhost:3000',
+    },
+  },
+
   routeRules: {
-    '/': { prerender: true },
+    '/login': { headers: { 'X-Robots-Tag': 'noindex' } },
+    '/settings/**': { headers: { 'X-Robots-Tag': 'noindex' } },
+    '/links/**': { headers: { 'X-Robots-Tag': 'noindex' } },
   },
 
   compatibilityDate: '2026-06-30',
@@ -33,5 +48,9 @@ export default defineNuxtConfig({
 
   fonts: {
     families: [{ name: 'Inter', provider: 'google', global: true }],
+  },
+
+  typescript: {
+    strict: true,
   },
 });
