@@ -1,4 +1,13 @@
 {
+  // Lets `bun` resolve the `#server` and `#shared` aliases in scripts/ and server/.
+  // Nuxt supplies these aliases to its own build; plain `bun` reads them from here.
+  "compilerOptions": {
+    "paths": {
+      "#server/*": ["./server/*"],
+      "#shared/*": ["./shared/*"],
+      "#scripts/*": ["./scripts/*"]
+    }
+  },
   "references": [
     { "path": "./.nuxt/tsconfig.app.json" },
     { "path": "./.nuxt/tsconfig.server.json" },
