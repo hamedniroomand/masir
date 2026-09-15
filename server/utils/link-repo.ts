@@ -1,12 +1,11 @@
-// @ts-nocheck drizzle query types vs Nuxt auto-imports
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import { clickEvents, links, reservedSlugs } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
-import { generateSlug } from '#server/utils/slug';
 import { destinationHostFromUrl } from '#server/utils/url';
 import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
+import { generateSlug } from '#shared/slug';
 
 const countAll = sql<number>`count(*)`;
 
@@ -170,7 +169,8 @@ export async function listLinks(userId: string, query: {
     ? desc(links.clickCount)
     : desc(links.createdAt);
 
-  const [{ total }] = await db.select({ total: countAll }).from(links).where(where);
+  const totalRows = await db.select({ total: countAll }).from(links).where(where);
+  const total = totalRows[0]?.total ?? 0;
   const items = await db.select().from(links).where(where).orderBy(orderBy).limit(query.perPage).offset((query.page - 1) * query.perPage);
 
   return { items, total };
@@ -231,6 +231,6 @@ export async function adminDisableLink(linkId: string) {
 
 export async function countClickEvents(linkId: string) {
   const db = await getDb();
-  const [{ n }] = await db.select({ n: countAll }).from(clickEvents).where(eq(clickEvents.linkId, linkId));
-  return n;
+  const rows = await db.select({ n: countAll }).from(clickEvents).where(eq(clickEvents.linkId, linkId));
+  return rows[0]?.n ?? 0;
 }

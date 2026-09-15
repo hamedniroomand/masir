@@ -1,4 +1,3 @@
-// @ts-nocheck drizzle query types vs Nuxt auto-imports
 import type { RequestMeta } from '#server/utils/request-meta';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { clickEvents, links } from '#server/database/schema';

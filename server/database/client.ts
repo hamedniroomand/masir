@@ -1,10 +1,9 @@
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import * as schema from '#server/database/schema';
 
-export type AppDatabase = BunSQLiteDatabase<typeof schema> | BetterSQLite3Database<typeof schema>;
+export type AppDatabase = BaseSQLiteDatabase<'sync', unknown, typeof schema>;
 
 let memoised: AppDatabase | null = null;
 
