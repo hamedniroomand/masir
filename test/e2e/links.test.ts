@@ -46,6 +46,25 @@ describe('links API', async () => {
     expect(html).toContain('utm_source=newsletter');
   });
 
+  it('deletes a link and reserves its slug', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/gone' },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${link.id}`, { method: 'DELETE', headers: { cookie } });
+
+    await expect($fetch(`/api/links/${link.id}`, { headers: { cookie } }))
+      .rejects
+      .toMatchObject({ statusCode: 404 });
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/again', slug: link.slug },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
   it('rejects javascript destinations with 422', async () => {
     const cookie = await loginCookie();
     await expect($fetch('/api/links', {
