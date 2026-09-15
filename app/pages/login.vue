@@ -28,23 +28,26 @@ async function submit() {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <h1 class="text-xl font-semibold">
-        Sign in
+  <div>
+    <div class="mb-8">
+      <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
+        Welcome back
       </h1>
-    </template>
-    <form class="space-y-4" @submit.prevent="submit">
+      <p class="mt-3 text-sm text-muted">
+        Sign in to manage your links.
+      </p>
+    </div>
+    <form class="space-y-5" @submit.prevent="submit">
       <UFormField label="Email">
-        <UInput v-model="email" type="email" autocomplete="username" required />
+        <UInput v-model="email" type="email" icon="i-lucide-mail" placeholder="you@company.com" size="lg" autocomplete="username" required />
       </UFormField>
       <UFormField label="Password">
-        <UInput v-model="password" type="password" autocomplete="current-password" required />
+        <UInput v-model="password" type="password" icon="i-lucide-lock-keyhole" placeholder="Enter your password" size="lg" autocomplete="current-password" required />
       </UFormField>
-      <p v-if="error" class="text-sm text-error">
+      <p v-if="error" role="alert" class="text-sm text-error">
         {{ error }}
       </p>
-      <UButton type="submit" label="Sign in" block :loading="loading" />
+      <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" size="lg" block :loading="loading" />
     </form>
-  </UCard>
+  </div>
 </template>

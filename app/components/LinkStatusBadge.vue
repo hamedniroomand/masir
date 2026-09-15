@@ -37,10 +37,10 @@ const expiryText = computed(() => {
 
 <template>
   <UTooltip :text="meta.tip">
-    <span class="inline-flex items-center gap-1 text-sm">
+    <UBadge :color="resolved === 'active' ? 'success' : resolved === 'expired' ? 'warning' : 'neutral'" variant="subtle" size="sm" class="whitespace-nowrap">
       <UIcon :name="meta.icon" class="size-4" aria-hidden="true" />
       <span>{{ meta.label }}</span>
       <span v-if="expiryText" class="text-muted">· {{ expiryText }}</span>
-    </span>
+    </UBadge>
   </UTooltip>
 </template>

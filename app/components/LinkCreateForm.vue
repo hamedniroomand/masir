@@ -59,32 +59,35 @@ async function submit() {
 </script>
 
 <template>
-  <UCard class="mb-6">
-    <form class="space-y-4" @submit.prevent="submit">
+  <div>
+    <form class="space-y-5" @submit.prevent="submit">
       <UFormField label="Destination URL" :error="destError">
-        <UInput v-model="destinationUrl" type="url" placeholder="https://example.com/page" required />
+        <UInput v-model="destinationUrl" type="url" icon="i-lucide-globe" placeholder="https://example.com/page" size="lg" required />
       </UFormField>
-      <UButton type="button" variant="ghost" size="sm" @click="advanced = !advanced">
-        {{ advanced ? 'Hide' : 'Show' }} advanced
+      <UButton type="button" color="neutral" variant="ghost" size="sm" :trailing-icon="advanced ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" :aria-expanded="advanced || !!slugError" @click="advanced = !advanced">
+        Customize link
       </UButton>
-      <div v-if="advanced" class="space-y-3 border-t border-default pt-3">
+      <div v-if="advanced || slugError" class="space-y-3 border-t border-default pt-3">
         <UFormField :label="`Short link (${config.public.shortDomain}/…)`" :error="slugError">
           <UInput v-model="slug" placeholder="my-link" />
           <p v-if="slug" class="text-xs text-muted mt-1">
             Preview: {{ config.public.shortDomain }}/{{ slugPreview }}
           </p>
         </UFormField>
-        <UFormField label="Title">
+        <UFormField label="Title" description="A name to help you find this link.">
           <UInput v-model="title" />
         </UFormField>
-        <UFormField label="Expires">
+        <UFormField label="Expiry date" description="Optional. The link stops working after this date.">
           <UInput v-model="expiresAt" type="datetime-local" />
         </UFormField>
       </div>
-      <UButton type="submit" label="Create link" :loading="loading" />
+      <UButton type="submit" label="Create link" icon="i-lucide-plus" size="lg" block :loading="loading" />
     </form>
-    <div v-if="created" class="mt-4 p-3 rounded-md bg-elevated space-y-2">
-      <p class="font-medium">
+    <div v-if="created" role="status" class="mt-5 p-4 rounded-xl border border-success/20 bg-success/5 space-y-3">
+      <p class="text-sm font-medium text-success">
+        Link created
+      </p>
+      <p class="break-all text-sm font-medium">
         {{ created.shortUrl }}
       </p>
       <div class="flex flex-wrap gap-2">
@@ -92,5 +95,5 @@ async function submit() {
         <UButton size="sm" label="View details" :to="`/links/${created.id}`" />
       </div>
     </div>
-  </UCard>
+  </div>
 </template>

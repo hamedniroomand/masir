@@ -33,15 +33,26 @@ async function toggleActive(id: string, isActive: boolean) {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <h1 class="text-xl font-semibold">
-      Users
-    </h1>
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
+        Users
+      </h1><p class="mt-2 text-sm text-muted">
+        Manage who can access your company workspace.
+      </p>
+    </div>
     <UCard>
+      <template #header>
+        <h2 class="font-semibold">
+          Add a user
+        </h2><p class="mt-1 text-sm text-muted">
+          Create an account and share its initial password with the user.
+        </p>
+      </template>
       <form class="grid gap-3 sm:grid-cols-3" @submit.prevent="createUser">
-        <UInput v-model="email" type="email" placeholder="Email" required />
-        <UInput v-model="name" placeholder="Name" required />
-        <UButton type="submit" label="Add user" />
+        <UInput v-model="email" type="email" placeholder="Email" aria-label="User email" required />
+        <UInput v-model="name" placeholder="Name" aria-label="User name" required />
+        <UButton type="submit" label="Add user" icon="i-lucide-user-plus" />
       </form>
     </UCard>
     <UTable

@@ -25,16 +25,24 @@ export function useLinksList() {
       query: { ...route.query, status: v === 'all' ? undefined : v, page: undefined },
     }),
   });
-  const page = computed(() => Number(route.query.page ?? 1) || 1);
+  const page = computed({
+    get: () => Math.max(1, Number(route.query.page ?? 1) || 1),
+    set: (v: number) => navigateTo({ query: { ...route.query, page: v === 1 ? undefined : v } }),
+  });
+  const sort = computed({
+    get: () => route.query.sort === 'clicks' ? 'clicks' : 'createdAt',
+    set: (v: string) => navigateTo({ query: { ...route.query, sort: v === 'clicks' ? v : undefined, page: undefined } }),
+  });
 
-  const { data, pending, refresh } = useFetch(() => '/api/links', {
+  const { data, pending, refresh, error } = useFetch(() => '/api/links', {
     query: computed(() => ({
       q: q.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
       page: page.value,
       perPage: 20,
+      sort: sort.value,
     })),
   });
 
-  return { data, pending, refresh, q, status, page };
+  return { data, pending, refresh, error, q, status, page, sort };
 }

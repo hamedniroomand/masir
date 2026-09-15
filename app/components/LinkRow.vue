@@ -30,35 +30,46 @@ async function remove() {
 </script>
 
 <template>
-  <div class="border border-default rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="min-w-0 space-y-1">
-      <p class="font-medium truncate">
-        {{ link.title || link.slug }}
-      </p>
-      <p class="text-sm text-muted truncate">
-        {{ link.shortUrl }}
-      </p>
-      <p class="text-xs text-muted">
-        {{ link.destinationHost }} · {{ link.clickCount }} clicks
-      </p>
+  <article class="flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center">
+    <div class="flex min-w-0 flex-1 items-center gap-4">
+      <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-default bg-muted/70">
+        <UIcon name="i-lucide-link" class="size-5 text-muted" />
+      </div>
+      <div class="min-w-0">
+        <NuxtLink :to="`/links/${link.id}`" class="block truncate text-sm font-semibold text-highlighted hover:text-primary">
+          {{ link.title || link.slug }}
+        </NuxtLink>
+        <div class="mt-1 flex min-w-0 items-center gap-2 text-xs">
+          <a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="truncate text-primary hover:underline">{{ link.shortUrl }}</a><UIcon name="i-lucide-arrow-right" class="hidden size-3 shrink-0 text-dimmed md:block" /><span class="hidden truncate text-muted md:block">{{ link.destinationHost }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex shrink-0 items-center justify-between gap-4 pl-15 sm:pl-0">
+      <NuxtLink :to="`/links/${link.id}#analytics`" class="flex items-center gap-1.5 text-xs text-muted hover:text-primary" :aria-label="`${link.clickCount} clicks. View analytics for ${link.title || link.slug}`">
+        <UIcon name="i-lucide-chart-no-axes-column-increasing" class="size-4" /><span class="font-medium tabular-nums text-highlighted">{{ link.clickCount.toLocaleString() }}</span><span class="hidden xl:inline">clicks</span>
+      </NuxtLink>
       <LinkStatusBadge :status="link.status" :expires-at="link.expiresAt" />
+      <div class="flex items-center gap-1">
+        <UTooltip :text="copied ? 'Copied' : 'Copy link'">
+          <UButton size="sm" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" :aria-label="copied ? 'Copied' : `Copy ${link.title || link.slug}`" color="neutral" variant="ghost" @click="copy(link.shortUrl)" />
+        </UTooltip>
+        <UDropdownMenu
+          :items="[
+            [{ label: 'Edit link', icon: 'i-lucide-pencil', to: `/links/${link.id}` }, { label: 'View analytics', icon: 'i-lucide-chart-no-axes-column-increasing', to: `/links/${link.id}#analytics` }, { label: 'Open link', icon: 'i-lucide-external-link', to: link.shortUrl, target: '_blank' }],
+            [{ label: link.isEnabled ? 'Disable link' : 'Enable link', icon: link.isEnabled ? 'i-lucide-pause' : 'i-lucide-play', onSelect: toggleEnabled }, { label: 'Delete link', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { modal = true; } }],
+          ]"
+        >
+          <UButton icon="i-lucide-ellipsis" :aria-label="`Actions for ${link.title || link.slug}`" size="sm" color="neutral" variant="ghost" />
+        </UDropdownMenu>
+      </div>
     </div>
-    <div class="flex flex-wrap gap-2">
-      <UButton size="sm" :label="copied ? 'Copied' : 'Copy'" @click="copy(link.shortUrl)" />
-      <UButton size="sm" label="Open" :href="link.shortUrl" target="_blank" />
-      <UButton size="sm" label="Edit" :to="`/links/${link.id}`" />
-      <UButton size="sm" label="Analytics" :to="`/links/${link.id}#analytics`" />
-      <UButton size="sm" :label="link.isEnabled ? 'Disable' : 'Enable'" color="neutral" variant="outline" @click="toggleEnabled" />
-      <UButton size="sm" label="Delete" color="error" variant="outline" @click="modal = true" />
-    </div>
-    <UModal v-model:open="modal" title="Delete link">
+    <UModal v-model:open="modal" title="Delete link" description="This action cannot be undone.">
       <template #body>
-        <p>Delete <strong>{{ link.slug }}</strong>? This cannot be undone.</p>
+        <p>Delete <strong>{{ link.slug }}</strong>? Anyone with this short link or QR code will no longer reach the destination.</p>
       </template>
       <template #footer>
-        <UButton label="Cancel" variant="ghost" @click="modal = false" />
-        <UButton label="Delete" color="error" :loading="deleting" @click="remove" />
+        <UButton label="Cancel" color="neutral" variant="outline" @click="modal = false" /><UButton label="Delete link" color="error" :loading="deleting" @click="remove" />
       </template>
     </UModal>
-  </div>
+  </article>
 </template>

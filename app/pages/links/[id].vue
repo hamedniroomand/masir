@@ -41,90 +41,92 @@ async function saveDestination() {
 </script>
 
 <template>
-  <div v-if="error">
-    <p>Link not found.</p>
+  <div v-if="error" class="space-y-4">
+    <UAlert title="Link not found" description="This link may have been deleted or belongs to another account." icon="i-lucide-circle-alert" color="error" variant="soft" /><UButton to="/" label="Back to my links" variant="outline" />
   </div>
-  <div v-else-if="link" class="space-y-8">
-    <div class="space-y-2">
-      <LinkStatusBadge :link="link" :expires-at="link.expiresAt" />
-      <h1 class="text-2xl font-semibold break-all">
-        {{ link.title || link.slug }}
-      </h1>
-      <p class="flex flex-wrap items-center gap-2">
-        <a :href="link.shortUrl" class="text-primary">{{ link.shortUrl }}</a>
-        <UButton size="xs" :label="copied ? 'Copied' : 'Copy'" @click="copy(link.shortUrl)" />
-      </p>
-      <p class="text-sm text-muted">
-        Destination:
-        <a :href="link.destinationUrl" class="underline truncate">{{ link.destinationHost }}</a>
-      </p>
-      <p class="text-sm">
-        {{ link.clickCount }} total clicks
-      </p>
+  <div v-else-if="link" class="space-y-7">
+    <UButton to="/" label="My links" icon="i-lucide-arrow-left" color="neutral" variant="link" class="p-0" />
+    <div class="flex flex-wrap items-start justify-between gap-5">
+      <div class="min-w-0 space-y-3">
+        <LinkStatusBadge :link="link" :expires-at="link.expiresAt" /><h1 class="break-all text-3xl font-semibold tracking-tight text-highlighted">
+          {{ link.title || link.slug }}
+        </h1><a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="block break-all text-sm text-primary hover:underline">{{ link.shortUrl }}</a>
+      </div>
+      <UButton :label="copied ? 'Copied' : 'Copy link'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" @click="copy(link.shortUrl)" />
     </div>
-
-    <UCard>
-      <template #header>
-        Edit destination
-      </template>
-      <div class="flex flex-col sm:flex-row gap-2">
-        <UInput v-model="destDraft" class="flex-1" />
-        <UButton label="Save" :loading="saving" @click="saveDestination" />
+    <div class="grid items-start gap-6 xl:grid-cols-[1fr_300px]">
+      <div class="min-w-0 space-y-6">
+        <UCard>
+          <template #header>
+            <h2 class="font-semibold text-highlighted">
+              Destination
+            </h2><p class="mt-1 text-sm text-muted">
+              Update where this link goes. Its short address stays the same.
+            </p>
+          </template>
+          <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="saveDestination">
+            <UInput v-model="destDraft" type="url" aria-label="Destination URL" icon="i-lucide-globe" required class="flex-1" /><UButton type="submit" label="Save changes" :loading="saving" />
+          </form>
+        </UCard>
+        <section id="analytics" class="scroll-mt-6 space-y-5 rounded-xl border border-default bg-default p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h2 class="font-semibold text-highlighted">
+                Link activity
+              </h2><p class="mt-1 text-xs text-muted">
+                Understand how this link is used.
+              </p>
+            </div><USelect v-model="period" :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]" aria-label="Analytics period" class="w-40" />
+          </div>
+          <template v-if="analytics">
+            <div class="grid grid-cols-2 gap-5 border-y border-default py-5">
+              <div>
+                <p class="text-xs text-muted">
+                  Clicks in this period
+                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+                  {{ analytics.periodClicks.toLocaleString() }}
+                </p>
+              </div><div class="border-l border-default pl-5">
+                <p class="text-xs text-muted">
+                  All-time clicks
+                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+                  {{ analytics.totalClicks.toLocaleString() }}
+                </p>
+              </div>
+            </div>
+            <div v-if="analytics.periodClicks === 0" class="py-9 text-center">
+              <UIcon name="i-lucide-chart-no-axes-column-increasing" class="mb-3 size-7 text-muted" /><h3 class="text-sm font-medium">
+                No clicks in this period
+              </h3><p class="mt-2 text-sm text-muted">
+                Share your short link or choose another period.
+              </p>
+            </div>
+            <template v-else>
+              <UTable :data="analytics.series.map((b: { bucket: string, count: number }) => ({ bucket: b.bucket, count: b.count }))" :columns="[{ accessorKey: 'bucket', header: 'Time' }, { accessorKey: 'count', header: 'Clicks' }]" /><div class="grid gap-6 sm:grid-cols-2">
+                <BreakdownList title="Referrers" :items="analytics.topReferrers" /><BreakdownList title="Countries" :items="analytics.topCountries" /><BreakdownList title="Devices" :items="analytics.devices" /><BreakdownList title="Browsers" :items="analytics.browsers" />
+              </div><p v-if="!analytics.topCountries.length" class="text-xs text-muted">
+                Country data is unavailable for this deployment.
+              </p>
+            </template>
+          </template>
+        </section>
       </div>
-    </UCard>
-
-    <UCard>
-      <template #header>
-        QR code
-      </template>
-      <img :src="`/api/links/${link.id}/qr?format=png&size=160`" alt="QR code for short link" width="160" height="160">
-      <div class="flex gap-2 mt-2">
-        <UButton size="sm" label="Download SVG" :href="`/api/links/${link.id}/qr?format=svg`" />
-        <UButton size="sm" label="Download PNG" :href="`/api/links/${link.id}/qr?format=png`" />
-      </div>
-    </UCard>
-
-    <section id="analytics" class="space-y-4">
-      <div class="flex flex-wrap gap-2 items-center">
-        <h2 class="text-lg font-medium">
-          Analytics
-        </h2>
-        <USelect
-          v-model="period"
-          :items="[
-            { label: '24h', value: '24h' },
-            { label: '7d', value: '7d' },
-            { label: '30d', value: '30d' },
-            { label: 'All', value: 'all' },
-          ]"
-          value-key="value"
-          label-key="label"
-          class="w-32"
-        />
-      </div>
-      <div v-if="analytics && analytics.periodClicks === 0 && analytics.totalClicks === 0" class="text-muted">
-        No clicks yet. Stats appear when someone uses the short link.
-      </div>
-      <template v-else-if="analytics">
-        <p class="text-sm">
-          {{ analytics.periodClicks }} clicks in period · {{ analytics.totalClicks }} all time
+      <UCard>
+        <template #header>
+          <h2 class="flex items-center gap-2 font-semibold text-highlighted">
+            <UIcon name="i-lucide-qr-code" class="size-4" />Share offline
+          </h2>
+        </template>
+        <p class="text-sm leading-6 text-muted">
+          Use this QR code on printed material. It follows the same short link.
         </p>
-        <UTable
-          :data="analytics.series.map((b: { bucket: string, count: number }) => ({ bucket: b.bucket, count: b.count }))"
-          :columns="[{ accessorKey: 'bucket', header: 'Time' }, { accessorKey: 'count', header: 'Clicks' }]"
-        />
-        <BreakdownList title="Referrers" :items="analytics.topReferrers" />
-        <BreakdownList
-          v-if="analytics.topCountries.length"
-          title="Countries"
-          :items="analytics.topCountries"
-        />
-        <p v-else class="text-sm text-muted">
-          Country data unavailable for this deployment.
-        </p>
-        <BreakdownList title="Devices" :items="analytics.devices" />
-        <BreakdownList title="Browsers" :items="analytics.browsers" />
-      </template>
-    </section>
+        <div class="mx-auto my-6 w-fit rounded-xl border border-default bg-white p-3">
+          <img :src="`/api/links/${link.id}/qr?format=png&size=160`" alt="QR code for short link" width="160" height="160">
+        </div>
+        <div class="flex justify-center gap-2">
+          <UButton size="sm" label="SVG" icon="i-lucide-download" color="neutral" variant="outline" :href="`/api/links/${link.id}/qr?format=svg`" download /><UButton size="sm" label="PNG" icon="i-lucide-download" color="neutral" variant="outline" :href="`/api/links/${link.id}/qr?format=png`" download />
+        </div>
+      </UCard>
+    </div>
   </div>
 </template>
