@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs';
 import { hashPassword } from '#scripts/hash-password';
-import { links, users } from '#server/database/schema';
+import { campaigns, links, users } from '#server/database/schema';
 import { newId } from '#shared/id';
 import { migrateTestDatabase, openTestDatabase } from './test-db';
 
@@ -49,12 +49,36 @@ export async function resetTestDb(databaseUrl: string) {
   return { db, userId };
 }
 
+export async function insertTestCampaign(databaseUrl: string, input: {
+  userId: string;
+  name?: string;
+  utmCampaign: string;
+  utmMedium?: string | null;
+}) {
+  const db = openTestDatabase(databaseUrl);
+  const id = newId();
+  const now = new Date();
+  await db.insert(campaigns).values({
+    id,
+    userId: input.userId,
+    name: input.name ?? input.utmCampaign,
+    utmCampaign: input.utmCampaign,
+    utmMedium: input.utmMedium ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return id;
+}
+
 export async function insertTestLink(databaseUrl: string, input: {
   userId: string;
   slug: string;
   destinationUrl?: string;
   isEnabled?: boolean;
   expiresAt?: Date | null;
+  campaignId?: string | null;
+  utmSource?: string | null;
+  utmContent?: string | null;
 }) {
   const db = openTestDatabase(databaseUrl);
   const id = newId();
@@ -68,6 +92,9 @@ export async function insertTestLink(databaseUrl: string, input: {
     destinationHost: 'example.com',
     isEnabled: input.isEnabled ?? true,
     expiresAt: input.expiresAt ?? null,
+    campaignId: input.campaignId ?? null,
+    utmSource: input.utmSource ?? null,
+    utmContent: input.utmContent ?? null,
     clickCount: 0,
     createdAt: now,
     updatedAt: now,

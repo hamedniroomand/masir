@@ -28,12 +28,46 @@ const destState = reactive({ destinationUrl: '' });
 const destForm = useTemplateRef('destForm');
 const saving = ref(false);
 
+const tracking = reactive({
+  campaignId: null as string | null,
+  utmSource: '',
+  utmContent: '',
+});
+const savingTracking = ref(false);
+const showError = useErrorToast();
+
 watch(link, (l) => {
   if (l) {
     destState.destinationUrl = l.destinationUrl;
+    tracking.campaignId = l.campaignId;
+    tracking.utmSource = l.utmSource ?? '';
+    tracking.utmContent = l.utmContent ?? '';
     destForm.value?.clear();
   }
 }, { immediate: true });
+
+async function saveTracking() {
+  if (!link.value)
+    return;
+  savingTracking.value = true;
+  try {
+    await $fetch(`/api/links/${link.value.id}`, {
+      method: 'PATCH',
+      body: {
+        campaignId: tracking.campaignId,
+        utmSource: tracking.utmSource || null,
+        utmContent: tracking.utmContent || null,
+      },
+    });
+    await refreshLink();
+  }
+  catch (e: unknown) {
+    showError(e);
+  }
+  finally {
+    savingTracking.value = false;
+  }
+}
 
 async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
   if (!link.value)
@@ -106,6 +140,24 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
             </UFormField>
             <UButton type="submit" label="Save changes" :loading="saving" class="sm:self-end" />
           </UForm>
+        </UCard>
+        <UCard>
+          <template #header>
+            <h2 class="font-semibold text-highlighted">
+              Campaign and tracking
+            </h2><p class="mt-1 text-sm text-muted">
+              Linkyard adds these utm values to the destination on every click.
+            </p>
+          </template>
+          <LinkUtmFields
+            v-model:campaign-id="tracking.campaignId"
+            v-model:utm-source="tracking.utmSource"
+            v-model:utm-content="tracking.utmContent"
+            :destination-url="link.destinationUrl"
+          />
+          <template #footer>
+            <UButton label="Save tracking" :loading="savingTracking" @click="saveTracking" />
+          </template>
         </UCard>
         <UCard>
           <template #header>

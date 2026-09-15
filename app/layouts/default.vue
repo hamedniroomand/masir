@@ -6,6 +6,7 @@ const mobileOpen = ref(false);
 const domain = computed(() => new URL(config.public.shortDomain).host);
 const navigation = computed(() => [
   { label: 'My links', icon: 'i-lucide-link', to: '/', active: route.path === '/' || route.path.startsWith('/links/') },
+  { label: 'Campaigns', icon: 'i-lucide-megaphone', to: '/campaigns', active: route.path.startsWith('/campaigns') },
   ...(user.value?.role === 'admin'
     ? [
         { label: 'Users', icon: 'i-lucide-users', to: '/settings/users' },
@@ -13,7 +14,15 @@ const navigation = computed(() => [
       ]
     : []),
 ]);
-const section = computed(() => route.path === '/settings/users' ? 'Users' : route.path === '/settings/security' ? 'Security log' : 'My links');
+const section = computed(() => {
+  if (route.path === '/settings/users')
+    return 'Users';
+  if (route.path === '/settings/security')
+    return 'Security log';
+  if (route.path.startsWith('/campaigns'))
+    return 'Campaigns';
+  return 'My links';
+});
 watch(() => route.fullPath, () => {
   mobileOpen.value = false;
 });

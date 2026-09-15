@@ -15,6 +15,9 @@ const schema = v.object({
   slug: v.optional(v.union([v.literal(''), slugSchema])),
   title: v.optional(v.pipe(v.string(), v.trim())),
   expiresAt: v.optional(v.nullable(v.number())),
+  campaignId: v.optional(v.nullable(v.string())),
+  utmSource: v.optional(v.pipe(v.string(), v.trim())),
+  utmContent: v.optional(v.pipe(v.string(), v.trim())),
 });
 
 type Schema = v.InferOutput<typeof schema>;
@@ -24,6 +27,9 @@ const state = reactive({
   slug: '',
   title: '',
   expiresAt: null as number | null,
+  campaignId: null as string | null,
+  utmSource: '',
+  utmContent: '',
 });
 
 const form = useTemplateRef('form');
@@ -48,6 +54,12 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.title = state.title;
     if (state.expiresAt != null)
       body.expiresAt = state.expiresAt;
+    if (state.campaignId)
+      body.campaignId = state.campaignId;
+    if (state.utmSource)
+      body.utmSource = state.utmSource;
+    if (state.utmContent)
+      body.utmContent = state.utmContent;
 
     const link = await $fetch<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
@@ -56,6 +68,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     state.slug = '';
     state.title = '';
     state.expiresAt = null;
+    state.campaignId = null;
+    state.utmSource = '';
+    state.utmContent = '';
     advanced.value = false;
   }
   catch (e: unknown) {
@@ -125,6 +140,14 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         <UFormField label="Expiry date" name="expiresAt" description="Optional. The link stops working after this date.">
           <LinkExpiryPicker v-model="state.expiresAt" />
         </UFormField>
+        <div class="border-t border-default pt-3">
+          <LinkUtmFields
+            v-model:campaign-id="state.campaignId"
+            v-model:utm-source="state.utmSource"
+            v-model:utm-content="state.utmContent"
+            :destination-url="state.destinationUrl"
+          />
+        </div>
       </div>
       <UButton type="submit" label="Create link" icon="i-lucide-plus" size="lg" block :loading="loading" />
     </UForm>

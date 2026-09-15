@@ -11,6 +11,18 @@ export const users = sqliteTable('users', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 
+export const campaigns = sqliteTable('campaigns', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  name: text('name').notNull(),
+  utmCampaign: text('utm_campaign').notNull(),
+  utmMedium: text('utm_medium'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, table => [
+  index('campaigns_user_id_created_at_idx').on(table.userId, table.createdAt),
+]);
+
 export const links = sqliteTable('links', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
@@ -21,10 +33,14 @@ export const links = sqliteTable('links', {
   isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(true),
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
   clickCount: integer('click_count').notNull().default(0),
+  campaignId: text('campaign_id').references(() => campaigns.id, { onDelete: 'set null' }),
+  utmSource: text('utm_source'),
+  utmContent: text('utm_content'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 }, table => [
   index('links_user_id_created_at_idx').on(table.userId, table.createdAt),
+  index('links_campaign_id_idx').on(table.campaignId),
   uniqueIndex('links_slug_unique_idx').on(table.slug),
 ]);
 
@@ -58,4 +74,6 @@ export const reservedSlugs = sqliteTable('reserved_slugs', {
 
 export type User = typeof users.$inferSelect;
 export type Link = typeof links.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
+export type ResolvedLink = Link & { utmMedium: string | null; utmCampaign: string | null };
 export type ClickEvent = typeof clickEvents.$inferSelect;

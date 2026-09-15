@@ -1,6 +1,6 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, insertTestLink, resetTestDb, testDatabasePath } from './helpers';
+import { e2eSetupOptions, insertTestCampaign, insertTestLink, resetTestDb, testDatabasePath } from './helpers';
 
 const TEST_DB = testDatabasePath('redirect');
 
@@ -26,6 +26,35 @@ describe('redirect middleware', async () => {
     const res = await fetch('/query-test?utm_source=newsletter', { redirect: 'manual' });
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('https://example.com/here?a=1&utm_source=newsletter');
+  });
+
+  it('applies the link and campaign utm params', async () => {
+    const campaignId = await insertTestCampaign(TEST_DB, { userId, utmCampaign: 'launch', utmMedium: 'social' });
+    await insertTestLink(TEST_DB, {
+      userId,
+      slug: 'utm-test',
+      destinationUrl: 'https://example.com/here',
+      campaignId,
+      utmSource: 'twitter',
+    });
+    const res = await fetch('/utm-test', { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    const location = new URL(res.headers.get('location')!);
+    expect(location.searchParams.get('utm_source')).toBe('twitter');
+    expect(location.searchParams.get('utm_medium')).toBe('social');
+    expect(location.searchParams.get('utm_campaign')).toBe('launch');
+  });
+
+  it('lets an inbound utm param override the stored one', async () => {
+    await insertTestLink(TEST_DB, {
+      userId,
+      slug: 'override-test',
+      destinationUrl: 'https://example.com/here',
+      utmSource: 'twitter',
+    });
+    const res = await fetch('/override-test?utm_source=email', { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('https://example.com/here?utm_source=email');
   });
 
   it('returns 404 with disabled linkState', async () => {

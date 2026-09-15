@@ -7,7 +7,7 @@ import { parseRequestMeta } from '#server/utils/request-meta';
 
 import { deriveLinkStatus } from '#shared/link-status';
 import { RESERVED_SLUGS } from '#shared/slug';
-import { buildDestination } from '#shared/utm';
+import { buildDestination, utmParamsFor } from '#shared/utm';
 
 export default defineEventHandler(async (event) => {
   const method = event.method;
@@ -65,6 +65,6 @@ export default defineEventHandler(async (event) => {
   const meta = parseRequestMeta(event);
   event.waitUntil(recordClick(link.id, meta).catch(() => {}));
 
-  const destination = buildDestination(link.destinationUrl, {}, inboundQuery);
+  const destination = buildDestination(link.destinationUrl, utmParamsFor(link), inboundQuery);
   await sendRedirect(event, destination, 302);
 });

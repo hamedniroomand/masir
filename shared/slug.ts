@@ -11,6 +11,7 @@ export const RESERVED_SLUGS = new Set([
   'admin',
   'health',
   'links',
+  'campaigns',
   '_nuxt',
   '__nuxt',
   'favicon.ico',

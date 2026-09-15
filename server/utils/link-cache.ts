@@ -1,7 +1,7 @@
-import type { Link } from '#server/database/schema';
+import type { ResolvedLink } from '#server/database/schema';
 
 interface CacheEntry {
-  link: Link | null;
+  link: ResolvedLink | null;
   expiresAtMs: number;
 }
 
@@ -24,7 +24,7 @@ function touch(slug: string) {
   }
 }
 
-export function getCachedLink(slug: string): Link | null | undefined {
+export function getCachedLink(slug: string): ResolvedLink | null | undefined {
   const entry = store.get(slug);
   if (!entry)
     return undefined;
@@ -36,7 +36,7 @@ export function getCachedLink(slug: string): Link | null | undefined {
   return entry.link;
 }
 
-export function setCachedLink(slug: string, link: Link | null) {
+export function setCachedLink(slug: string, link: ResolvedLink | null) {
   const ttl = link ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS;
   store.set(slug, { link, expiresAtMs: Date.now() + ttl });
   touch(slug);
@@ -44,4 +44,9 @@ export function setCachedLink(slug: string, link: Link | null) {
 
 export function invalidateLink(slug: string) {
   store.delete(slug);
+}
+
+export function invalidateAllLinks() {
+  store.clear();
+  order.length = 0;
 }

@@ -6,6 +6,9 @@ export interface LinkItem {
   destinationHost: string;
   shortUrl: string;
   clickCount: number;
+  campaignId: string | null;
+  utmSource: string | null;
+  utmContent: string | null;
   status: 'active' | 'disabled' | 'expired';
   isEnabled: boolean;
   expiresAt: string | null;

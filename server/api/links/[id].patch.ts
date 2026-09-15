@@ -1,8 +1,10 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
+import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { validateDestination } from '#server/utils/url';
+import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
   title: v.optional(v.nullable(v.string())),
@@ -10,6 +12,9 @@ const bodySchema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   isEnabled: v.optional(v.boolean()),
   slug: v.optional(v.string()),
+  campaignId: v.optional(v.nullable(v.string())),
+  utmSource: optionalUtmSchema,
+  utmContent: optionalUtmSchema,
 });
 
 export default defineEventHandler(async (event) => {
@@ -32,6 +37,17 @@ export default defineEventHandler(async (event) => {
     patch.isEnabled = body.isEnabled;
   if (body.expiresAt !== undefined)
     patch.expiresAt = body.expiresAt == null ? null : new Date(body.expiresAt);
+  if (body.utmSource !== undefined)
+    patch.utmSource = emptyToNull(body.utmSource);
+  if (body.utmContent !== undefined)
+    patch.utmContent = emptyToNull(body.utmContent);
+  if (body.campaignId !== undefined) {
+    const campaignId = emptyToNull(body.campaignId);
+    if (campaignId && !await findCampaignForUser(campaignId, user.id)) {
+      throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
+    }
+    patch.campaignId = campaignId;
+  }
   if (body.destinationUrl !== undefined) {
     const dest = validateDestination(body.destinationUrl, config.allowPrivateDestinations);
     if (!dest.ok) {

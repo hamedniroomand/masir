@@ -1,8 +1,39 @@
+import * as v from 'valibot';
+
+export const utmValueSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.maxLength(120, 'Use at most 120 characters.'),
+);
+
+export const optionalUtmSchema = v.optional(v.nullable(utmValueSchema));
+
+export function emptyToNull(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
 export interface UtmParams {
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
   utm_content?: string | null;
+}
+
+export interface UtmSource {
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+}
+
+export function utmParamsFor(link: UtmSource): UtmParams {
+  return {
+    utm_source: link.utmSource,
+    utm_medium: link.utmMedium,
+    utm_campaign: link.utmCampaign,
+    utm_content: link.utmContent,
+  };
 }
 
 export function buildDestination(destinationUrl: string, utm: UtmParams, inboundQuery = ''): string {

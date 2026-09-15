@@ -1,5 +1,5 @@
 import { and, desc, eq, like, or, sql } from 'drizzle-orm';
-import { clickEvents, links, reservedSlugs } from '#server/database/schema';
+import { campaigns, clickEvents, links, reservedSlugs } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -25,6 +25,9 @@ export function linkToDto(link: typeof links.$inferSelect) {
     isEnabled: link.isEnabled,
     expiresAt: link.expiresAt,
     clickCount: link.clickCount,
+    campaignId: link.campaignId,
+    utmSource: link.utmSource,
+    utmContent: link.utmContent,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
     shortUrl: shortUrlFor(link.slug),
@@ -37,8 +40,19 @@ export function linkToDto(link: typeof links.$inferSelect) {
 
 export async function findLinkBySlug(slug: string) {
   const db = await getDb();
-  const rows = await db.select().from(links).where(eq(links.slug, slug)).limit(1);
-  return rows[0] ?? null;
+  const rows = await db.select({
+    link: links,
+    utmMedium: campaigns.utmMedium,
+    utmCampaign: campaigns.utmCampaign,
+  })
+    .from(links)
+    .leftJoin(campaigns, eq(links.campaignId, campaigns.id))
+    .where(eq(links.slug, slug))
+    .limit(1);
+  const row = rows[0];
+  if (!row)
+    return null;
+  return { ...row.link, utmMedium: row.utmMedium, utmCampaign: row.utmCampaign };
 }
 
 export async function findLinkByIdForUser(id: string, userId: string) {
@@ -59,6 +73,9 @@ export async function createLink(input: {
   title?: string | null;
   slug?: string;
   expiresAt?: Date | null;
+  campaignId?: string | null;
+  utmSource?: string | null;
+  utmContent?: string | null;
   slugGenerator?: () => string;
 }) {
   const db = await getDb();
@@ -80,6 +97,9 @@ export async function createLink(input: {
         destinationHost,
         isEnabled: true,
         expiresAt: input.expiresAt ?? null,
+        campaignId: input.campaignId ?? null,
+        utmSource: input.utmSource ?? null,
+        utmContent: input.utmContent ?? null,
         clickCount: 0,
         createdAt: now,
         updatedAt: now,
@@ -181,6 +201,9 @@ export async function updateLink(id: string, userId: string, patch: {
   destinationUrl?: string;
   expiresAt?: Date | null;
   isEnabled?: boolean;
+  campaignId?: string | null;
+  utmSource?: string | null;
+  utmContent?: string | null;
 }) {
   const existing = await findLinkByIdForUser(id, userId);
   if (!existing)
@@ -198,6 +221,12 @@ export async function updateLink(id: string, userId: string, patch: {
     values.expiresAt = patch.expiresAt;
   if (patch.isEnabled !== undefined)
     values.isEnabled = patch.isEnabled;
+  if (patch.campaignId !== undefined)
+    values.campaignId = patch.campaignId;
+  if (patch.utmSource !== undefined)
+    values.utmSource = patch.utmSource;
+  if (patch.utmContent !== undefined)
+    values.utmContent = patch.utmContent;
 
   await db.update(links).set(values).where(eq(links.id, id));
   invalidateLink(existing.slug);

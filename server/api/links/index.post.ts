@@ -1,17 +1,22 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
+import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '#server/utils/link-repo';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { validateDestination } from '#server/utils/url';
 import { slugSchema } from '#shared/slug';
+import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
   destinationUrl: v.pipe(v.string(), v.minLength(1)),
   slug: v.optional(v.string()),
   title: v.optional(v.nullable(v.string())),
   expiresAt: v.optional(v.nullable(v.number())),
+  campaignId: v.optional(v.nullable(v.string())),
+  utmSource: optionalUtmSchema,
+  utmContent: optionalUtmSchema,
 });
 
 export default defineEventHandler(async (event) => {
@@ -39,6 +44,11 @@ export default defineEventHandler(async (event) => {
     expiresAt = new Date(body.expiresAt);
   }
 
+  const campaignId = emptyToNull(body.campaignId);
+  if (campaignId && !await findCampaignForUser(campaignId, user.id)) {
+    throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
+  }
+
   let slug: string | undefined;
   if (body.slug) {
     const parsed = v.safeParse(slugSchema, body.slug);
@@ -56,6 +66,9 @@ export default defineEventHandler(async (event) => {
       title: body.title,
       slug,
       expiresAt,
+      campaignId,
+      utmSource: emptyToNull(body.utmSource),
+      utmContent: emptyToNull(body.utmContent),
     });
     await writeSecurityEvent('link_created', { slug: link.slug }, user.id, link.id);
     setResponseStatus(event, 201);
