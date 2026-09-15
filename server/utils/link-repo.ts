@@ -239,9 +239,9 @@ export async function deleteLink(id: string, userId: string) {
     return false;
 
   const db = await getDb();
-  await db.transaction(async (tx) => {
-    await tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() });
-    await tx.delete(links).where(eq(links.id, id));
+  db.transaction((tx) => {
+    tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() }).run();
+    tx.delete(links).where(eq(links.id, id)).run();
   });
   invalidateLink(existing.slug);
   return true;

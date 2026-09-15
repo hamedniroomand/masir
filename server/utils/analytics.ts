@@ -9,8 +9,8 @@ const countAll = sql<number>`count(*)`;
 
 export async function recordClick(linkId: string, meta: RequestMeta) {
   const db = await getDb();
-  await db.transaction(async (tx) => {
-    await tx.insert(clickEvents).values({
+  db.transaction((tx) => {
+    tx.insert(clickEvents).values({
       id: newId(),
       linkId,
       createdAt: new Date(),
@@ -18,10 +18,11 @@ export async function recordClick(linkId: string, meta: RequestMeta) {
       country: meta.country,
       deviceCategory: meta.deviceCategory,
       browserCategory: meta.browserCategory,
-    });
-    await tx.update(links)
+    }).run();
+    tx.update(links)
       .set({ clickCount: sql`${links.clickCount} + 1` })
-      .where(eq(links.id, linkId));
+      .where(eq(links.id, linkId))
+      .run();
   });
 }
 
