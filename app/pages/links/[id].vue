@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import type { FormSubmitEvent } from '@nuxt/ui';
 import type { LinkItem } from '~/composables/useLinks';
+import * as v from 'valibot';
 
 definePageMeta({ layout: 'default' });
 
@@ -15,24 +17,44 @@ const { data: analytics } = useFetch(() => `/api/links/${id.value}/analytics`, {
 });
 
 const { copy, copied } = useClipboard();
-const destDraft = ref('');
+
+const destSchema = v.object({
+  destinationUrl: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a destination URL.')),
+});
+
+type DestSchema = v.InferOutput<typeof destSchema>;
+
+const destState = reactive({ destinationUrl: '' });
+const destForm = useTemplateRef('destForm');
 const saving = ref(false);
 
 watch(link, (l) => {
-  if (l)
-    destDraft.value = l.destinationUrl;
+  if (l) {
+    destState.destinationUrl = l.destinationUrl;
+    destForm.value?.clear();
+  }
 }, { immediate: true });
 
-async function saveDestination() {
+async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
   if (!link.value)
     return;
   saving.value = true;
+  destForm.value?.clear();
   try {
     await $fetch(`/api/links/${link.value.id}`, {
       method: 'PATCH',
-      body: { destinationUrl: destDraft.value },
+      body: { destinationUrl: destState.destinationUrl },
     });
     await refreshLink();
+  }
+  catch (e: unknown) {
+    const err = e as { statusCode?: number; statusMessage?: string };
+    if (err.statusCode === 422) {
+      destForm.value?.setErrors([{
+        name: 'destinationUrl',
+        message: err.statusMessage || 'Invalid URL.',
+      }]);
+    }
   }
   finally {
     saving.value = false;
@@ -48,7 +70,7 @@ async function saveDestination() {
     <UButton to="/" label="My links" icon="i-lucide-arrow-left" color="neutral" variant="link" class="p-0" />
     <div class="flex flex-wrap items-start justify-between gap-5">
       <div class="min-w-0 space-y-3">
-        <LinkStatusBadge :link="link" :expires-at="link.expiresAt" /><h1 class="break-all text-3xl font-semibold tracking-tight text-highlighted">
+        <LinkStatusBadge :link="link" /><h1 class="break-all text-3xl font-semibold tracking-tight text-highlighted">
           {{ link.title || link.slug }}
         </h1><a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="block break-all text-sm text-primary hover:underline">{{ link.shortUrl }}</a>
       </div>
@@ -64,9 +86,34 @@ async function saveDestination() {
               Update where this link goes. Its short address stays the same.
             </p>
           </template>
-          <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="saveDestination">
-            <UInput v-model="destDraft" type="url" aria-label="Destination URL" icon="i-lucide-globe" required class="flex-1" /><UButton type="submit" label="Save changes" :loading="saving" />
-          </form>
+          <UForm
+            ref="destForm"
+            :schema="destSchema"
+            :state="destState"
+            :validate-on="[]"
+            class="flex flex-col gap-3 sm:flex-row"
+            @submit="saveDestination"
+          >
+            <UFormField name="destinationUrl" class="flex-1">
+              <UInput
+                v-model="destState.destinationUrl"
+                type="text"
+                inputmode="url"
+                autocomplete="url"
+                aria-label="Destination URL"
+                icon="i-lucide-globe"
+              />
+            </UFormField>
+            <UButton type="submit" label="Save changes" :loading="saving" class="sm:self-end" />
+          </UForm>
+        </UCard>
+        <UCard>
+          <template #header>
+            <h2 class="font-semibold text-highlighted">
+              Availability
+            </h2>
+          </template>
+          <LinkAvailabilityControl :link="link" @updated="refreshLink()" />
         </UCard>
         <section id="analytics" class="scroll-mt-6 space-y-5 rounded-xl border border-default bg-default p-5 sm:p-6">
           <div class="flex items-center justify-between gap-3">
@@ -120,12 +167,7 @@ async function saveDestination() {
         <p class="text-sm leading-6 text-muted">
           Use this QR code on printed material. It follows the same short link.
         </p>
-        <div class="mx-auto my-6 w-fit rounded-xl border border-default bg-white p-3">
-          <img :src="`/api/links/${link.id}/qr?format=png&size=160`" alt="QR code for short link" width="160" height="160">
-        </div>
-        <div class="flex justify-center gap-2">
-          <UButton size="sm" label="SVG" icon="i-lucide-download" color="neutral" variant="outline" :href="`/api/links/${link.id}/qr?format=svg`" download /><UButton size="sm" label="PNG" icon="i-lucide-download" color="neutral" variant="outline" :href="`/api/links/${link.id}/qr?format=png`" download />
-        </div>
+        <LinkQrPanel :link-id="link.id" :preview-size="160" class="mt-4" />
       </UCard>
     </div>
   </div>
