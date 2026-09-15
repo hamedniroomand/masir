@@ -149,7 +149,18 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
               </p>
             </div>
             <template v-else>
-              <UTable :data="analytics.series.map((b: { bucket: string, count: number }) => ({ bucket: b.bucket, count: b.count }))" :columns="[{ accessorKey: 'bucket', header: 'Time' }, { accessorKey: 'count', header: 'Clicks' }]" /><div class="grid gap-6 sm:grid-cols-2">
+              <LinkClicksChart :series="analytics.series" :hourly="period === '24h'" />
+              <UCollapsible>
+                <UButton label="View as table" icon="i-lucide-table" color="neutral" variant="ghost" size="xs" />
+                <template #content>
+                  <UTable
+                    :data="analytics.series"
+                    :columns="[{ accessorKey: 'bucket', header: 'Time' }, { accessorKey: 'count', header: 'Clicks' }]"
+                    class="mt-3"
+                  />
+                </template>
+              </UCollapsible>
+              <div class="grid gap-6 sm:grid-cols-2">
                 <BreakdownList title="Referrers" :items="analytics.topReferrers" /><BreakdownList title="Countries" :items="analytics.topCountries" /><BreakdownList title="Devices" :items="analytics.devices" /><BreakdownList title="Browsers" :items="analytics.browsers" />
               </div><p v-if="!analytics.topCountries.length" class="text-xs text-muted">
                 Country data is unavailable for this deployment.
@@ -157,6 +168,7 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
             </template>
           </template>
         </section>
+        <LinkHistory :link-id="link.id" />
       </div>
       <UCard>
         <template #header>
