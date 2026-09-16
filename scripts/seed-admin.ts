@@ -7,7 +7,7 @@ import { newId } from '#shared/id';
 
 const email = process.env.ADMIN_EMAIL;
 const password = process.env.ADMIN_PASSWORD;
-const databaseUrl = process.env.NUXT_DATABASE_URL ?? 'file:./data/linkyard.db';
+const databaseUrl = process.env.NUXT_DATABASE_URL ?? 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard';
 
 if (!email || !password) {
   console.error('Set ADMIN_EMAIL and ADMIN_PASSWORD');
@@ -15,7 +15,7 @@ if (!email || !password) {
 }
 
 await runMigrations(databaseUrl);
-const db = await openDatabase(databaseUrl);
+const db = openDatabase(databaseUrl);
 const existing = await db.select().from(users).limit(1);
 if (existing.length > 0) {
   console.error('Users already exist; seed refused.');
@@ -44,3 +44,4 @@ await db.insert(securityEvents).values({
 });
 
 console.log('Admin created:', normalizedEmail);
+await db.$client.end();

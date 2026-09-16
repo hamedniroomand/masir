@@ -7,10 +7,10 @@ import {
   resetTestDb,
   TEST_EMAIL,
   TEST_PASSWORD,
-  testDatabasePath,
+  testDatabaseUrl,
 } from './helpers';
 
-const TEST_DB = testDatabasePath('password');
+const TEST_DB = testDatabaseUrl('password');
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
@@ -25,7 +25,7 @@ async function loginCookie() {
 }
 
 describe('link password API', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   beforeAll(async () => {
     await resetTestDb(TEST_DB);

@@ -108,11 +108,10 @@ export async function setLinkTags(linkId: string, userId: string, names: string[
       tagIds.push(tag.id);
   }
 
-  db.transaction((tx) => {
-    tx.delete(linkTags).where(eq(linkTags.linkId, linkId)).run();
-    for (const tagId of tagIds) {
-      tx.insert(linkTags).values({ linkId, tagId }).run();
-    }
+  await db.transaction(async (tx) => {
+    await tx.delete(linkTags).where(eq(linkTags.linkId, linkId));
+    if (tagIds.length)
+      await tx.insert(linkTags).values(tagIds.map(tagId => ({ linkId, tagId })));
   });
 
   return tagIds;

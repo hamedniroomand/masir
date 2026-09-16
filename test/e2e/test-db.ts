@@ -1,27 +1,66 @@
-import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { SQL } from 'bun';
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/bun-sql';
+import { migrate } from 'drizzle-orm/bun-sql/migrator';
 import * as schema from '#server/database/schema';
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
 
-function databasePath(databaseUrl: string) {
-  return databaseUrl.replace(/^file:/, '');
+const TABLES = 'click_events, security_events, link_tags, tags, links, campaigns, users, reserved_slugs';
+
+const DATABASE_EXISTS = '42P04';
+
+// One client for each database. A test file opens the same database many times.
+const clients = new Map<string, SQL>();
+
+function maintenanceUrl() {
+  return process.env.TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:5432/postgres';
+}
+
+export function testDatabaseUrl(name: string) {
+  const url = new URL(maintenanceUrl());
+  url.pathname = `/linkyard_test_${name.replace(/-/g, '_')}`;
+  return url.toString();
 }
 
 export function openTestDatabase(databaseUrl: string) {
-  const path = databasePath(databaseUrl);
-  mkdirSync(dirname(path), { recursive: true });
-  const client = new Database(path);
-  client.pragma('journal_mode = WAL');
-  client.pragma('foreign_keys = ON');
+  let client = clients.get(databaseUrl);
+  if (!client) {
+    client = new SQL({ url: databaseUrl, max: 2 });
+    clients.set(databaseUrl, client);
+  }
   return drizzle({ client, schema });
 }
 
-export function migrateTestDatabase(databaseUrl: string) {
+export async function closeTestDatabases() {
+  await Promise.all([...clients.values()].map(client => client.close()));
+  clients.clear();
+}
+
+export async function createTestDatabase(databaseUrl: string) {
+  const name = new URL(databaseUrl).pathname.slice(1);
+  const admin = new SQL({ url: maintenanceUrl(), max: 1 });
+  try {
+    // CREATE DATABASE forces a checkpoint. Test files run together, so the lock
+    // keeps the cluster from queueing ten checkpoints at once. The database stays
+    // between runs. truncateTestDatabase gives the isolation.
+    await admin`select pg_advisory_lock(4242)`;
+    await admin.unsafe(`CREATE DATABASE "${name}"`);
+  }
+  catch (e) {
+    if (String((e as { errno?: unknown }).errno) !== DATABASE_EXISTS)
+      throw e;
+  }
+  finally {
+    await admin.close();
+  }
+  await migrate(openTestDatabase(databaseUrl), { migrationsFolder });
+}
+
+export async function truncateTestDatabase(databaseUrl: string) {
   const db = openTestDatabase(databaseUrl);
-  migrate(db, { migrationsFolder });
+  await db.execute(sql.raw(`TRUNCATE ${TABLES} CASCADE`));
 }

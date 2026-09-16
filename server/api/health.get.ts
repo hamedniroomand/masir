@@ -4,7 +4,7 @@ import { getDb } from '#server/utils/db';
 export default defineEventHandler(async () => {
   try {
     const db = await getDb();
-    await db.get(sql`SELECT 1`);
+    await db.execute(sql`SELECT 1`);
     return { ok: true, database: 'up' };
   }
   catch {

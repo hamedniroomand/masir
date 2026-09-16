@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX `campaigns_user_id_utm_campaign_unique_idx` ON `campaigns` (`user_id`,`utm_campaign`);

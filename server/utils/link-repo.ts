@@ -9,7 +9,7 @@ import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
 import { generateSlug } from '#shared/slug';
 
-const countAll = sql<number>`count(*)`;
+const countAll = sql<number>`count(*)::int`;
 
 export function shortUrlFor(slug: string) {
   const { public: { shortDomain } } = useRuntimeConfig();
@@ -192,7 +192,7 @@ export async function listLinks(userId: string, query: {
   sort: 'createdAt' | 'clicks';
 }) {
   const db = await getDb();
-  const now = Date.now();
+  const now = new Date();
   const filters = [eq(links.userId, userId)];
   const notExpired = or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!;
   const underVisitLimit = or(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`)!;
@@ -337,9 +337,9 @@ export async function deleteLink(id: string, userId: string) {
     return false;
 
   const db = await getDb();
-  db.transaction((tx) => {
-    tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() }).run();
-    tx.delete(links).where(eq(links.id, id)).run();
+  await db.transaction(async (tx) => {
+    await tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() });
+    await tx.delete(links).where(eq(links.id, id));
   });
   invalidateLink(existing.slug);
   return true;

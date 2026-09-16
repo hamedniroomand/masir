@@ -1,8 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 
-const TEST_DB = testDatabasePath('campaigns');
+const TEST_DB = testDatabaseUrl('campaigns');
 
 interface CampaignDto { id: string; name: string; utmCampaign: string; utmMedium: string | null; linkCount: number; clickCount: number }
 
@@ -19,7 +19,7 @@ async function loginCookie() {
 }
 
 describe('campaigns API', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   beforeAll(async () => {
     await resetTestDb(TEST_DB);

@@ -8,7 +8,8 @@ Self-hosted link manager for one team. Create short links, change destinations w
 git clone <repo>
 cd linkyard
 cp .env.example .env
-# Edit .env — set NUXT_SESSION_PASSWORD (32+ chars) and NUXT_PUBLIC_SHORT_DOMAIN
+# Edit .env — set NUXT_SESSION_PASSWORD (32+ chars), NUXT_PUBLIC_SHORT_DOMAIN and NUXT_DATABASE_URL
+docker compose up -d db   # or point NUXT_DATABASE_URL at your own Postgres
 bun install
 bun run db:migrate
 bun run db:seed:admin
@@ -27,7 +28,7 @@ See `.env.example` for every variable. Boot fails with the variable name if a re
 - **302 not 301:** Destinations stay editable; permanent redirects would be cached by browsers.
 - **Cache:** In-memory slug cache (60s TTL), invalidated on edit/delete. Single-node only; use a shared store for multiple nodes.
 - **Query passthrough:** The redirect keeps the query a visitor adds to the short link and sends it to the destination.
-- **Analytics:** Events are recorded after the redirect decision via `waitUntil`. Read-time aggregation runs in SQLite.
+- **Analytics:** Events are recorded after the redirect decision via `waitUntil`. Read-time aggregation runs in Postgres.
 - **Privacy:** No raw IP storage. Country comes from a proxy header (`GEO_COUNTRY_HEADER`, `cf-ipcountry`, or `x-vercel-ip-country`). Default Docker deploy has no country data unless you add a proxy.
 
 ## Total clicks
@@ -136,7 +137,13 @@ Campaign metrics group clicks by the link's current `utm_source`. Delete a campa
 
 ## Backup
 
-Copy the SQLite file (`NUXT_DATABASE_URL`, default `./data/linkyard.db`). Losing the file loses all links and analytics.
+Dump the Postgres database named in `NUXT_DATABASE_URL`:
+
+```sh
+pg_dump "$NUXT_DATABASE_URL" > linkyard.sql
+```
+
+Losing the database loses all links and analytics.
 
 ## Docker
 
@@ -146,7 +153,18 @@ docker compose up --build
 docker compose exec app bun run db:seed:admin
 ```
 
-Database file lives on the `linkyard-data` volume at `/data/linkyard.db`.
+Compose starts a `db` service (Postgres 17). Its data lives on the `linkyard-data` volume. The app waits for the database health check, then migrates on boot.
+
+## Tests
+
+The e2e tests build the app once into `.output`, then each test file starts a bun server from that build against its own database. This is the same artifact and runtime that Docker runs.
+
+```sh
+docker compose up -d db
+TEST_DATABASE_URL=postgres://linkyard:linkyard@127.0.0.1:5432/postgres bun run test
+```
+
+`TEST_DATABASE_URL` points at a database the test user can connect to. The tests create `linkyard_test_<file>` beside it and keep it between runs. Drop these databases by hand if you rewrite an existing migration file.
 
 ## Scripts
 
@@ -156,4 +174,4 @@ Database file lives on the `linkyard-data` volume at `/data/linkyard.db`.
 | `bun run build` | Production build |
 | `bun run db:migrate` | Apply migrations |
 | `bun run db:seed:admin` | First admin user |
-| `bun run test` | Tests |
+| `bun run test` | Tests (needs Postgres; set `TEST_DATABASE_URL`) |

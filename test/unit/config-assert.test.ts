@@ -5,8 +5,16 @@ describe('assertRuntimeConfig', () => {
   it('throws for short session password', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: 'short',
-      databaseUrl: 'file:./data/x.db',
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_SESSION_PASSWORD/);
+  });
+
+  it('throws for a non-postgres database url', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'file:./data/x.db',
+      public: { shortDomain: 'http://localhost:3000' },
+    })).toThrow(/NUXT_DATABASE_URL/);
   });
 });

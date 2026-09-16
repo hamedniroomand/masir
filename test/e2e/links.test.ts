@@ -1,8 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 
-const TEST_DB = testDatabasePath('links');
+const TEST_DB = testDatabaseUrl('links');
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
@@ -17,7 +17,7 @@ async function loginCookie() {
 }
 
 describe('links API', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   let userId = '';
 

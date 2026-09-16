@@ -4,10 +4,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '#scripts/hash-password';
 import { links, linkTags, users } from '#server/database/schema';
 import { newId } from '#shared/id';
-import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
-const TEST_DB = testDatabasePath('tags');
+const TEST_DB = testDatabaseUrl('tags');
 
 async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
   const res = await fetch('/api/auth/login', {
@@ -22,7 +22,7 @@ async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
 }
 
 describe('tags API', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   let userId = '';
   let otherUserId = '';
