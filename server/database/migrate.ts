@@ -1,17 +1,15 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { migrate } from 'drizzle-orm/bun-sql/migrator';
 import { openDatabase } from '#server/database/client';
 
 export async function runMigrations(databaseUrl: string) {
-  const db = await openDatabase(databaseUrl);
+  const db = openDatabase(databaseUrl);
   const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
-  const isBun = 'Bun' in globalThis;
-  if (isBun) {
-    const { migrate } = await import('drizzle-orm/bun-sqlite/migrator');
-    migrate(db as never, { migrationsFolder });
+  try {
+    await migrate(db, { migrationsFolder });
   }
-  else {
-    const { migrate } = await import('drizzle-orm/better-sqlite3/migrator');
-    migrate(db as never, { migrationsFolder });
+  finally {
+    await db.$client.close();
   }
 }

@@ -1,11 +1,30 @@
 services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: linkyard
+      POSTGRES_PASSWORD: linkyard
+      POSTGRES_DB: linkyard
+    ports:
+      - '5432:5432'
+    volumes:
+      - linkyard-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U linkyard -d linkyard]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   app:
     build: .
     ports:
       - '3000:3000'
     env_file: .env
-    volumes:
-      - linkyard-data:/data
+    environment:
+      NUXT_DATABASE_URL: postgres://linkyard:linkyard@db:5432/linkyard
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: [CMD, curl, -f, 'http://localhost:3000/api/health']
       interval: 10s

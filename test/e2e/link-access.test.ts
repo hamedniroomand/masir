@@ -8,7 +8,7 @@ import {
   resetTestDb,
   TEST_EMAIL,
   TEST_PASSWORD,
-  testDatabasePath,
+  testDatabaseUrl,
 } from './helpers';
 
 function humanFetch(path: string, init?: RequestInit) {
@@ -21,7 +21,7 @@ function humanFetch(path: string, init?: RequestInit) {
   });
 }
 
-const TEST_DB = testDatabasePath('link-access');
+const TEST_DB = testDatabaseUrl('link-access');
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
@@ -36,7 +36,7 @@ async function loginCookie() {
 }
 
 describe('link access controls', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   let userId = '';
 

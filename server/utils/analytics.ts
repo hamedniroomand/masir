@@ -6,8 +6,9 @@ import { campaigns, clickEvents, links } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
 
-const countAll = sql<number>`count(*)`;
-const countDistinctVisitors = sql<number>`count(distinct ${clickEvents.visitorHash})`;
+// Postgres returns bigint as a string. The cast keeps every count a number.
+const countAll = sql<number>`count(*)::int`;
+const countDistinctVisitors = sql<number>`count(distinct ${clickEvents.visitorHash})::int`;
 
 export async function recordEvent(
   linkId: string,
@@ -16,8 +17,8 @@ export async function recordEvent(
   visitorHash: string | null = null,
 ) {
   const db = await getDb();
-  db.transaction((tx) => {
-    tx.insert(clickEvents).values({
+  await db.transaction(async (tx) => {
+    await tx.insert(clickEvents).values({
       id: newId(),
       linkId,
       createdAt: new Date(),
@@ -29,12 +30,11 @@ export async function recordEvent(
       isBot: meta.isBot,
       botCategory: meta.botCategory,
       visitorHash,
-    }).run();
+    });
     if (outcome === 'redirect_success') {
-      tx.update(links)
+      await tx.update(links)
         .set({ clickCount: sql`${links.clickCount} + 1` })
-        .where(eq(links.id, linkId))
-        .run();
+        .where(eq(links.id, linkId));
     }
   });
 }
@@ -56,15 +56,15 @@ function trafficFilter(traffic: TrafficClass): SQL {
 
 async function classificationBoundary(scope: SQL, inWindow: SQL) {
   const db = await getDb();
-  const startRows = await db.select({ ms: sql<number | null>`min(${clickEvents.createdAt})` })
+  const startRows = await db.select({ at: sql<Date | null>`min(${clickEvents.createdAt})` })
     .from(clickEvents)
     .where(and(scope, sql`${clickEvents.outcome} IS NOT NULL`));
   const legacyRows = await db.select({ n: countAll })
     .from(clickEvents)
     .where(and(scope, isNull(clickEvents.outcome), inWindow));
-  const startMs = startRows[0]?.ms ?? null;
+  const startAt = startRows[0]?.at ?? null;
   return {
-    classificationAvailableFrom: startMs == null ? null : new Date(Number(startMs)).toISOString(),
+    classificationAvailableFrom: startAt == null ? null : new Date(startAt).toISOString(),
     periodCoversLegacy: (legacyRows[0]?.n ?? 0) > 0,
   };
 }
@@ -183,18 +183,24 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
   const periodClicksRows = await db.select({ n: countAll }).from(clickEvents).where(and(scope, inWindow, trafficWhere));
   const periodClicks = periodClicksRows[0]?.n ?? 0;
 
-  const bucketFormat = hourly ? '%Y-%m-%dT%H:00:00.000Z' : '%Y-%m-%d';
   const bucketMs = hourly ? 3600_000 : 86_400_000;
   const start = windowStart ?? createdAtMs;
 
+  // The buckets must stay UTC. zeroFillSeries builds its labels from UTC too.
+  // The format stays a literal. A bound parameter makes GROUP BY see a second
+  // expression, and Postgres then rejects the query.
+  const bucketExpr = hourly
+    ? sql<string>`to_char(${clickEvents.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24":00:00.000Z"')`
+    : sql<string>`to_char(${clickEvents.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
+
   const rawSeries = await db.select({
-    bucket: sql<string>`strftime(${bucketFormat}, ${clickEvents.createdAt} / 1000, 'unixepoch')`,
+    bucket: bucketExpr,
     count: countAll,
   }).from(clickEvents).where(and(
     scope,
     gte(clickEvents.createdAt, new Date(start)),
     trafficWhere,
-  )).groupBy(sql`strftime(${bucketFormat}, ${clickEvents.createdAt} / 1000, 'unixepoch')`);
+  )).groupBy(bucketExpr);
 
   const seriesMap = new Map<string, number>(rawSeries.map(r => [String(r.bucket), Number(r.count)]));
   const series = zeroFillSeries(start, now, bucketMs, hourly, seriesMap);

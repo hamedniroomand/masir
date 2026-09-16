@@ -25,9 +25,5 @@ logs
 .env.*
 !.env.example
 
-# SQLite
-data/
-!data/.gitkeep
-
 # Claude local
 .claude/

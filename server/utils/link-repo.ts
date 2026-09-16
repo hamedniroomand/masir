@@ -1,7 +1,7 @@
-import { and, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, linkTags, reservedSlugs, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
-import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
+import { SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
 import { invalidateLink } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -9,7 +9,7 @@ import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
 import { generateSlug } from '#shared/slug';
 
-const countAll = sql<number>`count(*)`;
+const countAll = sql<number>`count(*)::int`;
 
 export function shortUrlFor(slug: string) {
   const { public: { shortDomain } } = useRuntimeConfig();
@@ -192,7 +192,7 @@ export async function listLinks(userId: string, query: {
   sort: 'createdAt' | 'clicks';
 }) {
   const db = await getDb();
-  const now = Date.now();
+  const now = new Date();
   const filters = [eq(links.userId, userId)];
   const notExpired = or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!;
   const underVisitLimit = or(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`)!;
@@ -314,7 +314,19 @@ export async function updateLink(id: string, userId: string, patch: {
   if (patch.utmContent !== undefined)
     values.utmContent = patch.utmContent;
 
-  await db.update(links).set(values).where(eq(links.id, id));
+  // A concurrent redirect can raise the visit count after the caller read it.
+  // The guard makes the limit check and the write one statement.
+  const guard = patch.maximumVisits != null
+    ? and(eq(links.id, id), lte(links.successfulVisitCount, patch.maximumVisits))
+    : eq(links.id, id);
+
+  const changed = await db.update(links).set(values).where(guard).returning({ id: links.id });
+  if (!changed.length) {
+    if (!await findLinkByIdForUser(id, userId))
+      return null;
+    throw new VisitLimitBelowUsageError();
+  }
+
   invalidateLink(existing.slug);
   return findLinkByIdForUser(id, userId);
 }
@@ -325,9 +337,9 @@ export async function deleteLink(id: string, userId: string) {
     return false;
 
   const db = await getDb();
-  db.transaction((tx) => {
-    tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() }).run();
-    tx.delete(links).where(eq(links.id, id)).run();
+  await db.transaction(async (tx) => {
+    await tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() });
+    await tx.delete(links).where(eq(links.id, id));
   });
   invalidateLink(existing.slug);
   return true;

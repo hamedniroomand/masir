@@ -1,41 +1,31 @@
-import { rmSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { hashPassword } from '#scripts/hash-password';
 import { campaigns, links, users } from '#server/database/schema';
 import { newId } from '#shared/id';
-import { migrateTestDatabase, openTestDatabase } from './test-db';
+import { createTestDatabase, openTestDatabase, truncateTestDatabase } from './test-db';
+import { startTestServer } from './test-server';
+
+export { testDatabaseUrl } from './test-db';
 
 const sharedEnv = {
   NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
   NUXT_PUBLIC_SHORT_DOMAIN: 'http://127.0.0.1:3000',
 };
 
-export function e2eSetupOptions(databaseUrl: string) {
-  return {
-    server: true,
-    runner: 'vitest' as const,
-    env: {
-      ...sharedEnv,
-      NUXT_DATABASE_URL: databaseUrl,
-    },
-    nuxtConfig: { nitro: { preset: 'node-server' } },
-  };
-}
-
-export function testDatabasePath(name: string) {
-  return `file:./data/vitest-${name}.db`;
+// The Nuxt server migrates on boot, so the database must exist before setup().
+export async function e2eSetupOptions(databaseUrl: string) {
+  await createTestDatabase(databaseUrl);
+  const host = await startTestServer({ ...sharedEnv, NUXT_DATABASE_URL: databaseUrl });
+  // host makes setup() skip the build and the server. It only points the test
+  // helpers at the server this file started.
+  return { host, runner: 'vitest' as const };
 }
 
 export const TEST_EMAIL = 'test@example.com';
 export const TEST_PASSWORD = 'test-password-12345';
 
-function dbFilePath(databaseUrl: string) {
-  return databaseUrl.replace(/^file:/, '');
-}
-
 export async function resetTestDb(databaseUrl: string) {
-  rmSync(dbFilePath(databaseUrl), { force: true });
-  migrateTestDatabase(databaseUrl);
+  await truncateTestDatabase(databaseUrl);
   const db = openTestDatabase(databaseUrl);
   const userId = newId();
   await db.insert(users).values({

@@ -11,7 +11,7 @@ const bodySchema = v.object({
 });
 
 async function activeAdminCount(db: Awaited<ReturnType<typeof getDb>>) {
-  const rows = await db.select({ n: sql<number>`count(*)` }).from(users).where(and(eq(users.role, 'admin'), eq(users.isActive, true)));
+  const rows = await db.select({ n: sql<number>`count(*)::int` }).from(users).where(and(eq(users.role, 'admin'), eq(users.isActive, true)));
   return rows[0]?.n ?? 0;
 }
 

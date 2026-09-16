@@ -9,8 +9,18 @@ import {
 
 export { type AppDatabase, closeDatabase, openDatabase };
 
+const UNIQUE_VIOLATION = '23505';
+
+// Postgres reports a unique constraint breach with SQLSTATE 23505. Bun puts the
+// SQLSTATE in errno, not code. Drizzle wraps the driver error, so the value can
+// sit further down the cause chain.
 export function isUniqueViolation(e: unknown) {
-  return e instanceof Error && /unique/i.test(e.message);
+  for (let cause = e, depth = 0; cause != null && depth < 5; depth++) {
+    if (typeof cause === 'object' && String((cause as { errno?: unknown }).errno) === UNIQUE_VIOLATION)
+      return true;
+    cause = (cause as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 export async function getDb(): Promise<AppDatabase> {
@@ -18,7 +28,7 @@ export async function getDb(): Promise<AppDatabase> {
   if (existing)
     return existing;
   const { databaseUrl } = useRuntimeConfig();
-  const db = await openDatabase(databaseUrl);
+  const db = openDatabase(databaseUrl);
   setMemoisedDb(db);
   return db;
 }

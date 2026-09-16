@@ -15,10 +15,12 @@ export default defineVitestConfig({
   test: {
     environment: 'node',
     include: ['test/unit/**/*.test.ts', 'test/e2e/**/*.test.ts'],
+    setupFiles: ['./test/setup-teardown.ts'],
+    globalSetup: ['./test/global-setup.ts'],
     env: {
       VITEST: 'true',
       NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
-      NUXT_DATABASE_URL: 'file:./data/vitest.db',
+      NUXT_DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/linkyard_test',
       NUXT_PUBLIC_SHORT_DOMAIN: 'http://localhost:3000',
     },
   },

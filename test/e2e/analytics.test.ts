@@ -10,11 +10,11 @@ import {
   resetTestDb,
   TEST_EMAIL,
   TEST_PASSWORD,
-  testDatabasePath,
+  testDatabaseUrl,
 } from './helpers';
 import { openTestDatabase } from './test-db';
 
-const TEST_DB = testDatabasePath('analytics');
+const TEST_DB = testDatabaseUrl('analytics');
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
@@ -29,7 +29,7 @@ async function loginCookie() {
 }
 
 describe('link analytics', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   let userId = '';
 

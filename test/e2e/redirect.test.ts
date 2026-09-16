@@ -1,11 +1,11 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, insertTestCampaign, insertTestLink, resetTestDb, testDatabasePath } from './helpers';
+import { e2eSetupOptions, insertTestCampaign, insertTestLink, resetTestDb, testDatabaseUrl } from './helpers';
 
-const TEST_DB = testDatabasePath('redirect');
+const TEST_DB = testDatabaseUrl('redirect');
 
 describe('redirect middleware', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   let userId: string;
 

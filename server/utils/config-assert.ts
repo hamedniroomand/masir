@@ -6,8 +6,8 @@ export function assertRuntimeConfig(config: {
   if (!config.sessionPassword || config.sessionPassword.length < 32)
     throw new Error('Missing or invalid NUXT_SESSION_PASSWORD (need 32+ characters)');
 
-  if (!config.databaseUrl?.startsWith('file:'))
-    throw new Error('Missing or invalid NUXT_DATABASE_URL (must start with file:)');
+  if (!/^postgres(?:ql)?:\/\//.test(config.databaseUrl ?? ''))
+    throw new Error('Missing or invalid NUXT_DATABASE_URL (must be a postgres:// connection string)');
 
   try {
     const url = new URL(config.public.shortDomain);

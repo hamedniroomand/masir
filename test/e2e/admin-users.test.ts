@@ -3,10 +3,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '#scripts/hash-password';
 import { users } from '#server/database/schema';
 import { newId } from '#shared/id';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
-const TEST_DB = testDatabasePath('admin-users');
+const TEST_DB = testDatabaseUrl('admin-users');
 const SUPER_EMAIL = 'super@example.com';
 
 let superId = '';
@@ -21,7 +21,7 @@ async function loginCookie(email: string) {
 }
 
 describe('admin users API', async () => {
-  await setup(e2eSetupOptions(TEST_DB));
+  await setup(await e2eSetupOptions(TEST_DB));
 
   beforeAll(async () => {
     await resetTestDb(TEST_DB);
