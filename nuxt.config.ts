@@ -32,6 +32,8 @@ export default defineNuxtConfig({
     multiWorkspace: false,
     trialDays: 7,
     allowRegistration: false,
+    mailApiKey: '',
+    mailFrom: 'Linkyard <no-reply@localhost>',
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitCreatePerHour: 30,
