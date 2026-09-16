@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { campaigns, links } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
+import { CampaignTakenError } from '#server/utils/errors';
 import { invalidateAllLinks } from '#server/utils/link-cache';
 import { newId } from '#shared/id';
 
@@ -40,12 +41,6 @@ export async function findCampaignForUser(id: string, userId: string) {
   const db = await getDb();
   const rows = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId))).limit(1);
   return rows[0] ?? null;
-}
-
-export class CampaignTakenError extends Error {
-  constructor() {
-    super('taken');
-  }
 }
 
 export async function createCampaign(input: {

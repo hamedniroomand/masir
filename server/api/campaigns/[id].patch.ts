@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
-import { CampaignTakenError, campaignToDto, findCampaignForUser, updateCampaign } from '#server/utils/campaign-repo';
+import { campaignToDto, findCampaignForUser, updateCampaign } from '#server/utils/campaign-repo';
+import { CampaignTakenError } from '#server/utils/errors';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
 
