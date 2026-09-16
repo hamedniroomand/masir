@@ -1,14 +1,25 @@
+import type { H3Event } from 'h3';
+import type { ClickEventOutcome } from '#server/database/schema';
 import { setResponseHeader } from 'h3';
-import { recordClick } from '#server/utils/analytics';
+import { recordEvent } from '#server/utils/analytics';
 import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { consumeVisit, findLinkBySlug } from '#server/utils/link-repo';
 import { hasValidPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
+import { visitorHashForLink } from '#server/utils/visitor-hash';
 
 import { deriveLinkStatus } from '#shared/link-status';
 import { RESERVED_SLUGS } from '#shared/slug';
 import { buildDestination, utmParamsFor } from '#shared/utm';
+
+async function logLinkEvent(event: H3Event, linkId: string, outcome: ClickEventOutcome) {
+  const meta = parseRequestMeta(event);
+  const visitorHash = !meta.isBot && outcome === 'redirect_success'
+    ? await visitorHashForLink(event, linkId)
+    : null;
+  event.waitUntil(recordEvent(linkId, meta, outcome, visitorHash).catch(() => {}));
+}
 
 export default defineEventHandler(async (event) => {
   const method = event.method;
@@ -59,20 +70,25 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'X-Robots-Tag', 'noindex, nofollow');
 
   if (status === 'disabled') {
+    await logLinkEvent(event, link.id, 'disabled_block');
     throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'disabled' } });
   }
   if (status === 'expired') {
     if (link.expirationDestination) {
       setResponseHeader(event, 'Cache-Control', 'private, no-store');
+      await logLinkEvent(event, link.id, 'expired_redirect');
       await sendRedirect(event, link.expirationDestination, 302);
       return;
     }
+    await logLinkEvent(event, link.id, 'expired_block');
     throw createError({ statusCode: 404, statusMessage: 'Link expired', data: { linkState: 'expired' } });
   }
   if (status === 'limit_reached') {
+    await logLinkEvent(event, link.id, 'limit_reached');
     throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
   }
   if (status === 'scheduled') {
+    await logLinkEvent(event, link.id, 'scheduled_block');
     throw createError({
       statusCode: 404,
       statusMessage: 'Link unavailable',
@@ -92,12 +108,16 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'private, no-store');
   const meta = parseRequestMeta(event);
 
-  if (!meta.isBot) {
+  if (meta.isBot) {
+    await logLinkEvent(event, link.id, 'bot_request');
+  }
+  else {
     const consumed = await consumeVisit(link.id);
     if (!consumed) {
+      await logLinkEvent(event, link.id, 'limit_reached');
       throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
     }
-    event.waitUntil(recordClick(link.id, meta).catch(() => {}));
+    await logLinkEvent(event, link.id, 'redirect_success');
   }
 
   const destination = buildDestination(link.destinationUrl, utmParamsFor(link), inboundQuery);

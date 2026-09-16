@@ -8,12 +8,13 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const id = computed(() => route.params.id as string);
 const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
+const traffic = ref<'human' | 'bot' | 'all'>('human');
 
 const { data: link, error, refresh: refreshLink } = await useFetch<LinkItem>(() => `/api/links/${id.value}`);
 
 const { data: analytics } = useFetch(() => `/api/links/${id.value}/analytics`, {
-  query: computed(() => ({ period: period.value })),
-  watch: [period],
+  query: computed(() => ({ period: period.value, traffic: traffic.value })),
+  watch: [period, traffic],
 });
 
 const { copy, copied } = useClipboard();
@@ -183,18 +184,48 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
             </div><USelect v-model="period" :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]" aria-label="Analytics period" class="w-40" />
           </div>
           <template v-if="analytics">
-            <div class="grid grid-cols-2 gap-5 border-y border-default py-5">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <USelect
+                v-model="traffic"
+                :items="[{ label: 'Human traffic', value: 'human' }, { label: 'Bot traffic', value: 'bot' }, { label: 'All traffic', value: 'all' }]"
+                aria-label="Traffic type"
+                class="w-full sm:w-44"
+              />
+            </div>
+            <p v-if="analytics.periodCoversLegacy" class="text-xs text-muted">
+              Unique visitor and bot analytics available from {{ new Date(analytics.classificationAvailableFrom).toLocaleDateString() }}.
+            </p>
+            <div class="grid grid-cols-2 gap-5 border-y border-default py-5 lg:grid-cols-4">
               <div>
                 <p class="text-xs text-muted">
-                  Clicks in this period
-                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
-                  {{ analytics.periodClicks.toLocaleString() }}
-                </p>
-              </div><div class="border-l border-default pl-5">
-                <p class="text-xs text-muted">
-                  All-time clicks
+                  Total clicks
                 </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
                   {{ analytics.totalClicks.toLocaleString() }}
+                </p><p class="mt-1 text-xs text-muted">
+                  Successful human redirects
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-muted">
+                  Unique visitors
+                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+                  {{ analytics.uniqueVisitors.toLocaleString() }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-muted">
+                  Bot requests
+                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+                  {{ analytics.botRequests.toLocaleString() }}
+                </p>
+              </div>
+              <div v-if="analytics.maximumVisits != null">
+                <p class="text-xs text-muted">
+                  Remaining visits
+                </p><p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+                  {{ analytics.successfulVisitCount }} / {{ analytics.maximumVisits }}
+                </p><p class="mt-1 text-xs text-muted">
+                  visits used
                 </p>
               </div>
             </div>

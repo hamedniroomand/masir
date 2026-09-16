@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
     ? periodRaw
     : '7d';
 
-  const data = await getLinkAnalytics(link.id, period);
+  const trafficRaw = getQuery(event).traffic;
+  const traffic = trafficRaw === 'bot' || trafficRaw === 'all' ? trafficRaw : 'human';
+
+  const data = await getLinkAnalytics(link.id, period, traffic);
   return data;
 });

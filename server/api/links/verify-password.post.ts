@@ -1,7 +1,9 @@
 import * as v from 'valibot';
+import { recordEvent } from '#server/utils/analytics';
 import { findLinkBySlug } from '#server/utils/link-repo';
 import { setPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { parseRequestMeta } from '#server/utils/request-meta';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { deriveLinkStatus } from '#shared/link-status';
 
@@ -41,6 +43,8 @@ export default defineEventHandler(async (event) => {
 
   const ok = await verifyPassword(link.passwordHash, body.password);
   if (!ok) {
+    const meta = parseRequestMeta(event);
+    await recordEvent(link.id, meta, 'password_failed').catch(() => {});
     throw createError({
       statusCode: 401,
       statusMessage: 'Incorrect password.',

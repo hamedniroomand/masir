@@ -69,6 +69,19 @@ export const linkTags = sqliteTable('link_tags', {
   index('link_tags_tag_id_idx').on(table.tagId),
 ]);
 
+export const clickEventOutcomes = [
+  'redirect_success',
+  'bot_request',
+  'password_failed',
+  'scheduled_block',
+  'disabled_block',
+  'expired_block',
+  'expired_redirect',
+  'limit_reached',
+] as const;
+
+export type ClickEventOutcome = typeof clickEventOutcomes[number];
+
 export const clickEvents = sqliteTable('click_events', {
   id: text('id').primaryKey(),
   linkId: text('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
@@ -77,8 +90,13 @@ export const clickEvents = sqliteTable('click_events', {
   country: text('country'),
   deviceCategory: text('device_category', { enum: ['desktop', 'mobile', 'tablet', 'other'] }).notNull(),
   browserCategory: text('browser_category').notNull(),
+  outcome: text('outcome', { enum: clickEventOutcomes }),
+  isBot: integer('is_bot', { mode: 'boolean' }),
+  botCategory: text('bot_category'),
+  visitorHash: text('visitor_hash'),
 }, table => [
   index('click_events_link_id_created_at_idx').on(table.linkId, table.createdAt),
+  index('click_events_link_id_outcome_created_at_idx').on(table.linkId, table.outcome, table.createdAt),
 ]);
 
 export const securityEvents = sqliteTable('security_events', {

@@ -1,4 +1,5 @@
 import type { SQL } from 'drizzle-orm';
+import type { ClickEventOutcome } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links } from '#server/database/schema';
@@ -6,8 +7,16 @@ import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
 
 const countAll = sql<number>`count(*)`;
+const countDistinctVisitors = sql<number>`count(distinct ${clickEvents.visitorHash})`;
 
-export async function recordClick(linkId: string, meta: RequestMeta) {
+export const ANALYTICS_CLASSIFICATION_START = new Date('2026-01-01T00:00:00.000Z');
+
+export async function recordEvent(
+  linkId: string,
+  meta: RequestMeta,
+  outcome: ClickEventOutcome,
+  visitorHash: string | null = null,
+) {
   const db = await getDb();
   db.transaction((tx) => {
     tx.insert(clickEvents).values({
@@ -18,26 +27,74 @@ export async function recordClick(linkId: string, meta: RequestMeta) {
       country: meta.country,
       deviceCategory: meta.deviceCategory,
       browserCategory: meta.browserCategory,
+      outcome,
+      isBot: meta.isBot,
+      botCategory: meta.botCategory,
+      visitorHash,
     }).run();
-    tx.update(links)
-      .set({ clickCount: sql`${links.clickCount} + 1` })
-      .where(eq(links.id, linkId))
-      .run();
+    if (outcome === 'redirect_success') {
+      tx.update(links)
+        .set({ clickCount: sql`${links.clickCount} + 1` })
+        .where(eq(links.id, linkId))
+        .run();
+    }
   });
 }
 
 type Period = '24h' | '7d' | '30d' | 'all';
+type TrafficClass = 'human' | 'bot' | 'all';
 
-export async function getLinkAnalytics(linkId: string, period: Period) {
+function trafficFilter(traffic: TrafficClass): SQL {
+  if (traffic === 'human')
+    return eq(clickEvents.outcome, 'redirect_success');
+  if (traffic === 'bot')
+    return eq(clickEvents.outcome, 'bot_request');
+  return sql`1=1`;
+}
+
+export async function getLinkAnalytics(linkId: string, period: Period, traffic: TrafficClass = 'human') {
   const db = await getDb();
   const linkRows = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
   const link = linkRows[0];
   if (!link)
     return null;
 
+  const windowStart = periodStart(period, Date.now());
+  const inWindow = windowFilter(windowStart);
+  const scope = eq(clickEvents.linkId, linkId);
+  const uniqueRows = await db.select({ n: countDistinctVisitors }).from(clickEvents).where(and(
+    scope,
+    eq(clickEvents.outcome, 'redirect_success'),
+    sql`${clickEvents.visitorHash} IS NOT NULL`,
+    inWindow,
+  ));
+  const uniqueVisitors = uniqueRows[0]?.n ?? 0;
+
+  const botRows = await db.select({ n: countAll }).from(clickEvents).where(and(
+    scope,
+    eq(clickEvents.outcome, 'bot_request'),
+    inWindow,
+  ));
+  const botRequests = botRows[0]?.n ?? 0;
+
+  const remainingVisits = link.maximumVisits != null
+    ? Math.max(0, link.maximumVisits - link.successfulVisitCount)
+    : null;
+
+  const analytics = await buildAnalytics(scope, period, link.createdAt.getTime(), traffic);
+
+  const periodCoversLegacy = windowStart != null && windowStart < ANALYTICS_CLASSIFICATION_START.getTime();
+
   return {
     totalClicks: link.clickCount,
-    ...await buildAnalytics(eq(clickEvents.linkId, linkId), period, link.createdAt.getTime()),
+    uniqueVisitors,
+    botRequests,
+    remainingVisits,
+    maximumVisits: link.maximumVisits,
+    successfulVisitCount: link.successfulVisitCount,
+    classificationAvailableFrom: ANALYTICS_CLASSIFICATION_START.toISOString(),
+    periodCoversLegacy,
+    ...analytics,
   };
 }
 
@@ -63,7 +120,7 @@ export async function getCampaignAnalytics(campaignId: string, period: Period) {
       linkCount: 0,
       bySource: [],
       topLinks: [],
-      ...await buildAnalytics(sql`1=0`, period, campaign.createdAt.getTime()),
+      ...await buildAnalytics(sql`1=0`, period, campaign.createdAt.getTime(), 'human'),
     };
   }
 
@@ -73,12 +130,12 @@ export async function getCampaignAnalytics(campaignId: string, period: Period) {
   const sourceRows = await db.select({
     label: links.utmSource,
     count: countAll,
-  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, windowFilter(windowStart))).groupBy(links.utmSource).orderBy(desc(countAll));
+  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, windowFilter(windowStart), eq(clickEvents.outcome, 'redirect_success'))).groupBy(links.utmSource).orderBy(desc(countAll));
 
   const linkClickRows = await db.select({
     id: clickEvents.linkId,
     count: countAll,
-  }).from(clickEvents).where(and(scope, windowFilter(windowStart))).groupBy(clickEvents.linkId);
+  }).from(clickEvents).where(and(scope, windowFilter(windowStart), eq(clickEvents.outcome, 'redirect_success'))).groupBy(clickEvents.linkId);
   const periodByLink = new Map(linkClickRows.map(r => [r.id, Number(r.count)]));
 
   return {
@@ -96,18 +153,19 @@ export async function getCampaignAnalytics(campaignId: string, period: Period) {
         periodClicks: periodByLink.get(r.id) ?? 0,
       }))
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
-    ...await buildAnalytics(scope, period, campaign.createdAt.getTime()),
+    ...await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human'),
   };
 }
 
-async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number) {
+async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, traffic: TrafficClass) {
   const db = await getDb();
   const now = Date.now();
   const windowStart = periodStart(period, now);
   const hourly = period === '24h';
   const inWindow = windowFilter(windowStart);
+  const trafficWhere = trafficFilter(traffic);
 
-  const periodClicksRows = await db.select({ n: countAll }).from(clickEvents).where(and(scope, inWindow));
+  const periodClicksRows = await db.select({ n: countAll }).from(clickEvents).where(and(scope, inWindow, trafficWhere));
   const periodClicks = periodClicksRows[0]?.n ?? 0;
 
   const bucketFormat = hourly ? '%Y-%m-%dT%H:00:00.000Z' : '%Y-%m-%d';
@@ -120,6 +178,7 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number) {
   }).from(clickEvents).where(and(
     scope,
     gte(clickEvents.createdAt, new Date(start)),
+    trafficWhere,
   )).groupBy(sql`strftime(${bucketFormat}, ${clickEvents.createdAt} / 1000, 'unixepoch')`);
 
   const seriesMap = new Map<string, number>(rawSeries.map(r => [String(r.bucket), Number(r.count)]));
@@ -128,7 +187,7 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number) {
   const referrers = await db.select({
     label: clickEvents.referrerHost,
     count: countAll,
-  }).from(clickEvents).where(and(scope, inWindow)).groupBy(clickEvents.referrerHost).orderBy(sql`count(*) desc`).limit(10);
+  }).from(clickEvents).where(and(scope, inWindow, trafficWhere)).groupBy(clickEvents.referrerHost).orderBy(sql`count(*) desc`).limit(10);
 
   const countries = await db.select({
     label: clickEvents.country,
@@ -137,17 +196,19 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number) {
     scope,
     sql`${clickEvents.country} IS NOT NULL`,
     inWindow,
+    trafficWhere,
   )).groupBy(clickEvents.country).orderBy(sql`count(*) desc`).limit(10);
 
   const unknownCountryRows = await db.select({ n: countAll }).from(clickEvents).where(and(
     scope,
     sql`${clickEvents.country} IS NULL`,
     inWindow,
+    trafficWhere,
   ));
   const unknownCountryCount = unknownCountryRows[0]?.n ?? 0;
 
-  const devices = await breakdown(db, scope, clickEvents.deviceCategory, inWindow);
-  const browsers = await breakdown(db, scope, clickEvents.browserCategory, inWindow);
+  const devices = await breakdown(db, scope, clickEvents.deviceCategory, inWindow, trafficWhere);
+  const browsers = await breakdown(db, scope, clickEvents.browserCategory, inWindow, trafficWhere);
 
   return {
     periodClicks,
@@ -165,8 +226,9 @@ async function breakdown(
   scope: SQL,
   column: typeof clickEvents.deviceCategory | typeof clickEvents.browserCategory,
   inWindow: SQL,
+  trafficWhere: SQL,
 ) {
-  const rows = await db.select({ label: column, count: countAll }).from(clickEvents).where(and(scope, inWindow)).groupBy(column);
+  const rows = await db.select({ label: column, count: countAll }).from(clickEvents).where(and(scope, inWindow, trafficWhere)).groupBy(column);
   const total = rows.reduce((s, r) => s + r.count, 0) || 1;
   return rows.map(r => ({
     label: r.label as string,
