@@ -6,6 +6,11 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: 'short',
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      trialDays: 7,
+      allowRegistration: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_SESSION_PASSWORD/);
   });
@@ -14,6 +19,11 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'file:./data/x.db',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      trialDays: 7,
+      allowRegistration: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_DATABASE_URL/);
   });

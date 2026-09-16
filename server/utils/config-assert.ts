@@ -1,4 +1,7 @@
-export function assertRuntimeConfig(config: {
+import type { DeploymentConfig } from '#shared/deployment';
+import { assertDeploymentConfig } from '#shared/deployment';
+
+export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
   databaseUrl: string;
   public: { shortDomain: string };
@@ -8,6 +11,8 @@ export function assertRuntimeConfig(config: {
 
   if (!/^postgres(?:ql)?:\/\//.test(config.databaseUrl ?? ''))
     throw new Error('Missing or invalid NUXT_DATABASE_URL (must be a postgres:// connection string)');
+
+  assertDeploymentConfig(config);
 
   try {
     const url = new URL(config.public.shortDomain);
