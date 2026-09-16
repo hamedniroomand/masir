@@ -170,4 +170,22 @@ describe('tags API', async () => {
       body: { name: 'stolen' },
     })).rejects.toMatchObject({ statusCode: 404 });
   });
+
+  it('rejects a tag name and a tag list that are too long', async () => {
+    const cookie = await loginCookie();
+    await expect($fetch('/api/tags', {
+      method: 'POST',
+      headers: { cookie },
+      body: { name: 'x'.repeat(41) },
+    })).rejects.toMatchObject({ statusCode: 422 });
+
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      headers: { cookie },
+      body: {
+        destinationUrl: 'https://example.com/many-tags',
+        tags: Array.from({ length: 21 }, (_, i) => `tag-${i}`),
+      },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
 });

@@ -1,14 +1,15 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
-import { createTag, InvalidTagNameError, tagToDto } from '#server/utils/tag-repo';
+import { readValidBody } from '#server/utils/body';
+import { InvalidTagNameError } from '#server/utils/errors';
+import { createTag, tagToDto } from '#server/utils/tag-repo';
+import { tagNameSchema } from '#shared/link-input';
 
-const bodySchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1)),
-});
+const bodySchema = v.object({ name: tagNameSchema });
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   try {
     const tag = await createTag(user.id, body.name);
     if (!tag)

@@ -1,10 +1,11 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
-import { findTagForUser, InvalidTagNameError, renameTag, tagToDto } from '#server/utils/tag-repo';
+import { readValidBody } from '#server/utils/body';
+import { InvalidTagNameError, TagNameTakenError } from '#server/utils/errors';
+import { findTagForUser, renameTag, tagToDto } from '#server/utils/tag-repo';
+import { tagNameSchema } from '#shared/link-input';
 
-const bodySchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1)),
-});
+const bodySchema = v.object({ name: tagNameSchema });
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   try {
     const updated = await renameTag(id, user.id, body.name);
     if (!updated)
@@ -24,8 +25,11 @@ export default defineEventHandler(async (event) => {
     return tagToDto(updated);
   }
   catch (e) {
+    if (e instanceof TagNameTakenError) {
+      throw createError({ statusCode: 409, statusMessage: 'A tag with this name already exists.', data: { reason: 'A tag with this name already exists.' } });
+    }
     if (e instanceof InvalidTagNameError) {
-      throw createError({ statusCode: 422, statusMessage: 'A tag with this name already exists.', data: { reason: 'A tag with this name already exists.' } });
+      throw createError({ statusCode: 422, statusMessage: 'Enter a tag name.', data: { reason: 'Enter a tag name.' } });
     }
     throw e;
   }

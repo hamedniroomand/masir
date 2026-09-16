@@ -1,13 +1,8 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
+import { InvalidTagNameError, TagNameTakenError } from '#server/utils/errors';
 import { newId } from '#shared/id';
-
-export class InvalidTagNameError extends Error {
-  constructor() {
-    super('invalid');
-  }
-}
 
 export function normalizeTagName(name: string): string {
   const trimmed = name.trim();
@@ -79,7 +74,7 @@ export async function renameTag(id: string, userId: string, name: string) {
   }
   catch (e) {
     if (isUniqueViolation(e))
-      throw new InvalidTagNameError();
+      throw new TagNameTakenError();
     throw e;
   }
   return findTagForUser(id, userId);
