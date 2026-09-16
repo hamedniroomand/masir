@@ -21,6 +21,8 @@ const bodySchema = v.object({
   slug: v.optional(v.string()),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
+  utmCampaign: optionalUtmSchema,
+  utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
 });
 
@@ -85,6 +87,10 @@ export default defineEventHandler(async (event) => {
   }
   if (body.utmSource !== undefined)
     patch.utmSource = emptyToNull(body.utmSource);
+  if (body.utmCampaign !== undefined)
+    patch.utmCampaign = emptyToNull(body.utmCampaign);
+  if (body.utmTerm !== undefined)
+    patch.utmTerm = emptyToNull(body.utmTerm);
   if (body.utmContent !== undefined)
     patch.utmContent = emptyToNull(body.utmContent);
   if (body.campaignId !== undefined) {

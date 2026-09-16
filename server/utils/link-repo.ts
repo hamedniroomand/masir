@@ -33,6 +33,8 @@ export function linkToDto(link: typeof links.$inferSelect, tagNames: string[] = 
     clickCount: link.clickCount,
     campaignId: link.campaignId,
     utmSource: link.utmSource,
+    utmCampaign: link.utmCampaign,
+    utmTerm: link.utmTerm,
     utmContent: link.utmContent,
     tags: tagNames,
     createdAt: link.createdAt,
@@ -62,7 +64,11 @@ export async function findLinkBySlug(slug: string) {
   const row = rows[0];
   if (!row)
     return null;
-  return { ...row.link, utmMedium: row.utmMedium, utmCampaign: row.utmCampaign };
+  return {
+    ...row.link,
+    utmMedium: row.utmMedium,
+    utmCampaign: row.utmCampaign ?? row.link.utmCampaign,
+  };
 }
 
 export async function findLinkByIdForUser(id: string, userId: string) {
@@ -88,6 +94,8 @@ export async function createLink(input: {
   maximumVisits?: number | null;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmCampaign?: string | null;
+  utmTerm?: string | null;
   utmContent?: string | null;
   slugGenerator?: () => string;
 }) {
@@ -116,6 +124,8 @@ export async function createLink(input: {
         successfulVisitCount: 0,
         campaignId: input.campaignId ?? null,
         utmSource: input.utmSource ?? null,
+        utmCampaign: input.utmCampaign ?? null,
+        utmTerm: input.utmTerm ?? null,
         utmContent: input.utmContent ?? null,
         clickCount: 0,
         createdAt: now,
@@ -273,6 +283,8 @@ export async function updateLink(id: string, userId: string, patch: {
   isEnabled?: boolean;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmCampaign?: string | null;
+  utmTerm?: string | null;
   utmContent?: string | null;
 }) {
   const existing = await findLinkByIdForUser(id, userId);
@@ -303,6 +315,10 @@ export async function updateLink(id: string, userId: string, patch: {
     values.campaignId = patch.campaignId;
   if (patch.utmSource !== undefined)
     values.utmSource = patch.utmSource;
+  if (patch.utmCampaign !== undefined)
+    values.utmCampaign = patch.utmCampaign;
+  if (patch.utmTerm !== undefined)
+    values.utmTerm = patch.utmTerm;
   if (patch.utmContent !== undefined)
     values.utmContent = patch.utmContent;
 

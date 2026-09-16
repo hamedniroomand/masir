@@ -20,6 +20,8 @@ const schema = v.object({
   maximumVisits: v.optional(v.nullable(v.number())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
+  utmCampaign: v.optional(v.pipe(v.string(), v.trim())),
+  utmTerm: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
   tags: v.optional(v.array(v.string())),
 });
@@ -36,6 +38,8 @@ const state = reactive({
   maximumVisits: null as number | null,
   campaignId: null as string | null,
   utmSource: '',
+  utmCampaign: '',
+  utmTerm: '',
   utmContent: '',
   tags: [] as string[],
 });
@@ -72,6 +76,10 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.campaignId = state.campaignId;
     if (state.utmSource)
       body.utmSource = state.utmSource;
+    if (state.utmCampaign)
+      body.utmCampaign = state.utmCampaign;
+    if (state.utmTerm)
+      body.utmTerm = state.utmTerm;
     if (state.utmContent)
       body.utmContent = state.utmContent;
     if (state.tags.length)
@@ -89,6 +97,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     state.maximumVisits = null;
     state.campaignId = null;
     state.utmSource = '';
+    state.utmCampaign = '';
+    state.utmTerm = '';
     state.utmContent = '';
     state.tags = [];
     advanced.value = false;
@@ -174,6 +184,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           <LinkUtmFields
             v-model:campaign-id="state.campaignId"
             v-model:utm-source="state.utmSource"
+            v-model:utm-campaign="state.utmCampaign"
+            v-model:utm-term="state.utmTerm"
             v-model:utm-content="state.utmContent"
             :destination-url="state.destinationUrl"
           />

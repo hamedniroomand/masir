@@ -8,6 +8,8 @@ export interface LinkItem {
   clickCount: number;
   campaignId: string | null;
   utmSource: string | null;
+  utmCampaign: string | null;
+  utmTerm: string | null;
   utmContent: string | null;
   status: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   isEnabled: boolean;

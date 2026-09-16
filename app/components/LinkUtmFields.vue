@@ -5,6 +5,8 @@ const props = defineProps<{ destinationUrl?: string }>();
 
 const campaignId = defineModel<string | null>('campaignId', { required: true });
 const utmSource = defineModel<string>('utmSource', { required: true });
+const utmCampaign = defineModel<string>('utmCampaign', { required: true });
+const utmTerm = defineModel<string>('utmTerm', { required: true });
 const utmContent = defineModel<string>('utmContent', { required: true });
 
 const { options, byId } = useCampaignOptions();
@@ -18,7 +20,8 @@ const preview = computed(() => {
     return buildDestination(props.destinationUrl, {
       utm_source: utmSource.value,
       utm_medium: campaign.value?.utmMedium,
-      utm_campaign: campaign.value?.utmCampaign,
+      utm_campaign: campaign.value?.utmCampaign ?? utmCampaign.value,
+      utm_term: utmTerm.value,
       utm_content: utmContent.value,
     });
   }
@@ -33,9 +36,20 @@ const preview = computed(() => {
     <UFormField label="Campaign" name="campaignId" description="Sets utm_campaign and utm_medium for this link.">
       <USelect v-model="campaignId" :items="options" icon="i-lucide-megaphone" class="w-full" />
     </UFormField>
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-3 sm:grid-cols-3">
       <UFormField label="utm_source" name="utmSource" description="The channel, such as newsletter or twitter.">
         <UInput v-model="utmSource" placeholder="newsletter" />
+      </UFormField>
+      <UFormField label="utm_medium" name="utmMedium" description="From the campaign when one is set.">
+        <UInput :model-value="campaign?.utmMedium ?? ''" disabled placeholder="Set by campaign" />
+      </UFormField>
+      <UFormField label="utm_campaign" name="utmCampaign" description="Used when no campaign is set.">
+        <UInput v-model="utmCampaign" placeholder="spring-launch" />
+      </UFormField>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <UFormField label="utm_term" name="utmTerm" description="Optional. Paid keyword or term.">
+        <UInput v-model="utmTerm" placeholder="running-shoes" />
       </UFormField>
       <UFormField label="utm_content" name="utmContent" description="Optional. Tells two placements apart.">
         <UInput v-model="utmContent" placeholder="header-button" />

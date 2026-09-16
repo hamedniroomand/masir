@@ -17,6 +17,7 @@ export interface UtmParams {
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
+  utm_term?: string | null;
   utm_content?: string | null;
 }
 
@@ -24,6 +25,7 @@ export interface UtmSource {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  utmTerm: string | null;
   utmContent: string | null;
 }
 
@@ -32,6 +34,7 @@ export function utmParamsFor(link: UtmSource): UtmParams {
     utm_source: link.utmSource,
     utm_medium: link.utmMedium,
     utm_campaign: link.utmCampaign,
+    utm_term: link.utmTerm,
     utm_content: link.utmContent,
   };
 }

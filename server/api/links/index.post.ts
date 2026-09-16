@@ -21,6 +21,8 @@ const bodySchema = v.object({
   maximumVisits: v.optional(v.nullable(v.number())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
+  utmCampaign: optionalUtmSchema,
+  utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
   tags: v.optional(v.array(v.string())),
 });
@@ -94,6 +96,8 @@ export default defineEventHandler(async (event) => {
       maximumVisits,
       campaignId,
       utmSource: emptyToNull(body.utmSource),
+      utmCampaign: emptyToNull(body.utmCampaign),
+      utmTerm: emptyToNull(body.utmTerm),
       utmContent: emptyToNull(body.utmContent),
     });
     if (body.tags?.length)

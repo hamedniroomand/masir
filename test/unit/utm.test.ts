@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDestination } from '#shared/utm';
+import { buildDestination, utmParamsFor } from '#shared/utm';
 
 const NONE = {};
 
@@ -13,6 +13,37 @@ describe('buildDestination', () => {
   it('adds utm params from the link', () => {
     const out = buildDestination('https://example.com/a', { utm_source: 'newsletter', utm_campaign: 'launch' });
     expect(out).toBe('https://example.com/a?utm_source=newsletter&utm_campaign=launch');
+  });
+
+  it('maps link-level utm fields through utmParamsFor', () => {
+    expect(utmParamsFor({
+      utmSource: 'x',
+      utmMedium: 'email',
+      utmCampaign: 'launch',
+      utmTerm: 'term',
+      utmContent: 'body',
+    })).toEqual({
+      utm_source: 'x',
+      utm_medium: 'email',
+      utm_campaign: 'launch',
+      utm_term: 'term',
+      utm_content: 'body',
+    });
+  });
+
+  it('adds utm_term to the destination URL', () => {
+    const out = buildDestination('https://example.com/a', {
+      utm_source: 'ads',
+      utm_term: 'running shoes',
+      utm_content: 'cta',
+    });
+    expect(out).toContain('utm_term=running+shoes');
+    expect(out).toContain('utm_content=cta');
+  });
+
+  it('encodes special characters in utm values', () => {
+    const out = buildDestination('https://example.com/a', { utm_campaign: 'a&b=c' });
+    expect(out).toBe('https://example.com/a?utm_campaign=a%26b%3Dc');
   });
 
   it('keeps the fragment and other query params', () => {

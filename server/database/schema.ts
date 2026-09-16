@@ -41,6 +41,8 @@ export const links = sqliteTable('links', {
   clickCount: integer('click_count').notNull().default(0),
   campaignId: text('campaign_id').references(() => campaigns.id, { onDelete: 'set null' }),
   utmSource: text('utm_source'),
+  utmCampaign: text('utm_campaign'),
+  utmTerm: text('utm_term'),
   utmContent: text('utm_content'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),

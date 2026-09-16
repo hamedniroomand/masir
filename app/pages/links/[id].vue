@@ -32,6 +32,8 @@ const saving = ref(false);
 const tracking = reactive({
   campaignId: null as string | null,
   utmSource: '',
+  utmCampaign: '',
+  utmTerm: '',
   utmContent: '',
 });
 const savingTracking = ref(false);
@@ -42,6 +44,8 @@ watch(link, (l) => {
     destState.destinationUrl = l.destinationUrl;
     tracking.campaignId = l.campaignId;
     tracking.utmSource = l.utmSource ?? '';
+    tracking.utmCampaign = l.utmCampaign ?? '';
+    tracking.utmTerm = l.utmTerm ?? '';
     tracking.utmContent = l.utmContent ?? '';
     destForm.value?.clear();
   }
@@ -57,6 +61,8 @@ async function saveTracking() {
       body: {
         campaignId: tracking.campaignId,
         utmSource: tracking.utmSource || null,
+        utmCampaign: tracking.utmCampaign || null,
+        utmTerm: tracking.utmTerm || null,
         utmContent: tracking.utmContent || null,
       },
     });
@@ -153,6 +159,8 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
           <LinkUtmFields
             v-model:campaign-id="tracking.campaignId"
             v-model:utm-source="tracking.utmSource"
+            v-model:utm-campaign="tracking.utmCampaign"
+            v-model:utm-term="tracking.utmTerm"
             v-model:utm-content="tracking.utmContent"
             :destination-url="link.destinationUrl"
           />
