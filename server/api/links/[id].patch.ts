@@ -1,11 +1,14 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
+import { readValidBody } from '#server/utils/body';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
+import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
+import { maximumVisitsSchema, tagsSchema } from '#shared/link-input';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
@@ -14,9 +17,9 @@ const bodySchema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
-  maximumVisits: v.optional(v.nullable(v.number())),
+  maximumVisits: maximumVisitsSchema,
   password: v.optional(v.nullable(v.string())),
-  tags: v.optional(v.array(v.string())),
+  tags: tagsSchema,
   isEnabled: v.optional(v.boolean()),
   slug: v.optional(v.string()),
   campaignId: v.optional(v.nullable(v.string())),
@@ -28,6 +31,14 @@ const bodySchema = v.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
+  const config = useRuntimeConfig();
+  const updateLimit = Number(config.rateLimitUpdatePerMinute) || 60;
+  const rl = rateLimitCheck(`update:${user.id}`, updateLimit, 60_000);
+  if (!rl.ok) {
+    setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
+    throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
+  }
+
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
@@ -36,8 +47,7 @@ export default defineEventHandler(async (event) => {
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const body = v.parse(bodySchema, await readBody(event));
-  const config = useRuntimeConfig();
+  const body = await readValidBody(event, bodySchema);
 
   const patch: Parameters<typeof updateLink>[2] = {};
   if (body.title !== undefined)
@@ -112,10 +122,12 @@ export default defineEventHandler(async (event) => {
   const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
   assertScheduleOrder(nextStarts, nextExpires);
 
+  const updated = await updateLink(id, user.id, patch);
+  if (!updated)
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
   if (body.tags !== undefined)
     await setLinkTags(id, user.id, body.tags);
-
-  const updated = await updateLink(id, user.id, patch);
   if (body.password !== undefined) {
     await writeSecurityEvent(
       body.password == null ? 'link_password_removed' : 'link_password_set',
@@ -125,6 +137,6 @@ export default defineEventHandler(async (event) => {
     );
   }
   await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, user.id, id);
-  const tagMap = await tagNamesByLinkIds([updated!.id]);
-  return linkToDto(updated!, tagMap.get(updated!.id) ?? []);
+  const tagMap = await tagNamesByLinkIds([updated.id]);
+  return linkToDto(updated, tagMap.get(updated.id) ?? []);
 });

@@ -7,7 +7,6 @@ import { parseRequestMeta } from '#server/utils/request-meta';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { deriveLinkStatus } from '#shared/link-status';
 
-// ponytail: in-memory limiter; upgrade path is a shared store (same as link-cache)
 const bodySchema = v.object({
   slug: v.pipe(v.string(), v.minLength(1)),
   password: v.pipe(v.string(), v.minLength(1)),
@@ -18,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
+  // ponytail: in-memory limiter, one node only; upgrade path is a shared store
   const rl = rateLimitCheck(`pwd:${body.slug}:${clientKey}`, limit, 60_000);
   if (!rl.ok) {
     await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' });

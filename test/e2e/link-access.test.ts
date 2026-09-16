@@ -186,4 +186,45 @@ describe('link access controls', async () => {
       body: { maximumVisits: 2 },
     })).rejects.toMatchObject({ statusCode: 422 });
   });
+
+  it('rejects a maximum visit value that is not a whole number above zero', async () => {
+    const cookie = await loginCookie();
+    for (const maximumVisits of [0, -1, 2.5]) {
+      await expect($fetch('/api/links', {
+        method: 'POST',
+        headers: { cookie },
+        body: { destinationUrl: 'https://example.com/limit', maximumVisits },
+      })).rejects.toMatchObject({ statusCode: 422 });
+    }
+  });
+
+  it('removes a visit limit when the value is null', async () => {
+    const cookie = await loginCookie();
+    const linkId = await insertTestLink(TEST_DB, {
+      userId,
+      slug: 'clear-cap',
+      maximumVisits: 5,
+      successfulVisitCount: 5,
+    });
+    const updated = await $fetch<{ maximumVisits: number | null; status: string }>(`/api/links/${linkId}`, {
+      method: 'PATCH',
+      headers: { cookie },
+      body: { maximumVisits: null },
+    });
+    expect(updated.maximumVisits).toBe(null);
+    expect(updated.status).toBe('active');
+  });
+
+  it('rejects a loop expiration destination on create', async () => {
+    const cookie = await loginCookie();
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      headers: { cookie },
+      body: {
+        destinationUrl: 'https://example.com/live',
+        slug: 'loop-create',
+        expirationDestination: 'http://127.0.0.1:3000/loop-create',
+      },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
 });

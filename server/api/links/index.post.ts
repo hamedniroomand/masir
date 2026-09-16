@@ -1,13 +1,16 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
+import { readValidBody } from '#server/utils/body';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
-import { createLink, linkToDto, SlugExhaustedError, SlugTakenError, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
+import { createLink, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
-import { validateDestination } from '#server/utils/url';
+import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
+import { maximumVisitsSchema, tagsSchema } from '#shared/link-input';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -18,13 +21,14 @@ const bodySchema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
-  maximumVisits: v.optional(v.nullable(v.number())),
+  maximumVisits: maximumVisitsSchema,
+  password: v.optional(v.nullable(v.string())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
   utmCampaign: optionalUtmSchema,
   utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
-  tags: v.optional(v.array(v.string())),
+  tags: tagsSchema,
 });
 
 export default defineEventHandler(async (event) => {
@@ -38,7 +42,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
   }
 
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   const dest = validateDestination(body.destinationUrl, config.allowPrivateDestinations);
   if (!dest.ok) {
     throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
@@ -58,15 +62,6 @@ export default defineEventHandler(async (event) => {
 
   assertScheduleOrder(startsAt, expiresAt);
 
-  let expirationDestination: string | null = null;
-  if (body.expirationDestination) {
-    const expDest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
-    if (!expDest.ok) {
-      throw createError({ statusCode: 422, statusMessage: expDest.reason, data: { reason: expDest.reason } });
-    }
-    expirationDestination = expDest.url;
-  }
-
   const maximumVisits = body.maximumVisits ?? null;
 
   const campaignId = emptyToNull(body.campaignId);
@@ -84,6 +79,22 @@ export default defineEventHandler(async (event) => {
     slug = parsed.output;
   }
 
+  let expirationDestination: string | null = null;
+  if (body.expirationDestination) {
+    const expDest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
+    if (!expDest.ok) {
+      throw createError({ statusCode: 422, statusMessage: expDest.reason, data: { reason: expDest.reason } });
+    }
+    if (slug && shortLinkMatchesDestination(config.public.shortDomain, slug, expDest.url)) {
+      throw createError({
+        statusCode: 422,
+        statusMessage: 'Expiration destination cannot point to this short link.',
+        data: { reason: 'Expiration destination cannot point to this short link.' },
+      });
+    }
+    expirationDestination = expDest.url;
+  }
+
   try {
     const link = await createLink({
       userId: user.id,
@@ -94,6 +105,7 @@ export default defineEventHandler(async (event) => {
       startsAt,
       expirationDestination,
       maximumVisits,
+      passwordHash: body.password ? await hashPassword(body.password) : null,
       campaignId,
       utmSource: emptyToNull(body.utmSource),
       utmCampaign: emptyToNull(body.utmCampaign),

@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, linkTags, reservedSlugs, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
+import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
 import { invalidateLink } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -92,6 +93,7 @@ export async function createLink(input: {
   startsAt?: Date | null;
   expirationDestination?: string | null;
   maximumVisits?: number | null;
+  passwordHash?: string | null;
   campaignId?: string | null;
   utmSource?: string | null;
   utmCampaign?: string | null;
@@ -121,6 +123,7 @@ export async function createLink(input: {
         startsAt: input.startsAt ?? null,
         expirationDestination: input.expirationDestination ?? null,
         maximumVisits: input.maximumVisits ?? null,
+        passwordHash: input.passwordHash ?? null,
         successfulVisitCount: 0,
         campaignId: input.campaignId ?? null,
         utmSource: input.utmSource ?? null,
@@ -161,18 +164,6 @@ export async function createLink(input: {
     }
   }
   throw new SlugExhaustedError();
-}
-
-export class SlugTakenError extends Error {
-  constructor() {
-    super('taken');
-  }
-}
-
-export class SlugExhaustedError extends Error {
-  constructor() {
-    super('exhausted');
-  }
 }
 
 export async function tagNamesByLinkIds(linkIds: string[]) {
@@ -223,6 +214,7 @@ export async function listLinks(userId: string, query: {
         normalized = normalizeTagName(raw);
       }
       catch {
+        filters.push(sql`1=0`);
         continue;
       }
       filters.push(sql`exists (
