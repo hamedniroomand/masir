@@ -135,4 +135,18 @@ describe('link password API', async () => {
     }
     expect(lastStatus).toBe(429);
   });
+
+  it('sets a password when the link is created', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; slug: string; isProtected: boolean }>('/api/links', {
+      method: 'POST',
+      headers: { cookie },
+      body: { destinationUrl: 'https://example.com/new', slug: 'pwd-create', password: 'create-secret' },
+    });
+    expect(link.isProtected).toBe(true);
+    expect(JSON.stringify(link)).not.toContain('passwordHash');
+
+    const res = await fetch('/pwd-create', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(res.headers.get('location')).toBe('/p/pwd-create');
+  });
 });

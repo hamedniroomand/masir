@@ -19,7 +19,7 @@ async function submit() {
       method: 'POST',
       body: { slug: slug.value, password: password.value },
     });
-    await navigateTo(result.redirectTo);
+    await navigateTo(result.redirectTo, { external: true });
   }
   catch (e: unknown) {
     const err = e as { statusCode?: number; statusMessage?: string };

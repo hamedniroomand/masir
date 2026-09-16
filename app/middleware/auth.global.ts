@@ -1,9 +1,9 @@
 import { RESERVED_SLUGS } from '#shared/slug';
 
 function isPublicShortLinkPath(path: string): boolean {
-  if (/^\/p\/[a-z0-9-]+$/.test(path))
+  if (/^\/p\/[a-z0-9_-]+$/.test(path))
     return true;
-  const match = path.match(/^\/([a-z0-9-]+)$/);
+  const match = path.match(/^\/([a-z0-9_-]+)$/);
   if (!match)
     return false;
   return !RESERVED_SLUGS.has(match[1]!);
