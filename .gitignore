@@ -28,3 +28,6 @@ logs
 # SQLite
 data/
 !data/.gitkeep
+
+# Claude local
+.claude/

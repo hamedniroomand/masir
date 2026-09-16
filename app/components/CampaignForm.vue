@@ -56,9 +56,16 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     :schema="schema"
     :state="state"
     :validate-on="[]"
-    class="space-y-4"
+    class="space-y-5"
     @submit="onSubmit"
   >
+    <UAlert
+      v-if="campaign"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-info"
+      :description="`These values apply to every link in this campaign (${campaign.linkCount}). Each link keeps its own utm_source.`"
+    />
     <UFormField label="Campaign name" name="name" required description="The name your team uses.">
       <UInput v-model="state.name" placeholder="Spring launch" />
     </UFormField>

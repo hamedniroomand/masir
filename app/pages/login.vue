@@ -51,12 +51,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 <template>
   <div>
-    <div class="mb-8">
-      <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
+    <div class="mb-7">
+      <div class="mb-6 flex size-11 items-center justify-center rounded-lg border border-default bg-muted/50 text-primary shadow-control">
+        <UIcon name="i-lucide-log-in" class="size-5" />
+      </div>
+      <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
         Welcome back
       </h1>
-      <p class="mt-3 text-sm text-muted">
-        Sign in to manage your links.
+      <p class="mt-2 text-sm text-muted">
+        Sign in to your link workspace.
       </p>
     </div>
     <UForm :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
@@ -66,7 +69,6 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           type="email"
           icon="i-lucide-mail"
           placeholder="you@company.com"
-          size="lg"
           autocomplete="username"
         />
       </UFormField>
@@ -76,14 +78,16 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           type="password"
           icon="i-lucide-lock-keyhole"
           placeholder="Enter your password"
-          size="lg"
           autocomplete="current-password"
         />
       </UFormField>
       <p v-if="error" role="alert" class="text-sm text-error">
         {{ error }}
       </p>
-      <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" size="lg" block :loading="loading" />
+      <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" block :loading="loading" />
     </UForm>
+    <p class="mt-7 flex items-center justify-center gap-2 text-xs text-muted">
+      <UIcon name="i-lucide-lock-keyhole" class="size-3.5" />Access is managed by your workspace administrator.
+    </p>
   </div>
 </template>

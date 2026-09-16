@@ -4,11 +4,11 @@ import type { LinkItem } from '~/composables/useLinks';
 const props = defineProps<{ link: LinkItem }>();
 
 const META = {
-  active: { color: 'success', icon: 'i-lucide-check', label: 'Active', tip: 'Link is active' },
-  disabled: { color: 'neutral', icon: 'i-lucide-pause', label: 'Disabled', tip: 'Owner disabled this link' },
-  expired: { color: 'warning', icon: 'i-lucide-clock', label: 'Expired', tip: 'Link has expired' },
-  limit_reached: { color: 'warning', icon: 'i-lucide-ban', label: 'Limit reached', tip: 'Visit limit reached' },
-  scheduled: { color: 'info', icon: 'i-lucide-calendar-clock', label: 'Scheduled', tip: 'Link is not active yet' },
+  active: { dot: 'bg-success', label: 'Active', tip: 'Link is active' },
+  disabled: { dot: 'bg-neutral-400 dark:bg-neutral-500', label: 'Disabled', tip: 'Owner disabled this link' },
+  expired: { dot: 'bg-warning', label: 'Expired', tip: 'Link has expired' },
+  limit_reached: { dot: 'bg-warning', label: 'Limit reached', tip: 'Visit limit reached' },
+  scheduled: { dot: 'bg-info', label: 'Scheduled', tip: 'Link is not active yet' },
 } as const;
 
 const meta = computed(() => META[props.link.status]);
@@ -19,10 +19,8 @@ const expiryText = computed(() => props.link.status === 'expired' && props.link.
 
 <template>
   <UTooltip :text="meta.tip">
-    <UBadge :color="meta.color" variant="subtle" size="sm" class="whitespace-nowrap">
-      <UIcon :name="meta.icon" class="size-4" aria-hidden="true" />
-      <span>{{ meta.label }}</span>
-      <span v-if="expiryText" class="text-muted">· {{ expiryText }}</span>
-    </UBadge>
+    <span class="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md border border-default bg-default px-2 py-1 text-[11px] font-medium text-toned">
+      <span class="size-1.5 shrink-0 rounded-full" :class="meta.dot" aria-hidden="true" />{{ meta.label }}<span v-if="expiryText" class="text-muted">· {{ expiryText }}</span>
+    </span>
   </UTooltip>
 </template>

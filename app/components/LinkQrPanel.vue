@@ -45,10 +45,10 @@ async function copyQrImage() {
 
 <template>
   <div class="space-y-4">
-    <p v-if="showShortUrl && shortUrl" class="text-sm text-muted">
+    <p v-if="showShortUrl && shortUrl" class="break-all text-center text-xs text-muted">
       {{ shortUrl }}
     </p>
-    <div class="mx-auto w-fit rounded-xl border border-default bg-white p-3">
+    <div class="mx-auto w-fit rounded-panel border border-default bg-white p-4 shadow-control">
       <img
         :src="qrPngPreviewUrl"
         alt="QR code for short link"

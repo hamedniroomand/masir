@@ -55,7 +55,7 @@ async function remove() {
         :icon="link.isProtected ? 'i-lucide-lock' : 'i-lucide-lock-open'"
       />
     </div>
-    <p class="text-sm text-muted">
+    <p class="text-xs leading-5 text-muted">
       {{ link.isProtected
         ? 'Visitors must enter the password before the redirect. Enter a new password to replace it.'
         : 'Set a password to ask visitors for it before the redirect.' }}

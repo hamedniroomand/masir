@@ -47,28 +47,35 @@ async function removeCampaign() {
     <UAlert title="Campaign not found" description="This campaign may have been deleted." icon="i-lucide-circle-alert" color="error" variant="soft" />
     <UButton to="/campaigns" label="Back to campaigns" variant="outline" />
   </div>
-  <div v-else-if="campaign" class="space-y-7">
-    <UButton to="/campaigns" label="Campaigns" icon="i-lucide-arrow-left" color="neutral" variant="link" class="p-0" />
-    <div class="flex flex-wrap items-start justify-between gap-5">
-      <div class="min-w-0 space-y-3">
-        <h1 class="break-words text-3xl font-semibold tracking-tight text-highlighted">
+  <div v-else-if="campaign" class="space-y-5">
+    <UButton to="/campaigns" label="Campaigns" icon="i-lucide-arrow-left" color="neutral" variant="link" size="sm" class="p-0" />
+    <div class="page-heading">
+      <div class="min-w-0">
+        <h1 class="break-words text-2xl font-semibold tracking-tight text-highlighted">
           {{ campaign.name }}
         </h1>
-        <div class="flex flex-wrap gap-1.5">
+        <div class="mt-1.5 flex flex-wrap gap-1.5">
           <UBadge :label="`utm_campaign=${campaign.utmCampaign}`" color="neutral" variant="subtle" size="sm" />
           <UBadge v-if="campaign.utmMedium" :label="`utm_medium=${campaign.utmMedium}`" color="neutral" variant="subtle" size="sm" />
         </div>
       </div>
-      <div class="flex gap-2">
-        <UModal v-model:open="editOpen" title="Edit campaign" description="Changes apply to every link in this campaign.">
-          <UButton label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" />
-          <template #body>
-            <CampaignForm :campaign="campaign" @saved="onSaved" />
-          </template>
-        </UModal>
-        <UButton label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" @click="deleteOpen = true" />
+      <div class="flex shrink-0 gap-2">
+        <UButton label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
+        <UButton label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
       </div>
     </div>
+
+    <USlideover
+      v-model:open="editOpen"
+      title="Edit campaign"
+      description="Changes apply to every link in this campaign."
+      :unmount-on-hide="false"
+      :ui="{ content: 'sm:max-w-[480px]' }"
+    >
+      <template #body>
+        <CampaignForm :campaign="campaign" @saved="onSaved" />
+      </template>
+    </USlideover>
 
     <UModal v-model:open="deleteOpen" title="Delete campaign" description="The links stay. They lose their campaign utm values.">
       <template #body>
@@ -81,12 +88,12 @@ async function removeCampaign() {
     </UModal>
 
     <template v-if="analytics">
-      <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-default bg-default lg:grid-cols-4">
+      <div class="metric-grid">
         <div class="p-5">
           <p class="text-xs text-muted">
             Clicks in this period
           </p>
-          <p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
             {{ analytics.periodClicks.toLocaleString() }}
           </p>
         </div>
@@ -94,7 +101,7 @@ async function removeCampaign() {
           <p class="text-xs text-muted">
             All-time clicks
           </p>
-          <p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
             {{ analytics.totalClicks.toLocaleString() }}
           </p>
         </div>
@@ -102,7 +109,7 @@ async function removeCampaign() {
           <p class="text-xs text-muted">
             Links
           </p>
-          <p class="mt-2 text-3xl font-semibold tabular-nums text-highlighted">
+          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
             {{ analytics.linkCount }}
           </p>
         </div>
@@ -110,13 +117,13 @@ async function removeCampaign() {
           <p class="text-xs text-muted">
             Top source
           </p>
-          <p class="mt-2 truncate text-3xl font-semibold text-highlighted" :title="topSource?.label">
+          <p class="mt-2 truncate text-2xl font-semibold tracking-tight text-highlighted" :title="topSource?.label">
             {{ topSource?.label ?? '—' }}
           </p>
         </div>
       </div>
 
-      <section class="space-y-5 rounded-xl border border-default bg-default p-5 sm:p-6">
+      <section class="space-y-5 rounded-panel border border-default bg-default p-4 sm:p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h2 class="font-semibold text-highlighted">
@@ -144,7 +151,7 @@ async function removeCampaign() {
         </div>
         <template v-else>
           <LinkClicksChart :series="analytics.series" :hourly="period === '24h'" />
-          <div class="grid gap-6 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-2">
             <BreakdownList title="Sources" :items="analytics.bySource" />
             <BreakdownList title="Referrers" :items="analytics.topReferrers" />
             <BreakdownList title="Countries" :items="analytics.topCountries" />
@@ -153,7 +160,7 @@ async function removeCampaign() {
         </template>
       </section>
 
-      <section class="overflow-hidden rounded-xl border border-default bg-default">
+      <section class="overflow-hidden rounded-panel border border-default bg-default">
         <div class="border-b border-default p-5">
           <h2 class="font-semibold text-highlighted">
             Link performance

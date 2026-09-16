@@ -4,18 +4,20 @@ const props = defineProps<{ error: { statusCode?: number; data?: { linkState?: s
 const linkState = computed(() => props.error?.data?.linkState);
 const startsAt = computed(() => props.error?.data?.startsAt);
 
-const copy = computed(() => {
-  if (linkState.value === 'disabled')
-    return 'This link is currently unavailable.';
-  if (linkState.value === 'expired')
-    return 'This link has expired.';
-  if (linkState.value === 'limit_reached')
-    return 'This link is no longer available.';
-  if (linkState.value === 'scheduled')
-    return 'This link is not available yet.';
+const META = {
+  disabled: { icon: 'i-lucide-pause', title: 'This link is currently unavailable.' },
+  expired: { icon: 'i-lucide-clock', title: 'This link has expired.' },
+  limit_reached: { icon: 'i-lucide-ban', title: 'This link is no longer available.' },
+  scheduled: { icon: 'i-lucide-calendar-clock', title: 'This link is not available yet.' },
+} as const;
+
+const meta = computed(() => {
+  const known = META[linkState.value as keyof typeof META];
+  if (known)
+    return known;
   if (props.error?.statusCode === 404)
-    return 'Link not found.';
-  return 'Something went wrong.';
+    return { icon: 'i-lucide-link-2-off', title: 'Link not found.' };
+  return { icon: 'i-lucide-triangle-alert', title: 'Something went wrong.' };
 });
 
 const activationText = computed(() => {
@@ -26,20 +28,21 @@ const activationText = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center gap-4">
-    <UIcon
-      :name="linkState === 'expired' ? 'i-lucide-clock' : linkState === 'disabled' ? 'i-lucide-pause' : 'i-lucide-link-2-off'"
-      class="size-10 text-muted"
-      aria-hidden="true"
-    />
-    <h1 class="text-lg font-medium">
-      {{ copy }}
+  <NuxtLayout name="auth">
+    <div class="mb-6 flex size-11 items-center justify-center rounded-lg border border-default bg-muted/50 text-muted shadow-control">
+      <UIcon :name="meta.icon" class="size-5" aria-hidden="true" />
+    </div>
+    <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
+      {{ meta.title }}
     </h1>
-    <p v-if="activationText" class="text-sm text-muted">
+    <p v-if="activationText" class="mt-2 text-sm text-muted">
       Opens {{ activationText }}
     </p>
-    <NuxtLink to="/report" class="text-sm text-primary">
-      Report a problem
-    </NuxtLink>
-  </div>
+    <p v-else class="mt-2 text-sm text-muted">
+      Check the address, or ask the person who shared it for a new link.
+    </p>
+    <div class="mt-7 flex flex-wrap gap-2">
+      <UButton to="/" label="Go to Linkyard" color="neutral" variant="outline" size="sm" /><UButton to="/report" label="Report a problem" variant="ghost" size="sm" />
+    </div>
+  </NuxtLayout>
 </template>

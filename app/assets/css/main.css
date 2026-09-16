@@ -3,17 +3,36 @@
 
 @theme static {
   --font-sans: 'Inter', sans-serif;
+  --radius-panel: 10px;
+  --shadow-control: 0 1px 2px rgb(24 24 27 / 0.06), 0 0 0 1px rgb(24 24 27 / 0.02);
+  --shadow-panel: 0 2px 8px rgb(24 24 27 / 0.03), 0 0 0 1px rgb(24 24 27 / 0.04);
 }
 
 :root {
   --ui-radius: 0.25rem;
-  --ui-primary: var(--color-blue-600);
-  --workspace-bg: #f5f7fb;
+  --ui-primary: #635bff;
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #f8f9fb;
+  --ui-bg-elevated: #f0f1f5;
+  --ui-border: #e7e9ef;
+  --ui-text-highlighted: #242738;
+  --ui-text: #45495b;
+  --ui-text-muted: #707589;
+  --workspace-bg: #f5f6f9;
 }
 
 .dark {
-  --ui-primary: var(--color-blue-400);
-  --workspace-bg: #0b1220;
+  --ui-primary: #a49bff;
+  --ui-bg: #191a21;
+  --ui-bg-muted: #1f2029;
+  --ui-bg-elevated: #292b36;
+  --ui-border: #30323e;
+  --ui-text-highlighted: #f1f1f5;
+  --ui-text: #cbccd7;
+  --ui-text-muted: #9699ad;
+  --workspace-bg: #111218;
+  --shadow-control: 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.025);
 }
 
 body {
@@ -22,8 +41,50 @@ body {
 }
 
 ::selection {
-  background: var(--color-blue-200);
-  color: var(--color-slate-950);
+  background: var(--color-violet-200);
+  color: var(--color-zinc-950);
+}
+
+@layer components {
+  .page-heading {
+    @apply flex flex-wrap items-center justify-between gap-4 pb-2;
+  }
+
+  .page-title {
+    @apply flex items-center gap-3 text-2xl font-semibold tracking-tight text-highlighted;
+  }
+
+  .page-description {
+    @apply mt-2 text-sm leading-6 text-muted;
+  }
+
+  .surface {
+    @apply overflow-hidden rounded-panel border border-default bg-default;
+  }
+
+  .link-grid {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_108px_80px_68px] md:items-center md:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,180px)_108px_80px_68px];
+  }
+
+  .campaign-grid {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_90px_90px_20px] sm:items-center sm:gap-5;
+  }
+
+  .column-heading {
+    @apply bg-muted/70 px-5 py-3 text-xs font-medium text-muted;
+  }
+
+  .record-icon {
+    @apply flex size-10 shrink-0 items-center justify-center rounded-lg border border-default bg-default text-sm font-semibold text-toned shadow-control;
+  }
+
+  .metric-grid {
+    @apply grid grid-cols-2 divide-x divide-default overflow-hidden rounded-panel border border-default bg-default lg:grid-cols-4;
+  }
+
+  .metric-grid > div {
+    @apply px-5 py-5 sm:px-6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

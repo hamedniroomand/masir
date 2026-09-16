@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from '@nuxt/ui';
+import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui';
 import type { LinkItem } from '~/composables/useLinks';
 import * as v from 'valibot';
 import { toVisitLimit } from '#shared/link-input';
@@ -47,8 +47,23 @@ const state = reactive({
   tags: [] as string[],
 });
 
+const groups = reactive({ tracking: false, access: false, tags: false });
+
+const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
+  campaignId: 'tracking',
+  utmSource: 'tracking',
+  utmCampaign: 'tracking',
+  utmTerm: 'tracking',
+  utmContent: 'tracking',
+  startsAt: 'access',
+  expiresAt: 'access',
+  maximumVisits: 'access',
+  password: 'access',
+  expirationDestination: 'access',
+  tags: 'tags',
+};
+
 const form = useTemplateRef('form');
-const advanced = ref(false);
 const loading = ref(false);
 const created = ref<LinkItem | null>(null);
 
@@ -56,6 +71,39 @@ const config = useRuntimeConfig();
 const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
+
+function openGroupsFor(names: (string | undefined)[]) {
+  for (const name of names) {
+    const group = name ? GROUP_OF_FIELD[name] : undefined;
+    if (group)
+      groups[group] = true;
+  }
+}
+
+function setErrors(errors: { name: string; message: string }[]) {
+  openGroupsFor(errors.map(e => e.name));
+  form.value?.setErrors(errors);
+}
+
+function reset() {
+  state.destinationUrl = '';
+  state.slug = '';
+  state.title = '';
+  state.expiresAt = null;
+  state.startsAt = null;
+  state.expirationDestination = '';
+  state.maximumVisits = null;
+  state.password = '';
+  state.campaignId = null;
+  state.utmSource = '';
+  state.utmCampaign = '';
+  state.utmTerm = '';
+  state.utmContent = '';
+  state.tags = [];
+  groups.tracking = false;
+  groups.access = false;
+  groups.tags = false;
+}
 
 async function onSubmit(_event: FormSubmitEvent<Schema>) {
   loading.value = true;
@@ -94,36 +142,21 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     const link = await $fetch<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
     emit('created', link);
-    state.destinationUrl = '';
-    state.slug = '';
-    state.title = '';
-    state.expiresAt = null;
-    state.startsAt = null;
-    state.expirationDestination = '';
-    state.maximumVisits = null;
-    state.password = '';
-    state.campaignId = null;
-    state.utmSource = '';
-    state.utmCampaign = '';
-    state.utmTerm = '';
-    state.utmContent = '';
-    state.tags = [];
-    advanced.value = false;
+    reset();
   }
   catch (e: unknown) {
     const err = e as { statusCode?: number; statusMessage?: string };
     if (err.statusCode === 409) {
-      advanced.value = true;
-      form.value?.setErrors([{ name: 'slug', message: 'This short link is already taken.' }]);
+      setErrors([{ name: 'slug', message: 'This short link is already taken.' }]);
     }
     else if (err.statusCode === 422) {
-      form.value?.setErrors([{ name: 'destinationUrl', message: err.statusMessage || 'Invalid input.' }]);
+      setErrors([{ name: 'destinationUrl', message: err.statusMessage || 'Invalid input.' }]);
     }
     else if (err.statusCode === 429) {
-      form.value?.setErrors([{ name: 'destinationUrl', message: 'Too many links created. Try again later.' }]);
+      setErrors([{ name: 'destinationUrl', message: 'Too many links created. Try again later.' }]);
     }
     else {
-      form.value?.setErrors([{ name: 'destinationUrl', message: 'Could not create link.' }]);
+      setErrors([{ name: 'destinationUrl', message: 'Could not create link.' }]);
     }
   }
   finally {
@@ -134,6 +167,17 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 <template>
   <div>
+    <div v-if="created" role="status" class="mb-5 space-y-3 rounded-panel border border-success/25 bg-success/5 p-4">
+      <p class="flex items-center gap-2 text-sm font-medium text-success">
+        <UIcon name="i-lucide-circle-check" class="size-4" />Link created
+      </p>
+      <p class="break-all text-sm font-medium text-highlighted">
+        {{ created.shortUrl }}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <UButton size="sm" :label="copied ? 'Copied' : 'Copy'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" @click="copy(created.shortUrl)" /><UButton size="sm" label="View link" icon="i-lucide-external-link" color="neutral" variant="outline" :to="`/links/${created.id}`" /><UButton size="sm" label="Create another" icon="i-lucide-plus" variant="ghost" @click="created = null" />
+      </div>
+    </div>
     <UForm
       ref="form"
       :schema="schema"
@@ -141,6 +185,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       :validate-on="[]"
       class="space-y-5"
       @submit="onSubmit"
+      @error="(event: FormErrorEvent) => openGroupsFor(event.errors.map(e => e.name))"
     >
       <UFormField label="Destination URL" name="destinationUrl" required>
         <UInput
@@ -150,70 +195,96 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           autocomplete="url"
           icon="i-lucide-globe"
           placeholder="https://example.com/page"
-          size="lg"
         />
       </UFormField>
-      <UButton
-        type="button"
-        color="neutral"
-        variant="ghost"
-        size="sm"
-        :trailing-icon="advanced ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        :aria-expanded="advanced"
-        @click="advanced = !advanced"
-      >
-        Customize link
-      </UButton>
-      <div v-if="advanced" class="space-y-3 border-t border-default pt-3">
-        <UFormField :label="`Short link (${config.public.shortDomain}/…)`" name="slug">
-          <UInput v-model="state.slug" placeholder="my-link" />
-          <p v-if="state.slug" class="text-xs text-muted mt-1">
-            Preview: {{ config.public.shortDomain }}/{{ slugPreview }}
-          </p>
-        </UFormField>
-        <UFormField label="Title" name="title" description="A name to help you find this link.">
-          <UInput v-model="state.title" />
-        </UFormField>
-        <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
-        <UFormField label="Maximum visits" name="maximumVisits" description="Optional. Stop the link after this many redirects.">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" />
-            <UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="state.maximumVisits = 1" />
+      <UFormField label="Title" name="title" description="A name to help you find this link.">
+        <UInput v-model="state.title" placeholder="Product launch" />
+      </UFormField>
+      <UFormField label="Short address" name="slug" :description="`Leave blank to generate an address under ${config.public.shortDomain}.`">
+        <UInput v-model="state.slug" placeholder="my-link" />
+        <p v-if="state.slug" class="mt-2 flex items-center gap-1.5 break-all text-xs text-primary">
+          <UIcon name="i-lucide-link-2" class="size-3.5 shrink-0" />{{ config.public.shortDomain }}/{{ slugPreview }}
+        </p>
+      </UFormField>
+
+      <UCollapsible v-model:open="groups.tracking" class="rounded-lg border border-default bg-muted/20 p-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          class="w-full"
+          :trailing-icon="groups.tracking ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          :ui="{ trailingIcon: 'ms-auto' }"
+          label="Campaign and tracking"
+          icon="i-lucide-megaphone"
+        />
+        <template #content>
+          <div class="px-2 pb-2 pt-4">
+            <LinkUtmFields
+              v-model:campaign-id="state.campaignId"
+              v-model:utm-source="state.utmSource"
+              v-model:utm-campaign="state.utmCampaign"
+              v-model:utm-term="state.utmTerm"
+              v-model:utm-content="state.utmContent"
+              :destination-url="state.destinationUrl"
+            />
           </div>
-        </UFormField>
-        <UFormField label="Password" name="password" description="Optional. Visitors must enter it before the redirect.">
-          <UInput v-model="state.password" type="password" autocomplete="new-password" placeholder="No password" />
-        </UFormField>
-        <UFormField label="Expiration destination" name="expirationDestination" description="Optional. Send visitors here when the link expires.">
-          <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />
-        </UFormField>
-        <UFormField label="Tags" name="tags" description="Group links for your dashboard.">
-          <LinkTagInput v-model="state.tags" />
-        </UFormField>
-        <div class="border-t border-default pt-3">
-          <LinkUtmFields
-            v-model:campaign-id="state.campaignId"
-            v-model:utm-source="state.utmSource"
-            v-model:utm-campaign="state.utmCampaign"
-            v-model:utm-term="state.utmTerm"
-            v-model:utm-content="state.utmContent"
-            :destination-url="state.destinationUrl"
-          />
-        </div>
+        </template>
+      </UCollapsible>
+
+      <UCollapsible v-model:open="groups.access" class="rounded-lg border border-default bg-muted/20 p-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          class="w-full"
+          :trailing-icon="groups.access ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          :ui="{ trailingIcon: 'ms-auto' }"
+          label="Access and schedule"
+          icon="i-lucide-shield-check"
+        />
+        <template #content>
+          <div class="space-y-4 px-2 pb-2 pt-4">
+            <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+            <UFormField label="Maximum visits" name="maximumVisits" description="Optional. Stop the link after this many redirects.">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" /><UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="state.maximumVisits = 1" />
+              </div>
+            </UFormField>
+            <UFormField label="Password" name="password" description="Optional. Visitors must enter it before the redirect.">
+              <UInput v-model="state.password" type="password" autocomplete="new-password" placeholder="No password" />
+            </UFormField>
+            <UFormField label="Expiration destination" name="expirationDestination" description="Optional. Send visitors here when the link expires.">
+              <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />
+            </UFormField>
+          </div>
+        </template>
+      </UCollapsible>
+
+      <UCollapsible v-model:open="groups.tags" class="rounded-lg border border-default bg-muted/20 p-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          class="w-full"
+          :trailing-icon="groups.tags ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          :ui="{ trailingIcon: 'ms-auto' }"
+          label="Tags"
+          icon="i-lucide-tags"
+        />
+        <template #content>
+          <UFormField name="tags" description="Group links for your dashboard." class="px-2 pb-2 pt-4">
+            <LinkTagInput v-model="state.tags" />
+          </UFormField>
+        </template>
+      </UCollapsible>
+
+      <div class="border-t border-default pt-4">
+        <UButton type="submit" label="Create link" icon="i-lucide-plus" block :loading="loading" />
       </div>
-      <UButton type="submit" label="Create link" icon="i-lucide-plus" size="lg" block :loading="loading" />
     </UForm>
-    <div v-if="created" role="status" class="mt-5 p-4 rounded-xl border border-success/20 bg-success/5 space-y-3">
-      <p class="text-sm font-medium text-success">
-        Link created
-      </p>
-      <p class="break-all text-sm font-medium">
-        {{ created.shortUrl }}
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <UButton size="sm" :label="copied ? 'Copied' : 'Copy'" @click="copy(created.shortUrl)" />
-        <UButton size="sm" label="View details" :to="`/links/${created.id}`" />
-      </div>
-    </div>
   </div>
 </template>

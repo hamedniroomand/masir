@@ -9,7 +9,7 @@ interface HistoryEvent {
 
 const props = defineProps<{ linkId: string }>();
 
-const { data } = await useFetch<{ items: HistoryEvent[] }>(() => `/api/links/${props.linkId}/history`);
+const { data, pending, error } = await useFetch<{ items: HistoryEvent[] }>(() => `/api/links/${props.linkId}/history`);
 
 const FIELD_LABELS: Record<string, string> = {
   destinationUrl: 'destination',
@@ -37,28 +37,36 @@ function describe(item: HistoryEvent) {
 </script>
 
 <template>
-  <UCard v-if="data?.items.length">
-    <template #header>
-      <h2 class="font-semibold text-highlighted">
-        History
-      </h2><p class="mt-1 text-sm text-muted">
-        Every change to this link, and who made it.
-      </p>
-    </template>
-    <ol class="space-y-4">
-      <li v-for="item in data.items" :key="item.id" class="flex gap-3">
-        <div class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-default bg-muted/60">
+  <section class="surface">
+    <div class="flex items-center justify-between border-b border-default bg-muted/40 px-5 py-3.5">
+      <h3 class="text-[13px] font-semibold text-highlighted">
+        Change history
+      </h3>
+      <span v-if="data?.items.length" class="text-xs text-muted">{{ data.items.length }} {{ data.items.length === 1 ? 'event' : 'events' }}</span>
+    </div>
+    <div v-if="pending" class="space-y-3 p-5" role="status" aria-label="Loading history">
+      <USkeleton v-for="n in 3" :key="n" class="h-10 w-full" /><span class="sr-only">Loading history</span>
+    </div>
+    <div v-else-if="error" class="p-5">
+      <UAlert title="Could not load history" description="Try again later." color="error" variant="soft" icon="i-lucide-circle-alert" />
+    </div>
+    <p v-else-if="!data?.items.length" class="px-5 py-16 text-center text-xs text-muted">
+      No changes recorded for this link yet.
+    </p>
+    <ol v-else class="divide-y divide-default">
+      <li v-for="item in data.items" :key="item.id" class="flex items-start gap-3.5 px-5 py-4">
+        <div class="record-icon size-8" aria-hidden="true">
           <UIcon :name="ICONS[item.type] ?? 'i-lucide-activity'" class="size-3.5 text-muted" />
         </div>
         <div class="min-w-0">
-          <p class="text-sm text-highlighted">
+          <p class="text-[13px] font-medium text-highlighted">
             {{ describe(item) }}
           </p>
-          <p class="mt-0.5 text-xs text-muted">
-            {{ item.actorName ?? 'Unknown user' }} · {{ new Date(item.createdAt).toLocaleString() }}
+          <p class="mt-1 text-xs text-muted">
+            {{ item.actorName ?? 'Unknown user' }}<span class="mx-1.5 text-dimmed">·</span>{{ new Date(item.createdAt).toLocaleString() }}
           </p>
         </div>
       </li>
     </ol>
-  </UCard>
+  </section>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' });
+definePageMeta({ layout: 'auth' });
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
@@ -37,28 +37,27 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center px-6 py-12">
-    <div v-if="error" class="text-center">
-      <UAlert title="Link not found" color="error" variant="soft" icon="i-lucide-circle-alert" />
-    </div>
-    <div v-else class="space-y-6 rounded-xl border border-default bg-default p-6">
-      <div>
-        <h1 class="text-xl font-semibold text-highlighted">
-          {{ meta?.title || 'Protected link' }}
-        </h1>
-        <p class="mt-2 text-sm text-muted">
-          Enter the password to continue.
-        </p>
+  <UAlert v-if="error" title="Link not found" description="This short link does not exist." color="error" variant="soft" icon="i-lucide-circle-alert" />
+  <div v-else>
+    <div class="mb-7">
+      <div class="mb-6 flex size-11 items-center justify-center rounded-lg border border-default bg-muted/50 text-primary shadow-control">
+        <UIcon name="i-lucide-lock-keyhole" class="size-5" />
       </div>
-      <form class="space-y-4" @submit.prevent="submit">
-        <UFormField label="Password">
-          <UInput v-model="password" type="password" autocomplete="current-password" />
-        </UFormField>
-        <p v-if="errorMessage" class="text-sm text-error" role="alert">
-          {{ errorMessage }}
-        </p>
-        <UButton type="submit" label="Continue" block :loading="loading" />
-      </form>
+      <h1 class="break-words text-2xl font-semibold tracking-tight text-highlighted">
+        {{ meta?.title || 'Protected link' }}
+      </h1>
+      <p class="mt-2 text-sm text-muted">
+        Enter the password to continue.
+      </p>
     </div>
+    <form class="space-y-5" @submit.prevent="submit">
+      <UFormField label="Password">
+        <UInput v-model="password" type="password" autocomplete="current-password" />
+      </UFormField>
+      <p v-if="errorMessage" class="text-sm text-error" role="alert">
+        {{ errorMessage }}
+      </p>
+      <UButton type="submit" label="Continue" trailing-icon="i-lucide-arrow-right" block :loading="loading" />
+    </form>
   </div>
 </template>

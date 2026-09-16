@@ -40,11 +40,12 @@ const preview = computed(() => {
       <UFormField label="utm_source" name="utmSource" description="The channel, such as newsletter or twitter.">
         <UInput v-model="utmSource" placeholder="newsletter" />
       </UFormField>
-      <UFormField label="utm_medium" name="utmMedium" description="From the campaign when one is set.">
+      <UFormField label="utm_medium" name="utmMedium" :description="campaign ? 'Set by the campaign.' : 'Choose a campaign to set this value.'">
         <UInput :model-value="campaign?.utmMedium ?? ''" disabled placeholder="Set by campaign" />
       </UFormField>
-      <UFormField label="utm_campaign" name="utmCampaign" description="Used when no campaign is set.">
-        <UInput v-model="utmCampaign" placeholder="spring-launch" />
+      <UFormField label="utm_campaign" name="utmCampaign" :description="campaign ? 'Set by the campaign.' : 'Used when no campaign is set.'">
+        <UInput v-if="campaign" :model-value="campaign.utmCampaign" disabled />
+        <UInput v-else v-model="utmCampaign" placeholder="spring-launch" />
       </UFormField>
     </div>
     <div class="grid gap-3 sm:grid-cols-2">
@@ -55,12 +56,10 @@ const preview = computed(() => {
         <UInput v-model="utmContent" placeholder="header-button" />
       </UFormField>
     </div>
-    <div v-if="campaign" class="flex flex-wrap gap-1.5">
-      <UBadge :label="`utm_campaign=${campaign.utmCampaign}`" color="neutral" variant="subtle" size="sm" />
-      <UBadge v-if="campaign.utmMedium" :label="`utm_medium=${campaign.utmMedium}`" color="neutral" variant="subtle" size="sm" />
+    <div v-if="preview" class="flex items-start gap-2.5 rounded-lg border border-default bg-muted/40 px-4 py-3 text-xs">
+      <UIcon name="i-lucide-corner-down-right" class="mt-0.5 size-3.5 shrink-0 text-muted" />
+      <span class="shrink-0 text-muted">Visitors land on</span>
+      <span class="break-all text-toned">{{ preview }}</span>
     </div>
-    <p v-if="preview" class="break-all rounded-lg bg-muted/60 p-3 text-xs text-muted">
-      Visitors land on: {{ preview }}
-    </p>
   </div>
 </template>

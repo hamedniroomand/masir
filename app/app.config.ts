@@ -1,17 +1,33 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'blue',
-      neutral: 'slate',
+      primary: 'violet',
+      neutral: 'zinc',
     },
-    button: { slots: { base: 'font-medium cursor-pointer', leadingIcon: 'shrink-0' } },
-    card: { slots: { root: 'rounded-xl shadow-none', header: 'border-default', body: 'sm:p-6' } },
-    input: { slots: { root: 'w-full', base: 'rounded-lg' } },
-    select: { slots: { base: 'rounded-lg' } },
-    modal: { slots: { content: 'rounded-2xl', header: 'sm:px-6', body: 'sm:p-6', footer: 'sm:px-6' } },
-    table: { slots: { root: 'rounded-xl border border-default bg-default', th: 'bg-muted/60 text-muted text-xs font-medium', td: 'py-4' } },
-    navigationMenu: { slots: { link: 'py-2.5 px-3 rounded-lg', linkLeadingIcon: 'size-4' } },
+    button: {
+      slots: { base: 'font-medium cursor-pointer transition-colors', leadingIcon: 'shrink-0' },
+      variants: {
+        size: {
+          sm: { base: 'px-2.5 py-1.5 text-xs gap-1.5' },
+          md: { base: 'px-3 py-2 text-[13px] gap-2', leadingIcon: 'size-4', trailingIcon: 'size-4' },
+        },
+      },
+      compoundVariants: [
+        { color: 'primary', variant: 'solid', class: 'text-white dark:text-zinc-950 shadow-control ring-1 ring-inset ring-black/10 hover:bg-primary/90' },
+        { color: 'neutral', variant: 'outline', class: 'bg-default shadow-control hover:bg-muted' },
+      ],
+    },
+    card: { slots: { root: 'rounded-panel shadow-none', header: 'border-default bg-muted/40 p-5 sm:px-6 sm:py-5', body: 'p-5 sm:p-6', footer: 'bg-muted/30 p-4 sm:px-6 sm:py-4' } },
+    input: { slots: { root: 'w-full', base: 'text-[13px] shadow-control', leadingIcon: 'size-4 text-muted' } },
+    select: { slots: { base: 'cursor-pointer text-[13px] shadow-control', leadingIcon: 'size-4', trailingIcon: 'size-4 text-muted' } },
+    modal: { slots: { content: 'rounded-panel' } },
+    slideover: { slots: { overlay: 'bg-zinc-950/20 dark:bg-black/50 backdrop-blur-[2px]', header: 'p-6 bg-muted/60 min-h-24', title: 'text-base font-semibold tracking-tight', description: 'text-xs leading-5 max-w-80', body: 'p-6', footer: 'bg-muted/50 p-4 sm:px-6 justify-end', close: 'top-5 end-5' } },
+    table: { slots: { root: 'rounded-panel border border-default bg-default', th: 'bg-muted/70 text-muted text-xs font-medium px-5 py-3', td: 'px-5 py-4 text-[13px]', tr: 'hover:bg-muted/50 transition-colors' } },
+    navigationMenu: { slots: { link: 'py-2 px-3 text-[13px] rounded-md', linkLeadingIcon: 'size-4' } },
+    tabs: { slots: { trigger: 'text-[13px] font-medium', leadingIcon: 'size-4' } },
+    dropdownMenu: { slots: { content: 'rounded-lg shadow-lg', item: 'text-[13px] py-2', itemLeadingIcon: 'size-4' } },
     formField: {
+      slots: { label: 'text-[13px] font-medium', description: 'text-xs leading-5', error: 'text-xs' },
       variants: {
         required: {
           true: {

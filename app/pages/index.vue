@@ -2,7 +2,9 @@
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
-useHead({ title: 'My links · Linkyard' });
+const config = useRuntimeConfig();
+const shortDomain = computed(() => new URL(config.public.shortDomain).host);
+useHead({ title: 'All links · Linkyard' });
 const createOpen = ref(false);
 const { data, pending, refresh, error, status, page, sort, selectedTags, tagList, toggleTag } = useLinksList();
 const searchInput = ref((route.query.q as string) ?? '');
@@ -15,105 +17,137 @@ watch(() => route.query.q, (v) => {
   searchInput.value = (v as string) ?? '';
 });
 
-const filterOptions = [
-  { label: 'All links', value: 'all' },
+const statusOptions = [
+  { label: 'All statuses', value: 'all' },
   { label: 'Active', value: 'active' },
   { label: 'Disabled', value: 'disabled' },
   { label: 'Expired', value: 'expired' },
   { label: 'Limit reached', value: 'limit_reached' },
   { label: 'Scheduled', value: 'scheduled' },
 ];
+
+const hasFilters = computed(() => !!searchInput.value || status.value !== 'all' || selectedTags.value.length > 0);
+
+function clearFilters() {
+  searchInput.value = '';
+  navigateTo({ query: { sort: route.query.sort } });
+}
 </script>
 
 <template>
-  <div class="space-y-7">
-    <div class="flex items-start justify-between gap-4">
+  <div class="space-y-6">
+    <div class="page-heading">
       <div>
-        <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
-          My links
-        </h1><p class="mt-2 text-sm text-muted">
+        <h1 class="page-title">
+          All links<UBadge v-if="data && !error" :label="String(data.total)" color="neutral" variant="subtle" size="sm" />
+        </h1><p class="page-description">
           Create, share, and keep your links up to date.
         </p>
       </div>
-      <UModal v-model:open="createOpen" title="Create a link" description="Give a long URL a short, memorable address.">
-        <UButton label="Create link" icon="i-lucide-plus" size="lg" class="shrink-0" />
-        <template #body>
-          <LinkCreateForm @created="refresh()" />
-        </template>
-      </UModal>
+      <UButton label="Create link" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
     </div>
-    <div class="flex flex-col justify-between gap-4 rounded-xl border border-primary/15 bg-primary/5 p-5 sm:flex-row sm:items-center">
-      <div class="flex items-center gap-4">
-        <div class="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-default text-primary sm:flex">
-          <UIcon name="i-lucide-signpost" class="size-6" />
-        </div><div>
-          <h2 class="text-sm font-semibold text-highlighted">
-            One address. Always the right destination.
-          </h2><p class="mt-1 text-sm text-muted">
-            Update a destination anytime. Your short link and QR code stay the same.
-          </p>
-        </div>
+
+    <USlideover
+      v-model:open="createOpen"
+      title="Create a link"
+      description="A short address for your next destination."
+      :unmount-on-hide="false"
+      :ui="{ content: 'sm:max-w-[480px]' }"
+    >
+      <template #body>
+        <LinkCreateForm @created="refresh()" />
+      </template>
+    </USlideover>
+
+    <section aria-label="Link library" class="surface">
+      <div class="flex items-center justify-between gap-3 border-b border-default px-5 py-3.5">
+        <h2 class="flex items-center gap-2 text-[13px] font-semibold text-highlighted">
+          <UIcon name="i-lucide-list-filter" class="size-4 text-muted" />Link library
+        </h2>
+        <UButton v-if="hasFilters" label="Reset filters" icon="i-lucide-x" color="neutral" variant="ghost" size="xs" @click="clearFilters" />
+        <span v-else class="hidden items-center gap-1.5 text-xs text-muted sm:flex"><UIcon name="i-lucide-lock-keyhole" class="size-3" />Only visible to you</span>
       </div>
-    </div>
-    <section aria-label="Link library" class="overflow-hidden rounded-xl border border-default bg-default">
-      <div class="flex flex-col gap-4 border-b border-default p-4 sm:p-5">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-2">
-            <h2 class="font-semibold text-highlighted">
-              Link library
-            </h2><UBadge v-if="data && !error" :label="String(data.total)" color="neutral" variant="subtle" size="sm" />
+      <div class="flex flex-wrap items-center gap-2 border-b border-default bg-muted/30 p-3 sm:px-5">
+        <UInput v-model="searchInput" icon="i-lucide-search" placeholder="Search links…" aria-label="Search links" size="sm" class="w-full sm:w-64" />
+        <USelect v-model="status" :items="statusOptions" aria-label="Filter links by status" icon="i-lucide-filter" size="sm" class="w-full sm:w-44" />
+        <USelect v-model="sort" :items="[{ label: 'Newest first', value: 'createdAt' }, { label: 'Most clicked', value: 'clicks' }]" aria-label="Sort links" icon="i-lucide-arrow-down-wide-narrow" size="sm" class="w-full sm:ms-auto sm:w-44" />
+      </div>
+      <div v-if="tagList?.items?.length" class="flex flex-wrap gap-1.5 border-b border-default px-3 py-2.5 sm:px-5" aria-label="Filter links by tag">
+        <UButton
+          v-for="tag in tagList.items"
+          :key="tag.name"
+          :label="tag.name"
+          size="xs"
+          :variant="selectedTags.includes(tag.name) ? 'soft' : 'outline'"
+          :color="selectedTags.includes(tag.name) ? 'primary' : 'neutral'"
+          :aria-pressed="selectedTags.includes(tag.name)"
+          @click="toggleTag(tag.name)"
+        />
+      </div>
+      <div v-if="pending" class="space-y-4 p-4" role="status" aria-label="Loading links">
+        <USkeleton v-for="n in 4" :key="n" class="h-12 w-full" /><span class="sr-only">Loading links</span>
+      </div>
+      <div v-else-if="error" class="p-5">
+        <UAlert title="Could not load links" description="Try again to load your link library." color="error" variant="soft" icon="i-lucide-circle-alert" /><UButton label="Try again" variant="outline" size="sm" class="mt-4" @click="refresh()" />
+      </div>
+      <div v-else-if="!data?.items?.length" class="px-5 py-20 text-center">
+        <div v-if="!hasFilters" class="mx-auto mb-8 flex max-w-sm items-center justify-center gap-3" aria-hidden="true">
+          <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-default bg-muted/50 text-muted">
+            <UIcon name="i-lucide-globe" class="size-5" />
           </div>
-          <UInput v-model="searchInput" icon="i-lucide-search" placeholder="Search by title, URL, or short link" aria-label="Search links" class="sm:max-w-80" />
-        </div>
-        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div class="flex flex-wrap gap-1" aria-label="Filter links by status">
-            <UButton v-for="filter in filterOptions" :key="filter.value" :label="filter.label" :variant="status === filter.value ? 'soft' : 'ghost'" :color="status === filter.value ? 'primary' : 'neutral'" :aria-pressed="status === filter.value" size="sm" @click="status = filter.value" />
+          <div class="h-px w-6 bg-accented" />
+          <div class="min-w-0 rounded-lg border border-primary/20 bg-default px-4 py-3 text-left shadow-control">
+            <div class="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-muted">
+              <UIcon name="i-lucide-link-2" class="size-3.5 text-primary" />Your short link
+            </div>
+            <div class="truncate text-xs font-medium text-highlighted">
+              {{ shortDomain }}<span class="text-primary">/your-link</span>
+            </div>
           </div>
-          <USelect v-model="sort" :items="[{ label: 'Newest first', value: 'createdAt' }, { label: 'Most clicked', value: 'clicks' }]" aria-label="Sort links" icon="i-lucide-arrow-down-wide-narrow" class="w-full sm:w-44" />
+          <div class="h-px w-6 bg-accented" />
+          <UIcon name="i-lucide-arrow-up-right" class="size-5 shrink-0 text-muted" />
         </div>
-        <div v-if="tagList?.items?.length" class="flex flex-wrap gap-2" aria-label="Filter links by tag">
-          <UButton
-            v-for="tag in tagList.items"
-            :key="tag.name"
-            :label="tag.name"
-            size="sm"
-            :variant="selectedTags.includes(tag.name) ? 'soft' : 'outline'"
-            :color="selectedTags.includes(tag.name) ? 'primary' : 'neutral'"
-            :aria-pressed="selectedTags.includes(tag.name)"
-            @click="toggleTag(tag.name)"
-          />
+        <div v-else class="mx-auto mb-5 flex size-14 items-center justify-center rounded-xl border border-default bg-default shadow-control">
+          <UIcon name="i-lucide-search" class="size-6 text-primary" />
         </div>
-      </div>
-      <div v-if="pending" class="space-y-6 p-6" role="status" aria-label="Loading links">
-        <USkeleton v-for="n in 4" :key="n" class="h-14 w-full" /><span class="sr-only">Loading links</span>
-      </div>
-      <div v-else-if="error" class="p-6">
-        <UAlert title="Could not load links" description="Try again to load your link library." color="error" variant="soft" icon="i-lucide-circle-alert" /><UButton label="Try again" variant="outline" class="mt-4" @click="refresh()" />
-      </div>
-      <div v-else-if="!data?.items?.length" class="px-5 py-16 text-center">
-        <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl border border-default bg-muted">
-          <UIcon :name="searchInput || status !== 'all' ? 'i-lucide-search' : 'i-lucide-link'" class="size-6 text-primary" />
-        </div>
-        <h3 class="font-semibold text-highlighted">
-          {{ searchInput || status !== 'all' ? 'No matching links' : 'Your next link starts here' }}
-        </h3>
-        <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
-          {{ searchInput || status !== 'all' ? 'Try another search or status filter.' : 'Create a short link for a campaign, a document, or a resource you share often.' }}
+        <h2 class="text-sm font-semibold text-highlighted">
+          {{ hasFilters ? 'No matching links' : 'Create your first short link' }}
+        </h2>
+        <p class="mx-auto mt-1.5 max-w-sm text-sm leading-6 text-muted">
+          {{ hasFilters ? 'Try another search, status, or tag.' : 'Create a short link for a campaign, a document, or a resource you share often.' }}
         </p>
-        <UButton v-if="!searchInput && status === 'all'" class="mt-5" label="Create your first link" icon="i-lucide-plus" @click="createOpen = true" />
+        <UButton v-if="hasFilters" class="mt-4" label="Clear filters" icon="i-lucide-x" color="neutral" variant="outline" size="sm" @click="clearFilters" />
+        <UButton v-else class="mt-4" label="Create your first link" icon="i-lucide-plus" size="sm" @click="createOpen = true" />
       </div>
       <div v-else class="divide-y divide-default">
+        <div class="link-grid column-heading hidden md:grid" aria-hidden="true">
+          <span>Link</span><span class="hidden xl:block">Destination</span><span>Status</span><span class="text-right">Clicks</span><span />
+        </div>
         <LinkRow v-for="link in data.items" :key="link.id" :link="link" @refresh="refresh()" />
       </div>
-      <div v-if="data && !error && data.total > 0" class="flex flex-wrap items-center justify-between gap-3 border-t border-default px-5 py-4">
+      <div v-if="data && !error && data.total > 0" class="flex flex-wrap items-center justify-between gap-3 border-t border-default bg-muted/30 px-5 py-3.5">
         <p class="text-xs text-muted">
-          {{ data.total }} {{ data.total === 1 ? 'link' : 'links' }}{{ searchInput || status !== 'all' ? (data.total === 1 ? ' matches this view' : ' match this view') : ' in your library' }}
+          Showing {{ (page - 1) * data.perPage + 1 }}–{{ Math.min(page * data.perPage, data.total) }} of {{ data.total }} {{ data.total === 1 ? 'link' : 'links' }}
         </p>
         <UPagination v-if="data.total > data.perPage" v-model:page="page" :total="data.total" :items-per-page="data.perPage" :sibling-count="1" size="xs" />
       </div>
     </section>
-    <p class="flex items-center justify-center gap-2 text-xs text-muted">
-      <UIcon name="i-lucide-lock-keyhole" class="size-3.5" />Your link library is visible to your account.
-    </p>
+    <div v-if="data && !error && !pending && !data.total && !hasFilters" class="grid gap-6 px-2 pt-4 sm:grid-cols-3">
+      <div
+        v-for="item in [
+          { icon: 'i-lucide-arrow-left-right', title: 'One link, any destination', text: 'Update the destination without replacing the link you shared.' },
+          { icon: 'i-lucide-chart-no-axes-combined', title: 'Know what gets a click', text: 'See traffic, referrers, and devices for each link.' },
+          { icon: 'i-lucide-qr-code', title: 'Share beyond the screen', text: 'Download a QR code for print, packaging, and events.' },
+        ]" :key="item.title"
+      >
+        <UIcon :name="item.icon" class="mb-3 size-4 text-muted" />
+        <h3 class="text-xs font-semibold text-highlighted">
+          {{ item.title }}
+        </h3>
+        <p class="mt-1.5 max-w-64 text-xs leading-5 text-muted">
+          {{ item.text }}
+        </p>
+      </div>
+    </div>
   </div>
 </template>

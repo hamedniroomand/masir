@@ -9,10 +9,11 @@ const open = defineModel<boolean>('open', { default: false });
 </script>
 
 <template>
-  <UModal
+  <USlideover
     v-model:open="open"
-    title="QR code"
-    :description="label ? `Scan or share offline for ${label}.` : 'Scan or share offline. It uses the same short link.'"
+    title="Share offline"
+    :description="label ? `The same address as ${label}, on printed material.` : 'The same address, on printed material.'"
+    :ui="{ content: 'sm:max-w-[480px]' }"
   >
     <template #body>
       <LinkQrPanel
@@ -22,5 +23,5 @@ const open = defineModel<boolean>('open', { default: false });
         :preview-size="200"
       />
     </template>
-  </UModal>
+  </USlideover>
 </template>

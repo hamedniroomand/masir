@@ -23,10 +23,10 @@ async function onEnabledChange(isEnabled: boolean) {
 <template>
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div class="min-w-0">
-      <p class="font-medium text-highlighted">
+      <p class="text-[13px] font-medium text-highlighted">
         {{ link.isEnabled ? 'Link is enabled' : 'Link is disabled' }}
       </p>
-      <p class="mt-1 text-sm text-muted">
+      <p class="mt-1 text-xs leading-5 text-muted">
         Disabled links show an unavailable page. The short URL and QR code stay the same.
       </p>
     </div>
