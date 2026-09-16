@@ -7,6 +7,8 @@ const META = {
   active: { color: 'success', icon: 'i-lucide-check', label: 'Active', tip: 'Link is active' },
   disabled: { color: 'neutral', icon: 'i-lucide-pause', label: 'Disabled', tip: 'Owner disabled this link' },
   expired: { color: 'warning', icon: 'i-lucide-clock', label: 'Expired', tip: 'Link has expired' },
+  limit_reached: { color: 'warning', icon: 'i-lucide-ban', label: 'Limit reached', tip: 'Visit limit reached' },
+  scheduled: { color: 'info', icon: 'i-lucide-calendar-clock', label: 'Scheduled', tip: 'Link is not active yet' },
 } as const;
 
 const meta = computed(() => META[props.link.status]);

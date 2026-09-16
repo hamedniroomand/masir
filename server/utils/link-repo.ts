@@ -39,6 +39,9 @@ export function linkToDto(link: typeof links.$inferSelect) {
     status: deriveLinkStatus({
       isEnabled: link.isEnabled,
       expiresAt: link.expiresAt,
+      startsAt: link.startsAt,
+      maximumVisits: link.maximumVisits,
+      successfulVisitCount: link.successfulVisitCount,
     }),
   };
 }
@@ -155,7 +158,7 @@ export class SlugExhaustedError extends Error {
 
 export async function listLinks(userId: string, query: {
   q?: string;
-  status?: 'active' | 'disabled' | 'expired';
+  status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   page: number;
   perPage: number;
   sort: 'createdAt' | 'clicks';
@@ -163,6 +166,9 @@ export async function listLinks(userId: string, query: {
   const db = await getDb();
   const now = Date.now();
   const filters = [eq(links.userId, userId)];
+  const notExpired = or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!;
+  const underVisitLimit = or(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`)!;
+  const started = or(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`)!;
 
   if (query.q) {
     const term = `%${query.q.toLowerCase()}%`;
@@ -173,16 +179,29 @@ export async function listLinks(userId: string, query: {
     )!);
   }
 
-  if (query.status === 'expired') {
+  if (query.status === 'disabled') {
+    filters.push(eq(links.isEnabled, false));
+  }
+  else if (query.status === 'expired') {
+    filters.push(eq(links.isEnabled, true));
     filters.push(sql`${links.expiresAt} IS NOT NULL AND ${links.expiresAt} <= ${now}`);
   }
-  else if (query.status === 'disabled') {
-    filters.push(eq(links.isEnabled, false));
-    filters.push(or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!);
+  else if (query.status === 'limit_reached') {
+    filters.push(eq(links.isEnabled, true));
+    filters.push(notExpired);
+    filters.push(sql`${links.maximumVisits} IS NOT NULL AND ${links.successfulVisitCount} >= ${links.maximumVisits}`);
+  }
+  else if (query.status === 'scheduled') {
+    filters.push(eq(links.isEnabled, true));
+    filters.push(notExpired);
+    filters.push(underVisitLimit);
+    filters.push(sql`${links.startsAt} IS NOT NULL AND ${links.startsAt} > ${now}`);
   }
   else if (query.status === 'active') {
     filters.push(eq(links.isEnabled, true));
-    filters.push(or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!);
+    filters.push(notExpired);
+    filters.push(underVisitLimit);
+    filters.push(started);
   }
 
   const where = and(...filters);

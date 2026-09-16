@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const sort = query.sort === 'clicks' ? 'clicks' : 'createdAt';
   const status = query.status;
   const statusFilter = status === 'active' || status === 'disabled' || status === 'expired'
+    || status === 'limit_reached' || status === 'scheduled'
     ? status
     : undefined;
 

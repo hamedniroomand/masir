@@ -50,6 +50,9 @@ export default defineEventHandler(async (event) => {
   const status = deriveLinkStatus({
     isEnabled: link.isEnabled,
     expiresAt: link.expiresAt,
+    startsAt: link.startsAt,
+    maximumVisits: link.maximumVisits,
+    successfulVisitCount: link.successfulVisitCount,
   });
 
   setResponseHeader(event, 'X-Robots-Tag', 'noindex, nofollow');
@@ -59,6 +62,16 @@ export default defineEventHandler(async (event) => {
   }
   if (status === 'expired') {
     throw createError({ statusCode: 404, statusMessage: 'Link expired', data: { linkState: 'expired' } });
+  }
+  if (status === 'limit_reached') {
+    throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
+  }
+  if (status === 'scheduled') {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Link unavailable',
+      data: { linkState: 'scheduled', startsAt: link.startsAt?.toISOString() ?? null },
+    });
   }
 
   setResponseHeader(event, 'Cache-Control', 'private, no-store');

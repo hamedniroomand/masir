@@ -20,6 +20,8 @@ const filterOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Disabled', value: 'disabled' },
   { label: 'Expired', value: 'expired' },
+  { label: 'Limit reached', value: 'limit_reached' },
+  { label: 'Scheduled', value: 'scheduled' },
 ];
 </script>
 

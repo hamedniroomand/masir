@@ -9,7 +9,7 @@ export interface LinkItem {
   campaignId: string | null;
   utmSource: string | null;
   utmContent: string | null;
-  status: 'active' | 'disabled' | 'expired';
+  status: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   isEnabled: boolean;
   isProtected: boolean;
   expiresAt: string | null;
