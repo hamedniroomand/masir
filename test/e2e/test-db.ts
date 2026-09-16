@@ -5,7 +5,6 @@ import { SQL } from 'bun';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
-import * as schema from '#server/database/schema';
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
 
@@ -32,7 +31,7 @@ export function openTestDatabase(databaseUrl: string) {
     client = new SQL({ url: databaseUrl, max: 2 });
     clients.set(databaseUrl, client);
   }
-  return drizzle({ client, schema });
+  return drizzle({ client });
 }
 
 export async function closeTestDatabases() {
