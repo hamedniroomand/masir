@@ -230,6 +230,7 @@ export async function updateLink(id: string, userId: string, patch: {
   startsAt?: Date | null;
   expirationDestination?: string | null;
   maximumVisits?: number | null;
+  passwordHash?: string | null;
   isEnabled?: boolean;
   campaignId?: string | null;
   utmSource?: string | null;
@@ -255,6 +256,8 @@ export async function updateLink(id: string, userId: string, patch: {
     values.expirationDestination = patch.expirationDestination;
   if (patch.maximumVisits !== undefined)
     values.maximumVisits = patch.maximumVisits;
+  if (patch.passwordHash !== undefined)
+    values.passwordHash = patch.passwordHash;
   if (patch.isEnabled !== undefined)
     values.isEnabled = patch.isEnabled;
   if (patch.campaignId !== undefined)

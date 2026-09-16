@@ -14,6 +14,7 @@ const bodySchema = v.object({
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
   maximumVisits: v.optional(v.nullable(v.number())),
+  password: v.optional(v.nullable(v.string())),
   isEnabled: v.optional(v.boolean()),
   slug: v.optional(v.string()),
   campaignId: v.optional(v.nullable(v.string())),
@@ -72,6 +73,14 @@ export default defineEventHandler(async (event) => {
     }
     patch.maximumVisits = body.maximumVisits;
   }
+  if (body.password !== undefined) {
+    if (body.password == null) {
+      patch.passwordHash = null;
+    }
+    else {
+      patch.passwordHash = await hashPassword(body.password);
+    }
+  }
   if (body.utmSource !== undefined)
     patch.utmSource = emptyToNull(body.utmSource);
   if (body.utmContent !== undefined)
@@ -96,6 +105,14 @@ export default defineEventHandler(async (event) => {
   assertScheduleOrder(nextStarts, nextExpires);
 
   const updated = await updateLink(id, user.id, patch);
-  await writeSecurityEvent('link_updated', { fields: Object.keys(patch) }, user.id, id);
+  if (body.password !== undefined) {
+    await writeSecurityEvent(
+      body.password == null ? 'link_password_removed' : 'link_password_set',
+      {},
+      user.id,
+      id,
+    );
+  }
+  await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, user.id, id);
   return linkToDto(updated!);
 });
