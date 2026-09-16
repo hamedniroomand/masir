@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -48,6 +48,25 @@ export const links = sqliteTable('links', {
   index('links_user_id_created_at_idx').on(table.userId, table.createdAt),
   index('links_campaign_id_idx').on(table.campaignId),
   uniqueIndex('links_slug_unique_idx').on(table.slug),
+]);
+
+export const tags = sqliteTable('tags', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  normalizedName: text('normalized_name').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+}, table => [
+  uniqueIndex('tags_user_id_normalized_name_unique_idx').on(table.userId, table.normalizedName),
+  index('tags_user_id_created_at_idx').on(table.userId, table.createdAt),
+]);
+
+export const linkTags = sqliteTable('link_tags', {
+  linkId: text('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
+  tagId: text('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
+}, table => [
+  primaryKey({ columns: [table.linkId, table.tagId] }),
+  index('link_tags_tag_id_idx').on(table.tagId),
 ]);
 
 export const clickEvents = sqliteTable('click_events', {
