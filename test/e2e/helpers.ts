@@ -1,4 +1,5 @@
 import { rmSync } from 'node:fs';
+import { eq } from 'drizzle-orm';
 import { hashPassword } from '#scripts/hash-password';
 import { campaigns, links, users } from '#server/database/schema';
 import { newId } from '#shared/id';
@@ -80,6 +81,10 @@ export async function insertTestLink(databaseUrl: string, input: {
   utmSource?: string | null;
   utmContent?: string | null;
   passwordHash?: string | null;
+  startsAt?: Date | null;
+  expirationDestination?: string | null;
+  maximumVisits?: number | null;
+  successfulVisitCount?: number;
 }) {
   const db = openTestDatabase(databaseUrl);
   const id = newId();
@@ -94,7 +99,10 @@ export async function insertTestLink(databaseUrl: string, input: {
     isEnabled: input.isEnabled ?? true,
     expiresAt: input.expiresAt ?? null,
     passwordHash: input.passwordHash ?? null,
-    successfulVisitCount: 0,
+    startsAt: input.startsAt ?? null,
+    expirationDestination: input.expirationDestination ?? null,
+    maximumVisits: input.maximumVisits ?? null,
+    successfulVisitCount: input.successfulVisitCount ?? 0,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,
     utmContent: input.utmContent ?? null,
@@ -104,3 +112,11 @@ export async function insertTestLink(databaseUrl: string, input: {
   });
   return id;
 }
+
+export async function readTestLink(databaseUrl: string, linkId: string) {
+  const db = openTestDatabase(databaseUrl);
+  const rows = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+  return rows[0]!;
+}
+
+export const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';

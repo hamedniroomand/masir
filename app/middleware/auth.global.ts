@@ -1,8 +1,17 @@
+import { RESERVED_SLUGS } from '#shared/slug';
+
+function isPublicShortLinkPath(path: string): boolean {
+  const match = path.match(/^\/([a-z0-9-]+)$/);
+  if (!match)
+    return false;
+  return !RESERVED_SLUGS.has(match[1]!);
+}
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const { loggedIn, user, fetch: fetchSession } = useUserSession();
   await fetchSession();
 
-  const isPublic = ['/login', '/report'].includes(to.path);
+  const isPublic = ['/login', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
 
   if (!loggedIn.value && !isPublic)
     return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`);

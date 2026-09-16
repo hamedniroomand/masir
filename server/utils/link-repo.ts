@@ -1,4 +1,4 @@
-import { and, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, like, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, reservedSlugs } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
@@ -220,6 +220,9 @@ export async function updateLink(id: string, userId: string, patch: {
   title?: string | null;
   destinationUrl?: string;
   expiresAt?: Date | null;
+  startsAt?: Date | null;
+  expirationDestination?: string | null;
+  maximumVisits?: number | null;
   isEnabled?: boolean;
   campaignId?: string | null;
   utmSource?: string | null;
@@ -239,6 +242,12 @@ export async function updateLink(id: string, userId: string, patch: {
   }
   if (patch.expiresAt !== undefined)
     values.expiresAt = patch.expiresAt;
+  if (patch.startsAt !== undefined)
+    values.startsAt = patch.startsAt;
+  if (patch.expirationDestination !== undefined)
+    values.expirationDestination = patch.expirationDestination;
+  if (patch.maximumVisits !== undefined)
+    values.maximumVisits = patch.maximumVisits;
   if (patch.isEnabled !== undefined)
     values.isEnabled = patch.isEnabled;
   if (patch.campaignId !== undefined)
@@ -276,6 +285,18 @@ export async function adminDisableLink(linkId: string) {
   await db.update(links).set({ isEnabled: false, updatedAt: new Date() }).where(eq(links.id, linkId));
   invalidateLink(link.slug);
   return link;
+}
+
+export async function consumeVisit(linkId: string): Promise<boolean> {
+  const db = await getDb();
+  const updated = await db.update(links)
+    .set({ successfulVisitCount: sql`${links.successfulVisitCount} + 1` })
+    .where(and(
+      eq(links.id, linkId),
+      or(isNull(links.maximumVisits), sql`${links.successfulVisitCount} < ${links.maximumVisits}`),
+    ))
+    .returning({ id: links.id });
+  return updated.length > 0;
 }
 
 export async function countClickEvents(linkId: string) {

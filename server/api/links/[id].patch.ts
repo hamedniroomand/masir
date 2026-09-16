@@ -3,13 +3,16 @@ import { requireUser } from '#server/utils/auth';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
 import { writeSecurityEvent } from '#server/utils/security-log';
-import { validateDestination } from '#server/utils/url';
+import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
   title: v.optional(v.nullable(v.string())),
   destinationUrl: v.optional(v.string()),
   expiresAt: v.optional(v.nullable(v.number())),
+  startsAt: v.optional(v.nullable(v.number())),
+  expirationDestination: v.optional(v.nullable(v.string())),
+  maximumVisits: v.optional(v.nullable(v.number())),
   isEnabled: v.optional(v.boolean()),
   slug: v.optional(v.string()),
   campaignId: v.optional(v.nullable(v.string())),
@@ -37,6 +40,37 @@ export default defineEventHandler(async (event) => {
     patch.isEnabled = body.isEnabled;
   if (body.expiresAt !== undefined)
     patch.expiresAt = body.expiresAt == null ? null : new Date(body.expiresAt);
+  if (body.startsAt !== undefined)
+    patch.startsAt = body.startsAt == null ? null : new Date(body.startsAt);
+  if (body.expirationDestination !== undefined) {
+    if (body.expirationDestination == null) {
+      patch.expirationDestination = null;
+    }
+    else {
+      const dest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
+      if (!dest.ok) {
+        throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
+      }
+      if (shortLinkMatchesDestination(config.public.shortDomain, existing.slug, dest.url)) {
+        throw createError({
+          statusCode: 422,
+          statusMessage: 'Expiration destination cannot point to this short link.',
+          data: { reason: 'Expiration destination cannot point to this short link.' },
+        });
+      }
+      patch.expirationDestination = dest.url;
+    }
+  }
+  if (body.maximumVisits !== undefined) {
+    if (body.maximumVisits != null && body.maximumVisits < existing.successfulVisitCount) {
+      throw createError({
+        statusCode: 422,
+        statusMessage: 'Maximum visits cannot be less than visits already used.',
+        data: { reason: 'Maximum visits cannot be less than visits already used.' },
+      });
+    }
+    patch.maximumVisits = body.maximumVisits;
+  }
   if (body.utmSource !== undefined)
     patch.utmSource = emptyToNull(body.utmSource);
   if (body.utmContent !== undefined)

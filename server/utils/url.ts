@@ -71,3 +71,18 @@ function normalizeDestination(url: URL): string {
 export function destinationHostFromUrl(urlString: string): string {
   return new URL(urlString).hostname.toLowerCase();
 }
+
+export function shortLinkMatchesDestination(shortDomain: string, slug: string, destinationUrl: string): boolean {
+  const base = shortDomain.replace(/\/$/, '');
+  const short = new URL(`${base}/${slug}`);
+  let dest: URL;
+  try {
+    dest = new URL(destinationUrl);
+  }
+  catch {
+    return false;
+  }
+  const shortPath = short.pathname.replace(/\/$/, '') || '/';
+  const destPath = dest.pathname.replace(/\/$/, '') || '/';
+  return dest.hostname.toLowerCase() === short.hostname.toLowerCase() && destPath === shortPath;
+}
