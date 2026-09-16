@@ -27,3 +27,4 @@ logs
 
 # Claude local
 .claude/
+.superpowers/
