@@ -1,6 +1,14 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import {
+  CHROME_UA,
+  e2eSetupOptions,
+  readTestLink,
+  resetTestDb,
+  TEST_EMAIL,
+  TEST_PASSWORD,
+  testDatabasePath,
+} from './helpers';
 
 const TEST_DB = testDatabasePath('password');
 
@@ -53,5 +61,78 @@ describe('link password API', async () => {
       body: { password: null },
     });
     expect(open.isProtected).toBe(false);
+  });
+
+  it('redirects through the password page without leaking the destination', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/hidden-target', slug: 'pw-gate' },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      headers: { cookie },
+      body: { password: 'gate-pass' },
+    });
+
+    const before = await readTestLink(TEST_DB, link.id);
+    const gate = await fetch(`/${link.slug}`, { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(gate.status).toBe(302);
+    expect(gate.headers.get('location')).toContain(`/p/${link.slug}`);
+
+    const page = await $fetch<string>(`/p/${link.slug}`, { responseType: 'text' });
+    expect(page).not.toContain('hidden-target');
+
+    const afterView = await readTestLink(TEST_DB, link.id);
+    expect(afterView.clickCount).toBe(before.clickCount);
+    expect(afterView.successfulVisitCount).toBe(before.successfulVisitCount);
+
+    const bad = await fetch('/api/links/verify-password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'user-agent': CHROME_UA },
+      body: JSON.stringify({ slug: link.slug, password: 'wrong' }),
+    });
+    expect(bad.status).toBe(401);
+
+    const verify = await fetch('/api/links/verify-password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'user-agent': CHROME_UA },
+      body: JSON.stringify({ slug: link.slug, password: 'gate-pass' }),
+    });
+    expect(verify.status).toBe(200);
+    const verifyCookie = verify.headers.get('set-cookie') ?? '';
+
+    const ok = await fetch(`/${link.slug}`, {
+      redirect: 'manual',
+      headers: { 'cookie': verifyCookie.split(';')[0]!, 'user-agent': CHROME_UA },
+    });
+    expect(ok.status).toBe(302);
+    expect(ok.headers.get('location')).toContain('hidden-target');
+  });
+
+  it('returns 429 after repeated wrong password attempts', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/rate', slug: 'pw-rate' },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      headers: { cookie },
+      body: { password: 'real-pass' },
+    });
+
+    let lastStatus = 0;
+    for (let i = 0; i < 12; i++) {
+      const res = await fetch('/api/links/verify-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'user-agent': CHROME_UA },
+        body: JSON.stringify({ slug: link.slug, password: 'wrong' }),
+      });
+      lastStatus = res.status;
+    }
+    expect(lastStatus).toBe(429);
   });
 });

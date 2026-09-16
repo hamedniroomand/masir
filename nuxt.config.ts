@@ -31,6 +31,7 @@ export default defineNuxtConfig({
     geoCountryHeader: '',
     rateLimitCreatePerHour: 30,
     rateLimitRedirectPerMinute: 120,
+    rateLimitPasswordPerMinute: 10,
     public: {
       shortDomain: 'http://localhost:3000',
     },

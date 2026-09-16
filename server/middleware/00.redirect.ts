@@ -2,6 +2,7 @@ import { setResponseHeader } from 'h3';
 import { recordClick } from '#server/utils/analytics';
 import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { consumeVisit, findLinkBySlug } from '#server/utils/link-repo';
+import { hasValidPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
 
@@ -77,6 +78,15 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Link unavailable',
       data: { linkState: 'scheduled', startsAt: link.startsAt?.toISOString() ?? null },
     });
+  }
+
+  if (link.passwordHash) {
+    const granted = hasValidPasswordGrant(event, segment, config.sessionPassword);
+    if (!granted) {
+      setResponseHeader(event, 'Cache-Control', 'private, no-store');
+      await sendRedirect(event, `/p/${segment}`, 302);
+      return;
+    }
   }
 
   setResponseHeader(event, 'Cache-Control', 'private, no-store');

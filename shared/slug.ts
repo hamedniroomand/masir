@@ -18,6 +18,7 @@ export const RESERVED_SLUGS = new Set([
   'robots.txt',
   'sitemap.xml',
   'report',
+  'p',
   'assets',
   'static',
   'well-known',
