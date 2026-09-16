@@ -90,9 +90,9 @@ The server classifies the user agent as a bot or a human. Bots can still receive
 
 Linkyard estimates unique visitors with a daily hash:
 
-`sha256(dailySalt + linkId + clientIp + userAgent)` (truncated).
+`sha256(serverSecret + dayNumber + linkId + clientIp + userAgent)` (truncated).
 
-The salt changes every 24 hours. The database stores the hash only, not the IP. One visitor counts once per link per 24 hours. A shared IP can merge two people. This is a deliberate privacy trade.
+The salt joins `NUXT_SESSION_PASSWORD` with the day number. The server secret is necessary: a day number alone is public, so the hash could be reversed by a search of the IP space. The database stores the hash only, not the IP. One visitor counts once per link per 24 hours. A shared IP can merge two people. This is a deliberate privacy trade.
 
 ## Analytics definitions
 
@@ -105,7 +105,7 @@ The salt changes every 24 hours. The database stores the hash only, not the IP. 
 
 Event **outcomes** include: `redirect_success`, `bot_request`, `password_failed`, `scheduled_block`, `disabled_block`, `expired_block`, `expired_redirect`, `limit_reached`.
 
-Older click rows may have a null outcome. They are legacy data. Linkyard does not reclassify them. The UI shows a note when the selected period includes legacy rows.
+Older click rows have a null outcome. They are legacy data. The old redirect path wrote a row only after a successful redirect, so Linkyard counts a legacy row as a click. It does not claim the row was human, a bot, or unique. The UI shows a note when the selected period includes legacy rows. The boundary date comes from the first classified row, not from a fixed date.
 
 ## Campaigns and UTM
 
