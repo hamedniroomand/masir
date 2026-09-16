@@ -43,6 +43,13 @@
       "when": 1789514324019,
       "tag": "0005_third_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789584889291,
+      "tag": "0006_link_access_fields",
+      "breakpoints": true
     }
   ]
 }

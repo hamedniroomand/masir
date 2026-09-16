@@ -11,7 +11,12 @@ export interface LinkItem {
   utmContent: string | null;
   status: 'active' | 'disabled' | 'expired';
   isEnabled: boolean;
+  isProtected: boolean;
   expiresAt: string | null;
+  startsAt: string | null;
+  expirationDestination: string | null;
+  maximumVisits: number | null;
+  successfulVisitCount: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,6 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
+import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabasePath } from './helpers';
 
 const TEST_DB = testDatabasePath('links');
 
@@ -19,8 +19,10 @@ async function loginCookie() {
 describe('links API', async () => {
   await setup(e2eSetupOptions(TEST_DB));
 
+  let userId = '';
+
   beforeAll(async () => {
-    await resetTestDb(TEST_DB);
+    ({ userId } = await resetTestDb(TEST_DB));
   });
 
   it('creates a link with only destinationUrl', async () => {
@@ -63,6 +65,21 @@ describe('links API', async () => {
       body: { destinationUrl: 'https://example.com/again', slug: link.slug },
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('does not expose passwordHash in API responses', async () => {
+    const cookie = await loginCookie();
+    const linkId = await insertTestLink(TEST_DB, {
+      userId,
+      slug: 'protected-link',
+      passwordHash: 'hashed-secret',
+    });
+    const link = await $fetch<Record<string, unknown>>(`/api/links/${linkId}`, { headers: { cookie } });
+    expect(link).not.toHaveProperty('passwordHash');
+    expect(link.isProtected).toBe(true);
+    expect(link.successfulVisitCount).toBe(0);
+    expect(link.startsAt).toBeNull();
+    expect(link.maximumVisits).toBeNull();
   });
 
   it('rejects javascript destinations with 422', async () => {

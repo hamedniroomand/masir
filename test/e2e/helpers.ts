@@ -79,6 +79,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   campaignId?: string | null;
   utmSource?: string | null;
   utmContent?: string | null;
+  passwordHash?: string | null;
 }) {
   const db = openTestDatabase(databaseUrl);
   const id = newId();
@@ -92,6 +93,8 @@ export async function insertTestLink(databaseUrl: string, input: {
     destinationHost: 'example.com',
     isEnabled: input.isEnabled ?? true,
     expiresAt: input.expiresAt ?? null,
+    passwordHash: input.passwordHash ?? null,
+    successfulVisitCount: 0,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,
     utmContent: input.utmContent ?? null,
