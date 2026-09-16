@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull, like, or, sql } from 'drizzle-orm';
-import { campaigns, clickEvents, links, reservedSlugs } from '#server/database/schema';
+import { and, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
+import { campaigns, clickEvents, links, linkTags, reservedSlugs, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
 import { invalidateLink } from '#server/utils/link-cache';
+import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
 import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
@@ -15,7 +16,7 @@ export function shortUrlFor(slug: string) {
   return `${base}/${slug}`;
 }
 
-export function linkToDto(link: typeof links.$inferSelect) {
+export function linkToDto(link: typeof links.$inferSelect, tagNames: string[] = []) {
   return {
     id: link.id,
     slug: link.slug,
@@ -33,6 +34,7 @@ export function linkToDto(link: typeof links.$inferSelect) {
     campaignId: link.campaignId,
     utmSource: link.utmSource,
     utmContent: link.utmContent,
+    tags: tagNames,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
     shortUrl: shortUrlFor(link.slug),
@@ -163,9 +165,27 @@ export class SlugExhaustedError extends Error {
   }
 }
 
+export async function tagNamesByLinkIds(linkIds: string[]) {
+  const map = new Map<string, string[]>();
+  if (!linkIds.length)
+    return map;
+  const db = await getDb();
+  const rows = await db.select({ linkId: linkTags.linkId, name: tags.name })
+    .from(linkTags)
+    .innerJoin(tags, eq(linkTags.tagId, tags.id))
+    .where(inArray(linkTags.linkId, linkIds));
+  for (const row of rows) {
+    const list = map.get(row.linkId) ?? [];
+    list.push(row.name);
+    map.set(row.linkId, list);
+  }
+  return map;
+}
+
 export async function listLinks(userId: string, query: {
   q?: string;
   status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
+  tags?: string[];
   page: number;
   perPage: number;
   sort: 'createdAt' | 'clicks';
@@ -184,6 +204,25 @@ export async function listLinks(userId: string, query: {
       like(sql`lower(${links.slug})`, term),
       like(sql`lower(${links.destinationHost})`, term),
     )!);
+  }
+
+  if (query.tags?.length) {
+    for (const raw of query.tags) {
+      let normalized: string;
+      try {
+        normalized = normalizeTagName(raw);
+      }
+      catch {
+        continue;
+      }
+      filters.push(sql`exists (
+        select 1 from link_tags lt
+        inner join tags t on t.id = lt.tag_id
+        where lt.link_id = ${links.id}
+          and t.user_id = ${userId}
+          and t.normalized_name = ${normalized}
+      )`);
+    }
   }
 
   if (query.status === 'disabled') {

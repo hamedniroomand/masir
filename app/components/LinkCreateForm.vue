@@ -21,6 +21,7 @@ const schema = v.object({
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
+  tags: v.optional(v.array(v.string())),
 });
 
 type Schema = v.InferOutput<typeof schema>;
@@ -36,6 +37,7 @@ const state = reactive({
   campaignId: null as string | null,
   utmSource: '',
   utmContent: '',
+  tags: [] as string[],
 });
 
 const form = useTemplateRef('form');
@@ -72,6 +74,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.utmSource = state.utmSource;
     if (state.utmContent)
       body.utmContent = state.utmContent;
+    if (state.tags.length)
+      body.tags = state.tags;
 
     const link = await $fetch<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
@@ -86,6 +90,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     state.campaignId = null;
     state.utmSource = '';
     state.utmContent = '';
+    state.tags = [];
     advanced.value = false;
   }
   catch (e: unknown) {
@@ -161,6 +166,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         </UFormField>
         <UFormField label="Expiration destination" name="expirationDestination" description="Optional. Send visitors here when the link expires.">
           <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />
+        </UFormField>
+        <UFormField label="Tags" name="tags" description="Group links for your dashboard.">
+          <LinkTagInput v-model="state.tags" />
         </UFormField>
         <div class="border-t border-default pt-3">
           <LinkUtmFields

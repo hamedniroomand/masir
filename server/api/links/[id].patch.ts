@@ -1,9 +1,10 @@
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
-import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
+import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { writeSecurityEvent } from '#server/utils/security-log';
+import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -15,6 +16,7 @@ const bodySchema = v.object({
   expirationDestination: v.optional(v.nullable(v.string())),
   maximumVisits: v.optional(v.nullable(v.number())),
   password: v.optional(v.nullable(v.string())),
+  tags: v.optional(v.array(v.string())),
   isEnabled: v.optional(v.boolean()),
   slug: v.optional(v.string()),
   campaignId: v.optional(v.nullable(v.string())),
@@ -104,6 +106,9 @@ export default defineEventHandler(async (event) => {
   const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
   assertScheduleOrder(nextStarts, nextExpires);
 
+  if (body.tags !== undefined)
+    await setLinkTags(id, user.id, body.tags);
+
   const updated = await updateLink(id, user.id, patch);
   if (body.password !== undefined) {
     await writeSecurityEvent(
@@ -114,5 +119,6 @@ export default defineEventHandler(async (event) => {
     );
   }
   await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, user.id, id);
-  return linkToDto(updated!);
+  const tagMap = await tagNamesByLinkIds([updated!.id]);
+  return linkToDto(updated!, tagMap.get(updated!.id) ?? []);
 });

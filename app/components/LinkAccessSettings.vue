@@ -12,6 +12,7 @@ const state = reactive({
   expiresAt: null as number | null,
   maximumVisits: null as number | null,
   expirationDestination: '',
+  tags: [] as string[],
 });
 
 watch(() => props.link, (link) => {
@@ -19,6 +20,7 @@ watch(() => props.link, (link) => {
   state.expiresAt = link.expiresAt ? Date.parse(link.expiresAt) : null;
   state.maximumVisits = link.maximumVisits;
   state.expirationDestination = link.expirationDestination ?? '';
+  state.tags = [...link.tags];
 }, { immediate: true });
 
 async function save() {
@@ -31,6 +33,7 @@ async function save() {
         expiresAt: state.expiresAt,
         maximumVisits: state.maximumVisits,
         expirationDestination: state.expirationDestination.trim() || null,
+        tags: state.tags,
       },
     });
     emit('updated');
@@ -51,6 +54,9 @@ function setOneTime() {
 <template>
   <div class="space-y-5">
     <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+    <UFormField label="Tags">
+      <LinkTagInput v-model="state.tags" />
+    </UFormField>
     <UFormField label="Maximum visits" description="Optional. The link stops after this many successful redirects.">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" />

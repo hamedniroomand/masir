@@ -4,7 +4,7 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 useHead({ title: 'My links · Linkyard' });
 const createOpen = ref(false);
-const { data, pending, refresh, error, status, page, sort } = useLinksList();
+const { data, pending, refresh, error, status, page, sort, selectedTags, tagList, toggleTag } = useLinksList();
 const searchInput = ref((route.query.q as string) ?? '');
 const debouncedQ = refDebounced(searchInput, 300);
 
@@ -70,6 +70,18 @@ const filterOptions = [
             <UButton v-for="filter in filterOptions" :key="filter.value" :label="filter.label" :variant="status === filter.value ? 'soft' : 'ghost'" :color="status === filter.value ? 'primary' : 'neutral'" :aria-pressed="status === filter.value" size="sm" @click="status = filter.value" />
           </div>
           <USelect v-model="sort" :items="[{ label: 'Newest first', value: 'createdAt' }, { label: 'Most clicked', value: 'clicks' }]" aria-label="Sort links" icon="i-lucide-arrow-down-wide-narrow" class="w-full sm:w-44" />
+        </div>
+        <div v-if="tagList?.items?.length" class="flex flex-wrap gap-2" aria-label="Filter links by tag">
+          <UButton
+            v-for="tag in tagList.items"
+            :key="tag.name"
+            :label="tag.name"
+            size="sm"
+            :variant="selectedTags.includes(tag.name) ? 'soft' : 'outline'"
+            :color="selectedTags.includes(tag.name) ? 'primary' : 'neutral'"
+            :aria-pressed="selectedTags.includes(tag.name)"
+            @click="toggleTag(tag.name)"
+          />
         </div>
       </div>
       <div v-if="pending" class="space-y-6 p-6" role="status" aria-label="Loading links">

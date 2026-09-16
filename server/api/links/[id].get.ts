@@ -1,5 +1,5 @@
 import { requireUser } from '#server/utils/auth';
-import { findLinkByIdForUser, linkToDto } from '#server/utils/link-repo';
+import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
@@ -11,5 +11,6 @@ export default defineEventHandler(async (event) => {
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  return linkToDto(link);
+  const tagMap = await tagNamesByLinkIds([link.id]);
+  return linkToDto(link, tagMap.get(link.id) ?? []);
 });

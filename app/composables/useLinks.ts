@@ -17,6 +17,7 @@ export interface LinkItem {
   expirationDestination: string | null;
   maximumVisits: number | null;
   successfulVisitCount: number;
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -42,15 +43,43 @@ export function useLinksList() {
     set: (v: string) => navigateTo({ query: { ...route.query, sort: v === 'clicks' ? v : undefined, page: undefined } }),
   });
 
+  const selectedTags = computed({
+    get: () => {
+      const raw = route.query.tags;
+      if (Array.isArray(raw))
+        return raw.filter((t): t is string => typeof t === 'string');
+      return typeof raw === 'string' ? [raw] : [];
+    },
+    set: (tags: string[]) => navigateTo({
+      query: {
+        ...route.query,
+        tags: tags.length ? tags : undefined,
+        page: undefined,
+      },
+    }),
+  });
+
   const { data, pending, refresh, error } = useFetch(() => '/api/links', {
     query: computed(() => ({
       q: q.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
+      tags: selectedTags.value.length ? selectedTags.value : undefined,
       page: page.value,
       perPage: 20,
       sort: sort.value,
     })),
   });
 
-  return { data, pending, refresh, error, q, status, page, sort };
+  const { data: tagList } = useFetch<{ items: { name: string }[] }>(() => '/api/tags');
+
+  function toggleTag(name: string) {
+    const set = new Set(selectedTags.value);
+    if (set.has(name))
+      set.delete(name);
+    else
+      set.add(name);
+    selectedTags.value = [...set];
+  }
+
+  return { data, pending, refresh, error, q, status, page, sort, selectedTags, tagList, toggleTag };
 }

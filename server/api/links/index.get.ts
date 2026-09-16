@@ -1,5 +1,5 @@
 import { requireUser } from '#server/utils/auth';
-import { linkToDto, listLinks } from '#server/utils/link-repo';
+import { linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
@@ -14,16 +14,26 @@ export default defineEventHandler(async (event) => {
     ? status
     : undefined;
 
+  const rawTags = query.tags;
+  const tagFilters = Array.isArray(rawTags)
+    ? rawTags.filter((t): t is string => typeof t === 'string')
+    : typeof rawTags === 'string'
+      ? [rawTags]
+      : [];
+
   const { items, total } = await listLinks(user.id, {
     q: typeof query.q === 'string' ? query.q : undefined,
     status: statusFilter,
+    tags: tagFilters.length ? tagFilters : undefined,
     page,
     perPage,
     sort,
   });
 
+  const tagMap = await tagNamesByLinkIds(items.map(i => i.id));
+
   return {
-    items: items.map(linkToDto),
+    items: items.map(link => linkToDto(link, tagMap.get(link.id) ?? [])),
     total,
     page,
     perPage,

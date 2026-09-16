@@ -2,11 +2,12 @@ import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
-import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '#server/utils/link-repo';
+import { createLink, linkToDto, SlugExhaustedError, SlugTakenError, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
-import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
+import { setLinkTags } from '#server/utils/tag-repo';
+import { validateDestination } from '#server/utils/url';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -21,6 +22,7 @@ const bodySchema = v.object({
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
   utmContent: optionalUtmSchema,
+  tags: v.optional(v.array(v.string())),
 });
 
 export default defineEventHandler(async (event) => {
@@ -94,9 +96,12 @@ export default defineEventHandler(async (event) => {
       utmSource: emptyToNull(body.utmSource),
       utmContent: emptyToNull(body.utmContent),
     });
+    if (body.tags?.length)
+      await setLinkTags(link.id, user.id, body.tags);
     await writeSecurityEvent('link_created', { slug: link.slug }, user.id, link.id);
     setResponseStatus(event, 201);
-    return linkToDto(link);
+    const tagMap = await tagNamesByLinkIds([link.id]);
+    return linkToDto(link, tagMap.get(link.id) ?? []);
   }
   catch (e) {
     if (e instanceof SlugTakenError) {

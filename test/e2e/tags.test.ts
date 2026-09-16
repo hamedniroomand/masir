@@ -87,6 +87,71 @@ describe('tags API', async () => {
     expect(rows[0]?.id).toBe(linkId);
   });
 
+  it('assigns and removes tags on a link', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; tags: string[] }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/tagged', tags: ['Alpha', 'Beta'] },
+      headers: { cookie },
+    });
+    expect(link.tags.sort()).toEqual(['Alpha', 'Beta']);
+
+    const cleared = await $fetch<{ tags: string[] }>(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      headers: { cookie },
+      body: { tags: [] },
+    });
+    expect(cleared.tags).toEqual([]);
+  });
+
+  it('creates a new tag from the link form', async () => {
+    const cookie = await loginCookie();
+    await $fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/new-tag', tags: ['FromForm'] },
+      headers: { cookie },
+    });
+    const list = await $fetch<{ items: { name: string }[] }>('/api/tags', { headers: { cookie } });
+    expect(list.items.some(t => t.name === 'FromForm')).toBe(true);
+  });
+
+  it('escapes HTML in tag names in the API', async () => {
+    const cookie = await loginCookie();
+    const name = '<b>bold</b>';
+    const link = await $fetch<{ tags: string[] }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/html-tag', tags: [name] },
+      headers: { cookie },
+    });
+    expect(link.tags[0]).toBe(name);
+  });
+
+  it('filters links by tag with search and status together', async () => {
+    const cookie = await loginCookie();
+    await $fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/active-filter', slug: 'tag-active-link', tags: ['FilterMe'] },
+      headers: { cookie },
+    });
+    const disabledLink = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/disabled-filter', slug: 'tag-disabled-link', tags: ['FilterMe'] },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${disabledLink.id}`, {
+      method: 'PATCH',
+      headers: { cookie },
+      body: { isEnabled: false },
+    });
+
+    const result = await $fetch<{ items: { slug: string }[] }>('/api/links', {
+      query: { tags: 'FilterMe', status: 'active', q: 'tag-active' },
+      headers: { cookie },
+    });
+    expect(result.items.map(i => i.slug)).toContain('tag-active-link');
+    expect(result.items.map(i => i.slug)).not.toContain('tag-disabled-link');
+  });
+
   it('blocks access to another user tag', async () => {
     const otherCookie = await loginCookie('other@example.com', TEST_PASSWORD);
     const otherTag = await $fetch<{ id: string }>('/api/tags', {
