@@ -1,10 +1,39 @@
 import type { H3Event } from 'h3';
+import { getRequestHeaders } from 'h3';
+
+export type BotCategory = 'search' | 'social_preview' | 'monitoring' | 'automation';
+
+export interface BotClassification {
+  isBot: boolean;
+  botCategory: BotCategory | null;
+}
 
 export interface RequestMeta {
   referrerHost: string;
   country: string | null;
   deviceCategory: 'desktop' | 'mobile' | 'tablet' | 'other';
   browserCategory: string;
+  isBot: boolean;
+  botCategory: BotCategory | null;
+}
+
+// ponytail: static user-agent substring list; upgrade path is a maintained signature database
+export function isBot(userAgent: string): BotClassification {
+  const s = userAgent.toLowerCase();
+
+  if (/googlebot|bingbot|yandexbot|duckduckbot|baiduspider|applebot|slurp|semrushbot|ahrefsbot/.test(s))
+    return { isBot: true, botCategory: 'search' };
+
+  if (/slackbot|twitterbot|facebookexternalhit|linkedinbot|discordbot|telegrambot|whatsapp|embedly|pinterestbot/.test(s))
+    return { isBot: true, botCategory: 'social_preview' };
+
+  if (/uptimerobot|pingdom|statuscake|datadog|newrelic/.test(s))
+    return { isBot: true, botCategory: 'monitoring' };
+
+  if (/curl\/|wget\/|python-requests|go-http-client|httpie|postman|insomnia|axios\/|node-fetch/.test(s))
+    return { isBot: true, botCategory: 'automation' };
+
+  return { isBot: false, botCategory: null };
 }
 
 export function parseRequestMeta(event: H3Event): RequestMeta {
@@ -30,8 +59,16 @@ export function parseRequestMeta(event: H3Event): RequestMeta {
   const ua = headers['user-agent'] ?? '';
   const deviceCategory = deviceFromUa(ua);
   const browserCategory = browserFromUa(ua);
+  const bot = isBot(ua);
 
-  return { referrerHost, country, deviceCategory, browserCategory };
+  return {
+    referrerHost,
+    country,
+    deviceCategory,
+    browserCategory,
+    isBot: bot.isBot,
+    botCategory: bot.botCategory,
+  };
 }
 
 function deviceFromUa(ua: string): RequestMeta['deviceCategory'] {
