@@ -195,16 +195,11 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
             </div><USelect v-model="period" :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]" aria-label="Analytics period" class="w-40" />
           </div>
           <template v-if="analytics">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <USelect
-                v-model="traffic"
-                :items="[{ label: 'Human traffic', value: 'human' }, { label: 'Bot traffic', value: 'bot' }, { label: 'All traffic', value: 'all' }]"
-                aria-label="Traffic type"
-                class="w-full sm:w-44"
-              />
-            </div>
             <p v-if="analytics.periodCoversLegacy" class="text-xs text-muted">
-              Unique visitor and bot analytics available from {{ new Date(analytics.classificationAvailableFrom).toLocaleDateString() }}.
+              Unique visitor and bot analytics
+              {{ analytics.classificationAvailableFrom
+                ? `available from ${new Date(analytics.classificationAvailableFrom).toLocaleDateString()}`
+                : 'are not available yet' }}. Older clicks stay in the totals.
             </p>
             <div class="grid grid-cols-2 gap-5 border-y border-default py-5 lg:grid-cols-4">
               <div>
@@ -240,6 +235,14 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
                 </p>
               </div>
             </div>
+            <UFormField label="Chart traffic" description="Filters the chart and the breakdowns below." class="sm:max-w-64">
+              <USelect
+                v-model="traffic"
+                :items="[{ label: 'Human traffic', value: 'human' }, { label: 'Bot traffic', value: 'bot' }, { label: 'All traffic', value: 'all' }]"
+                aria-label="Chart traffic"
+                class="w-full"
+              />
+            </UFormField>
             <div v-if="analytics.periodClicks === 0" class="py-9 text-center">
               <UIcon name="i-lucide-chart-no-axes-column-increasing" class="mb-3 size-7 text-muted" /><h3 class="text-sm font-medium">
                 No clicks in this period

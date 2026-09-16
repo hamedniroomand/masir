@@ -1,15 +1,13 @@
 import type { SQL } from 'drizzle-orm';
 import type { ClickEventOutcome } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
 
 const countAll = sql<number>`count(*)`;
 const countDistinctVisitors = sql<number>`count(distinct ${clickEvents.visitorHash})`;
-
-export const ANALYTICS_CLASSIFICATION_START = new Date('2026-01-01T00:00:00.000Z');
 
 export async function recordEvent(
   linkId: string,
@@ -44,12 +42,31 @@ export async function recordEvent(
 type Period = '24h' | '7d' | '30d' | 'all';
 type TrafficClass = 'human' | 'bot' | 'all';
 
+// A legacy row has no outcome. The old redirect path wrote a row only after a
+// successful redirect. A legacy row is thus a click. Its bot data is unknown.
+const humanFilter = or(eq(clickEvents.outcome, 'redirect_success'), isNull(clickEvents.outcome))!;
+
 function trafficFilter(traffic: TrafficClass): SQL {
   if (traffic === 'human')
-    return eq(clickEvents.outcome, 'redirect_success');
+    return humanFilter;
   if (traffic === 'bot')
     return eq(clickEvents.outcome, 'bot_request');
   return sql`1=1`;
+}
+
+async function classificationBoundary(scope: SQL, inWindow: SQL) {
+  const db = await getDb();
+  const startRows = await db.select({ ms: sql<number | null>`min(${clickEvents.createdAt})` })
+    .from(clickEvents)
+    .where(and(scope, sql`${clickEvents.outcome} IS NOT NULL`));
+  const legacyRows = await db.select({ n: countAll })
+    .from(clickEvents)
+    .where(and(scope, isNull(clickEvents.outcome), inWindow));
+  const startMs = startRows[0]?.ms ?? null;
+  return {
+    classificationAvailableFrom: startMs == null ? null : new Date(Number(startMs)).toISOString(),
+    periodCoversLegacy: (legacyRows[0]?.n ?? 0) > 0,
+  };
 }
 
 export async function getLinkAnalytics(linkId: string, period: Period, traffic: TrafficClass = 'human') {
@@ -82,8 +99,7 @@ export async function getLinkAnalytics(linkId: string, period: Period, traffic: 
     : null;
 
   const analytics = await buildAnalytics(scope, period, link.createdAt.getTime(), traffic);
-
-  const periodCoversLegacy = windowStart != null && windowStart < ANALYTICS_CLASSIFICATION_START.getTime();
+  const boundary = await classificationBoundary(scope, inWindow);
 
   return {
     totalClicks: link.clickCount,
@@ -92,8 +108,7 @@ export async function getLinkAnalytics(linkId: string, period: Period, traffic: 
     remainingVisits,
     maximumVisits: link.maximumVisits,
     successfulVisitCount: link.successfulVisitCount,
-    classificationAvailableFrom: ANALYTICS_CLASSIFICATION_START.toISOString(),
-    periodCoversLegacy,
+    ...boundary,
     ...analytics,
   };
 }
@@ -130,12 +145,12 @@ export async function getCampaignAnalytics(campaignId: string, period: Period) {
   const sourceRows = await db.select({
     label: links.utmSource,
     count: countAll,
-  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, windowFilter(windowStart), eq(clickEvents.outcome, 'redirect_success'))).groupBy(links.utmSource).orderBy(desc(countAll));
+  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(links.utmSource).orderBy(desc(countAll));
 
   const linkClickRows = await db.select({
     id: clickEvents.linkId,
     count: countAll,
-  }).from(clickEvents).where(and(scope, windowFilter(windowStart), eq(clickEvents.outcome, 'redirect_success'))).groupBy(clickEvents.linkId);
+  }).from(clickEvents).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(clickEvents.linkId);
   const periodByLink = new Map(linkClickRows.map(r => [r.id, Number(r.count)]));
 
   return {

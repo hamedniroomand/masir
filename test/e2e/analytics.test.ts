@@ -2,6 +2,7 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { clickEvents, links } from '#server/database/schema';
+import { newId } from '#shared/id';
 import {
   CHROME_UA,
   e2eSetupOptions,
@@ -110,5 +111,35 @@ describe('link analytics', async () => {
     });
     expect(human.periodClicks).toBe(1);
     expect(bot.periodClicks).toBe(1);
+  });
+
+  it('keeps legacy clicks visible and flags the boundary', async () => {
+    const linkId = await insertTestLink(TEST_DB, { userId, slug: 'an-legacy' });
+    const db = openTestDatabase(TEST_DB);
+    await db.insert(clickEvents).values({
+      id: newId(),
+      linkId,
+      createdAt: new Date(Date.now() - 3600_000),
+      referrerHost: 'direct',
+      country: null,
+      deviceCategory: 'desktop',
+      browserCategory: 'Chrome',
+      outcome: null,
+      isBot: null,
+      botCategory: null,
+      visitorHash: null,
+    });
+
+    const cookie = await loginCookie();
+    const stats = await $fetch<{
+      periodClicks: number;
+      uniqueVisitors: number;
+      periodCoversLegacy: boolean;
+      classificationAvailableFrom: string | null;
+    }>(`/api/links/${linkId}/analytics`, { query: { period: '24h' }, headers: { cookie } });
+
+    expect(stats.periodClicks).toBe(1);
+    expect(stats.uniqueVisitors).toBe(0);
+    expect(stats.periodCoversLegacy).toBe(true);
   });
 });
