@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
   const config = useRuntimeConfig();
   const updateLimit = Number(config.rateLimitUpdatePerMinute) || 60;
-  const rl = rateLimitCheck(`update:${user.id}`, updateLimit, 60_000);
+  const rl = await rateLimitCheck(`update:${user.id}`, updateLimit, 60_000);
   if (!rl.ok) {
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });

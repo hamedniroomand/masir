@@ -12,7 +12,7 @@ const ACK = { ok: true, message: 'Thank you. Your report was received.' };
 
 export default defineEventHandler(async (event) => {
   const key = await hashClientKey(event);
-  const rl = rateLimitCheck(`report:${key}`, 5, 3_600_000);
+  const rl = await rateLimitCheck(`report:${key}`, 5, 3_600_000);
   if (!rl.ok) {
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     return ACK;

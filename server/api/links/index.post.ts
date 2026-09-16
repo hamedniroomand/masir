@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
   const config = useRuntimeConfig();
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
-  const rl = rateLimitCheck(`create:${user.id}`, createLimit, 3_600_000);
+  const rl = await rateLimitCheck(`create:${user.id}`, createLimit, 3_600_000);
   if (!rl.ok) {
     await writeSecurityEvent('rate_limit_exceeded', { scope: 'create' }, user.id);
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);

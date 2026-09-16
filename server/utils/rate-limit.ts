@@ -1,38 +1,20 @@
-interface Entry { count: number; resetAt: number }
+import { resolveRateLimitStore } from '#server/utils/rate-limit-store';
 
-const buckets = new Map<string, Entry>();
 const salt = crypto.randomUUID();
 
 export function rateLimitSalt() {
   return salt;
 }
 
-export function rateLimitCheck(key: string, limit: number, windowMs: number): { ok: true } | { ok: false; retryAfterSec: number } {
-  const now = Date.now();
-  evict(now);
-
-  const entry = buckets.get(key);
-  if (!entry || entry.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true };
-  }
-
-  if (entry.count >= limit) {
-    const retryAfterSec = Math.ceil((entry.resetAt - now) / 1000);
-    return { ok: false, retryAfterSec };
-  }
-
-  entry.count++;
+export async function rateLimitCheck(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
+  const { count, resetAt } = await resolveRateLimitStore().hit(key, windowMs);
+  if (count > limit)
+    return { ok: false, retryAfterSec: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) };
   return { ok: true };
-}
-
-function evict(now: number) {
-  if (buckets.size < 10_000)
-    return;
-  for (const [key, entry] of buckets) {
-    if (entry.resetAt <= now)
-      buckets.delete(key);
-  }
 }
 
 export async function hashClientKey(event: import('h3').H3Event): Promise<string> {

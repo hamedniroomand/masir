@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const clientKey = await hashClientKey(event);
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
   // ponytail: in-memory limiter, one node only; upgrade path is a shared store
-  const rl = rateLimitCheck(`pwd:${body.slug}:${clientKey}`, limit, 60_000);
+  const rl = await rateLimitCheck(`pwd:${body.slug}:${clientKey}`, limit, 60_000);
   if (!rl.ok) {
     await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
