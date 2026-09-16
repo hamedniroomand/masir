@@ -111,7 +111,10 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
     <UButton to="/" label="My links" icon="i-lucide-arrow-left" color="neutral" variant="link" class="p-0" />
     <div class="flex flex-wrap items-start justify-between gap-5">
       <div class="min-w-0 space-y-3">
-        <LinkStatusBadge :link="link" /><h1 class="break-all text-3xl font-semibold tracking-tight text-highlighted">
+        <div class="flex flex-wrap items-center gap-2">
+          <LinkStatusBadge :link="link" />
+          <UBadge v-if="link.isProtected" color="primary" variant="subtle" size="sm" icon="i-lucide-lock" label="Password protected" />
+        </div><h1 class="break-all text-3xl font-semibold tracking-tight text-highlighted">
           {{ link.title || link.slug }}
         </h1><a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="block break-all text-sm text-primary hover:underline">{{ link.shortUrl }}</a>
       </div>

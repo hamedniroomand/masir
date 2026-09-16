@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { LinkItem } from '~/composables/useLinks';
+import { toVisitLimit } from '#shared/link-input';
 
 const props = defineProps<{ link: LinkItem }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -31,7 +32,7 @@ async function save() {
       body: {
         startsAt: state.startsAt,
         expiresAt: state.expiresAt,
-        maximumVisits: state.maximumVisits,
+        maximumVisits: toVisitLimit(state.maximumVisits),
         expirationDestination: state.expirationDestination.trim() || null,
         tags: state.tags,
       },
@@ -53,7 +54,10 @@ function setOneTime() {
 
 <template>
   <div class="space-y-5">
-    <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+    <LinkPasswordControl :link="link" @updated="emit('updated')" />
+    <div class="border-t border-default pt-5">
+      <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+    </div>
     <UFormField label="Tags">
       <LinkTagInput v-model="state.tags" />
     </UFormField>

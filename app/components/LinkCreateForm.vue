@@ -2,6 +2,7 @@
 import type { FormSubmitEvent } from '@nuxt/ui';
 import type { LinkItem } from '~/composables/useLinks';
 import * as v from 'valibot';
+import { toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
@@ -17,7 +18,8 @@ const schema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.pipe(v.string(), v.trim())),
-  maximumVisits: v.optional(v.nullable(v.number())),
+  maximumVisits: v.optional(v.nullable(v.union([v.number(), v.literal('')]))),
+  password: v.optional(v.pipe(v.string(), v.trim())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
   utmCampaign: v.optional(v.pipe(v.string(), v.trim())),
@@ -36,6 +38,7 @@ const state = reactive({
   startsAt: null as number | null,
   expirationDestination: '',
   maximumVisits: null as number | null,
+  password: '',
   campaignId: null as string | null,
   utmSource: '',
   utmCampaign: '',
@@ -68,8 +71,11 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.expiresAt = state.expiresAt;
     if (state.startsAt != null)
       body.startsAt = state.startsAt;
-    if (state.maximumVisits != null)
-      body.maximumVisits = state.maximumVisits;
+    const visitLimit = toVisitLimit(state.maximumVisits);
+    if (visitLimit != null)
+      body.maximumVisits = visitLimit;
+    if (state.password)
+      body.password = state.password;
     if (state.expirationDestination.trim())
       body.expirationDestination = state.expirationDestination.trim();
     if (state.campaignId)
@@ -95,6 +101,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     state.startsAt = null;
     state.expirationDestination = '';
     state.maximumVisits = null;
+    state.password = '';
     state.campaignId = null;
     state.utmSource = '';
     state.utmCampaign = '';
@@ -173,6 +180,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
             <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" />
             <UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="state.maximumVisits = 1" />
           </div>
+        </UFormField>
+        <UFormField label="Password" name="password" description="Optional. Visitors must enter it before the redirect.">
+          <UInput v-model="state.password" type="password" autocomplete="new-password" placeholder="No password" />
         </UFormField>
         <UFormField label="Expiration destination" name="expirationDestination" description="Optional. Send visitors here when the link expires.">
           <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />
