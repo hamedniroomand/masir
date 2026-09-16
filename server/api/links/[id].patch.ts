@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
+import { VisitLimitBelowUsageError } from '#server/utils/errors';
 import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { rateLimitCheck } from '#server/utils/rate-limit';
@@ -28,6 +29,11 @@ const bodySchema = v.object({
   utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
 });
+
+function visitLimitBelowUsage() {
+  const reason = 'Maximum visits cannot be less than visits already used.';
+  return createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
@@ -78,13 +84,8 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (body.maximumVisits !== undefined) {
-    if (body.maximumVisits != null && body.maximumVisits < existing.successfulVisitCount) {
-      throw createError({
-        statusCode: 422,
-        statusMessage: 'Maximum visits cannot be less than visits already used.',
-        data: { reason: 'Maximum visits cannot be less than visits already used.' },
-      });
-    }
+    if (body.maximumVisits != null && body.maximumVisits < existing.successfulVisitCount)
+      throw visitLimitBelowUsage();
     patch.maximumVisits = body.maximumVisits;
   }
   if (body.password !== undefined) {
@@ -122,7 +123,15 @@ export default defineEventHandler(async (event) => {
   const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
   assertScheduleOrder(nextStarts, nextExpires);
 
-  const updated = await updateLink(id, user.id, patch);
+  let updated: Awaited<ReturnType<typeof updateLink>>;
+  try {
+    updated = await updateLink(id, user.id, patch);
+  }
+  catch (e) {
+    if (e instanceof VisitLimitBelowUsageError)
+      throw visitLimitBelowUsage();
+    throw e;
+  }
   if (!updated)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 

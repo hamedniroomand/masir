@@ -29,3 +29,9 @@ export class TagNameTakenError extends Error {
     super('taken');
   }
 }
+
+export class VisitLimitBelowUsageError extends Error {
+  constructor() {
+    super('below-usage');
+  }
+}

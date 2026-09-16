@@ -1,7 +1,7 @@
-import { and, desc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, linkTags, reservedSlugs, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
-import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
+import { SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
 import { invalidateLink } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -314,7 +314,19 @@ export async function updateLink(id: string, userId: string, patch: {
   if (patch.utmContent !== undefined)
     values.utmContent = patch.utmContent;
 
-  await db.update(links).set(values).where(eq(links.id, id));
+  // A concurrent redirect can raise the visit count after the caller read it.
+  // The guard makes the limit check and the write one statement.
+  const guard = patch.maximumVisits != null
+    ? and(eq(links.id, id), lte(links.successfulVisitCount, patch.maximumVisits))
+    : eq(links.id, id);
+
+  const changed = await db.update(links).set(values).where(guard).returning({ id: links.id });
+  if (!changed.length) {
+    if (!await findLinkByIdForUser(id, userId))
+      return null;
+    throw new VisitLimitBelowUsageError();
+  }
+
   invalidateLink(existing.slug);
   return findLinkByIdForUser(id, userId);
 }
