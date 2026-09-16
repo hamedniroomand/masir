@@ -15,6 +15,9 @@ const schema = v.object({
   slug: v.optional(v.union([v.literal(''), slugSchema])),
   title: v.optional(v.pipe(v.string(), v.trim())),
   expiresAt: v.optional(v.nullable(v.number())),
+  startsAt: v.optional(v.nullable(v.number())),
+  expirationDestination: v.optional(v.pipe(v.string(), v.trim())),
+  maximumVisits: v.optional(v.nullable(v.number())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
@@ -27,6 +30,9 @@ const state = reactive({
   slug: '',
   title: '',
   expiresAt: null as number | null,
+  startsAt: null as number | null,
+  expirationDestination: '',
+  maximumVisits: null as number | null,
   campaignId: null as string | null,
   utmSource: '',
   utmContent: '',
@@ -54,6 +60,12 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.title = state.title;
     if (state.expiresAt != null)
       body.expiresAt = state.expiresAt;
+    if (state.startsAt != null)
+      body.startsAt = state.startsAt;
+    if (state.maximumVisits != null)
+      body.maximumVisits = state.maximumVisits;
+    if (state.expirationDestination.trim())
+      body.expirationDestination = state.expirationDestination.trim();
     if (state.campaignId)
       body.campaignId = state.campaignId;
     if (state.utmSource)
@@ -68,6 +80,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     state.slug = '';
     state.title = '';
     state.expiresAt = null;
+    state.startsAt = null;
+    state.expirationDestination = '';
+    state.maximumVisits = null;
     state.campaignId = null;
     state.utmSource = '';
     state.utmContent = '';
@@ -137,8 +152,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         <UFormField label="Title" name="title" description="A name to help you find this link.">
           <UInput v-model="state.title" />
         </UFormField>
-        <UFormField label="Expiry date" name="expiresAt" description="Optional. The link stops working after this date.">
-          <LinkExpiryPicker v-model="state.expiresAt" />
+        <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+        <UFormField label="Maximum visits" name="maximumVisits" description="Optional. Stop the link after this many redirects.">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" />
+            <UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="state.maximumVisits = 1" />
+          </div>
+        </UFormField>
+        <UFormField label="Expiration destination" name="expirationDestination" description="Optional. Send visitors here when the link expires.">
+          <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />
         </UFormField>
         <div class="border-t border-default pt-3">
           <LinkUtmFields

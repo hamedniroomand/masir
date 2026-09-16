@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { findLinkByIdForUser, linkToDto, updateLink } from '#server/utils/link-repo';
+import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
@@ -89,6 +90,10 @@ export default defineEventHandler(async (event) => {
     }
     patch.destinationUrl = dest.url;
   }
+
+  const nextStarts = patch.startsAt !== undefined ? patch.startsAt : existing.startsAt;
+  const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
+  assertScheduleOrder(nextStarts, nextExpires);
 
   const updated = await updateLink(id, user.id, patch);
   await writeSecurityEvent('link_updated', { fields: Object.keys(patch) }, user.id, id);

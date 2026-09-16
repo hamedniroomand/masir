@@ -162,10 +162,15 @@ async function saveDestination(_event: FormSubmitEvent<DestSchema>) {
         <UCard>
           <template #header>
             <h2 class="font-semibold text-highlighted">
-              Availability
-            </h2>
+              Access
+            </h2><p class="mt-1 text-sm text-muted">
+              Schedule, visit limits, and expiration behavior.
+            </p>
           </template>
-          <LinkAvailabilityControl :link="link" @updated="refreshLink()" />
+          <LinkAccessSettings :link="link" @updated="refreshLink()" />
+          <div class="mt-6 border-t border-default pt-6">
+            <LinkAvailabilityControl :link="link" @updated="refreshLink()" />
+          </div>
         </UCard>
         <section id="analytics" class="scroll-mt-6 space-y-5 rounded-xl border border-default bg-default p-5 sm:p-6">
           <div class="flex items-center justify-between gap-3">

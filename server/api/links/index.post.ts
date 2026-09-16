@@ -3,9 +3,10 @@ import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { findCampaignForUser } from '#server/utils/campaign-repo';
 import { createLink, linkToDto, SlugExhaustedError, SlugTakenError } from '#server/utils/link-repo';
+import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
-import { validateDestination } from '#server/utils/url';
+import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -14,6 +15,9 @@ const bodySchema = v.object({
   slug: v.optional(v.string()),
   title: v.optional(v.nullable(v.string())),
   expiresAt: v.optional(v.nullable(v.number())),
+  startsAt: v.optional(v.nullable(v.number())),
+  expirationDestination: v.optional(v.nullable(v.string())),
+  maximumVisits: v.optional(v.nullable(v.number())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
   utmContent: optionalUtmSchema,
@@ -44,6 +48,23 @@ export default defineEventHandler(async (event) => {
     expiresAt = new Date(body.expiresAt);
   }
 
+  let startsAt: Date | null = null;
+  if (body.startsAt != null)
+    startsAt = new Date(body.startsAt);
+
+  assertScheduleOrder(startsAt, expiresAt);
+
+  let expirationDestination: string | null = null;
+  if (body.expirationDestination) {
+    const expDest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
+    if (!expDest.ok) {
+      throw createError({ statusCode: 422, statusMessage: expDest.reason, data: { reason: expDest.reason } });
+    }
+    expirationDestination = expDest.url;
+  }
+
+  const maximumVisits = body.maximumVisits ?? null;
+
   const campaignId = emptyToNull(body.campaignId);
   if (campaignId && !await findCampaignForUser(campaignId, user.id)) {
     throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
@@ -66,6 +87,9 @@ export default defineEventHandler(async (event) => {
       title: body.title,
       slug,
       expiresAt,
+      startsAt,
+      expirationDestination,
+      maximumVisits,
       campaignId,
       utmSource: emptyToNull(body.utmSource),
       utmContent: emptyToNull(body.utmContent),

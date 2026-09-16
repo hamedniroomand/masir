@@ -8,6 +8,8 @@ import {
   today,
 } from '@internationalized/date';
 
+const props = withDefaults(defineProps<{ emptyLabel?: string }>(), { emptyLabel: 'No expiry' });
+
 const model = defineModel<number | null>({ default: null });
 
 const tz = getLocalTimeZone();
@@ -20,7 +22,7 @@ const minDate = today(tz);
 
 const label = computed(() => {
   if (model.value == null)
-    return 'No expiry';
+    return props.emptyLabel;
   return df.format(new Date(model.value));
 });
 

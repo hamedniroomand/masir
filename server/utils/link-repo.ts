@@ -81,6 +81,9 @@ export async function createLink(input: {
   title?: string | null;
   slug?: string;
   expiresAt?: Date | null;
+  startsAt?: Date | null;
+  expirationDestination?: string | null;
+  maximumVisits?: number | null;
   campaignId?: string | null;
   utmSource?: string | null;
   utmContent?: string | null;
@@ -105,6 +108,10 @@ export async function createLink(input: {
         destinationHost,
         isEnabled: true,
         expiresAt: input.expiresAt ?? null,
+        startsAt: input.startsAt ?? null,
+        expirationDestination: input.expirationDestination ?? null,
+        maximumVisits: input.maximumVisits ?? null,
+        successfulVisitCount: 0,
         campaignId: input.campaignId ?? null,
         utmSource: input.utmSource ?? null,
         utmContent: input.utmContent ?? null,

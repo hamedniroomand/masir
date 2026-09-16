@@ -82,6 +82,21 @@ describe('links API', async () => {
     expect(link.maximumVisits).toBeNull();
   });
 
+  it('rejects start time after expiry with 422', async () => {
+    const cookie = await loginCookie();
+    const start = Date.now() + 86400_000;
+    const end = Date.now() + 3600_000;
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      body: {
+        destinationUrl: 'https://example.com/bad-schedule',
+        startsAt: start,
+        expiresAt: end,
+      },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
   it('rejects javascript destinations with 422', async () => {
     const cookie = await loginCookie();
     await expect($fetch('/api/links', {
