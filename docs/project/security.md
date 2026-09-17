@@ -36,13 +36,27 @@ Changing `NUXT_SESSION_PASSWORD` invalidates everything at once.
 
 ## Passwords
 
-scrypt, through `nuxt-auth-utils`, for account passwords and for link
-passwords. The plain value is never written.
+**argon2id**, through Bun's own `Bun.password`, for account passwords and for
+link passwords. The plain value is never written.
+
+The cost is the one Bun picks: `m=65536` (64 MiB), `t=2`, `p=1`. That is above
+the OWASP floor, so no parameters are passed — an options object could only make
+the hash weaker. Every hash carries its own salt and names its algorithm, so a
+future change can verify old hashes and rewrite them on the next sign-in.
+
+A stored hash that `verify` cannot read counts as a failed check, not a server
+error. A release that changes algorithm refuses the sign-in instead of
+answering 500.
 
 Sign-in answers the same way for an unknown address as for a wrong password.
 Password recovery answers the same way whether or not the address exists. Both
 are deliberate — a shortener's sign-in form is otherwise a way to learn who
 works somewhere.
+
+The same answer is not enough on its own. An address with no account would
+return before the hash was computed, and the difference is measurable, so a
+sign-in for an unknown address is checked against a hash nobody holds. The two
+paths cost the same.
 
 Reset tokens are stored as hashes, expire, and are single-use. The token in the
 email is never in the database.
@@ -75,6 +89,7 @@ short link is refused, so there is no redirect loop to trip over.
 
 | Action | Default |
 |---|---|
+| Sign in | 10 / minute per client **and** per address |
 | Redirect | 120 / minute per client |
 | Link password attempt | 10 / minute per client per link |
 | Create link | 30 / hour per workspace |
@@ -86,6 +101,11 @@ short link is refused, so there is no redirect loop to trip over.
 
 Client keys are a salted hash of the IP address with a salt generated per
 process, so the counters do not hold addresses either.
+
+The sign-in limit counts twice, per client and per address, because the two
+stop different attacks: one caller guessing many passwords, and many callers
+guessing one account. It also bounds memory, since argon2id holds 64 MiB for
+the length of every check.
 
 ::: warning Counted per process
 Several instances mean several independent counters. This is the one part of

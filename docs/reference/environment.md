@@ -126,6 +126,7 @@ Counted in memory, per instance.
 
 | Variable | Default |
 |---|---|
+| `NUXT_RATE_LIMIT_LOGIN_PER_MINUTE` | `10` |
 | `NUXT_RATE_LIMIT_REDIRECT_PER_MINUTE` | `120` |
 | `NUXT_RATE_LIMIT_CREATE_PER_HOUR` | `30` |
 | `NUXT_RATE_LIMIT_UPDATE_PER_MINUTE` | `60` |

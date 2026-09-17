@@ -6,7 +6,7 @@ link.
 ## Password
 
 Set a password and visitors see an unlock page before the redirect. Link
-passwords are hashed with scrypt, the same as account passwords, and the plain
+passwords are hashed with argon2id, the same as account passwords, and the plain
 value is never stored.
 
 An unlock is remembered for **15 minutes** in a cookie that is scoped to one

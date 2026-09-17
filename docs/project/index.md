@@ -26,11 +26,14 @@ Set up, run the tests, and understand the layout.
 
 ## Principles
 
-**Fewest dependencies that do the job.** Resend is reached over `fetch`. Uploads
-go through Bun's built-in S3 client. Postgres is reached through Bun's native
-`SQL`, not a driver package. `nodemailer` loads only when SMTP is the chosen
-transport. Each of those replaced a dependency that would otherwise sit in every
-deployment.
+**Bun's own API first.** Passwords go through `Bun.password`, digests through
+`Bun.CryptoHasher`, uploads through Bun's S3 client, Postgres through Bun's
+native `SQL`. Resend is reached over `fetch`. `nodemailer` loads only when SMTP
+is the chosen transport. Each of those replaced a dependency that would
+otherwise sit in every deployment.
+
+One exception is marked as such: QR codes compress with `node:zlib`, because a
+PNG needs zlib-framed deflate and `Bun.deflateSync` emits raw deflate.
 
 **The database enforces what matters.** Slug uniqueness, single ownership, and
 tenancy are constraints, not checks in application code. A check has a race; a
