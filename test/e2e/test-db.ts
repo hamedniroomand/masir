@@ -5,10 +5,14 @@ import { SQL } from 'bun';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
+import { ensureClickEventPartitions } from '#server/database/migrate';
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
 
-const TABLES = 'click_events, security_events, link_tags, tags, links, campaigns, reserved_slugs, mail_outbox, email_verification_tokens, password_reset_tokens, auth_identities, workspace_invitations, workspace_members, workspaces, users';
+// hosts is not here. It is an append-only dimension with no workspace scope,
+// and the server process caches host -> id, so a truncate would leave the cache
+// pointing at ids the database no longer holds.
+const TABLES = 'click_events, link_daily_stats, audit_events, link_tags, tags, links, campaigns, mail_outbox, user_tokens, auth_identities, workspace_invitations, workspace_members, workspaces, users';
 
 const DATABASE_EXISTS = '42P04';
 
@@ -56,7 +60,9 @@ export async function createTestDatabase(databaseUrl: string) {
   finally {
     await admin.close();
   }
-  await migrate(openTestDatabase(databaseUrl), { migrationsFolder });
+  const db = openTestDatabase(databaseUrl);
+  await migrate(db, { migrationsFolder });
+  await ensureClickEventPartitions(db);
 }
 
 export async function truncateTestDatabase(databaseUrl: string) {

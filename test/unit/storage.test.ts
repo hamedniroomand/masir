@@ -5,7 +5,6 @@ import { $ } from 'bun';
 import { afterEach, describe, expect, it } from 'vitest';
 import { assertStorageConfig, buildStorageDriver } from '#server/utils/storage';
 import { createFileDriver } from '#server/utils/storage-file';
-import { newId } from '#shared/id';
 
 let root = '';
 
@@ -17,7 +16,7 @@ afterEach(async () => {
 
 // Bun.write makes the directory, so the root only needs a fresh name.
 function driver() {
-  root = join(tmpdir(), `masir-storage-${newId()}`);
+  root = join(tmpdir(), `masir-storage-${crypto.randomUUID()}`);
   return createFileDriver(root, 'http://localhost:3000/uploads');
 }
 

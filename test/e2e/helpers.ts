@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { authIdentities, campaigns, links, users, workspaceMembers, workspaces } from '#server/database/schema';
 import { hashSecret } from '#server/utils/password';
-import { newId } from '#shared/id';
 import { createTestDatabase, openTestDatabase, truncateTestDatabase } from './test-db';
 import { startTestServer } from './test-server';
 
@@ -47,52 +46,29 @@ export async function insertTestUser(databaseUrl: string, input: {
   verified?: boolean;
 }) {
   const db = openTestDatabase(databaseUrl);
-  const userId = newId();
-  const now = new Date();
-  await db.insert(users).values({
-    id: userId,
+  const [user] = await db.insert(users).values({
     email: input.email,
-    emailVerifiedAt: input.verified === false ? null : now,
+    emailVerifiedAt: input.verified === false ? null : new Date(),
     firstName: 'Test',
     lastName: 'User',
-    avatarUrl: null,
-    createdAt: now,
-    updatedAt: now,
-    lastLoginAt: null,
-  });
+  }).returning();
   await db.insert(authIdentities).values({
-    id: newId(),
-    userId,
-    provider: 'PASSWORD',
-    providerAccountId: userId,
+    userId: user!.id,
+    provider: 'password',
+    providerAccountId: user!.id,
     passwordHash: await hashSecret(input.password),
-    createdAt: now,
-    updatedAt: now,
   });
-  return userId;
+  return user!.id;
 }
 
 export async function resetTestDb(databaseUrl: string) {
   await truncateTestDatabase(databaseUrl);
   const db = openTestDatabase(databaseUrl);
   const userId = await insertTestUser(databaseUrl, { email: TEST_EMAIL, password: TEST_PASSWORD });
-  const workspaceId = newId();
-  const now = new Date();
-  await db.insert(workspaces).values({
-    id: workspaceId,
-    name: 'Acme',
+  const workspaceId = await insertTestWorkspace(databaseUrl, {
     slug: TEST_WORKSPACE_SLUG,
-    plan: 'TRIAL',
-    createdAt: now,
-    updatedAt: now,
-  });
-  await db.insert(workspaceMembers).values({
-    id: newId(),
-    workspaceId,
-    userId,
-    role: 'OWNER',
-    createdAt: now,
-    updatedAt: now,
+    name: 'Acme',
+    ownerUserId: userId,
   });
   return { db, userId, workspaceId };
 }
@@ -103,53 +79,39 @@ export async function insertTestWorkspace(databaseUrl: string, input: {
   ownerUserId: string;
 }) {
   const db = openTestDatabase(databaseUrl);
-  const now = new Date();
-  const workspaceId = newId();
-  await db.insert(workspaces).values({
-    id: workspaceId,
+  const [workspace] = await db.insert(workspaces).values({
     name: input.name ?? input.slug,
     slug: input.slug,
-    plan: 'TRIAL',
-    createdAt: now,
-    updatedAt: now,
-  });
+  }).returning();
   await db.insert(workspaceMembers).values({
-    id: newId(),
-    workspaceId,
+    workspaceId: workspace!.id,
     userId: input.ownerUserId,
-    role: 'OWNER',
-    createdAt: now,
-    updatedAt: now,
+    role: 'owner',
   });
-  return workspaceId;
+  return workspace!.id;
 }
 
 export async function insertTestCampaign(databaseUrl: string, input: {
   workspaceId: string;
-  createdByUserId?: string;
+  createdBy?: string;
   name?: string;
   utmCampaign: string;
   utmMedium?: string | null;
 }) {
   const db = openTestDatabase(databaseUrl);
-  const id = newId();
-  const now = new Date();
-  await db.insert(campaigns).values({
-    id,
+  const [campaign] = await db.insert(campaigns).values({
     workspaceId: input.workspaceId,
-    createdByUserId: input.createdByUserId ?? null,
+    createdBy: input.createdBy ?? null,
     name: input.name ?? input.utmCampaign,
     utmCampaign: input.utmCampaign,
     utmMedium: input.utmMedium ?? null,
-    createdAt: now,
-    updatedAt: now,
-  });
-  return id;
+  }).returning();
+  return campaign!.id;
 }
 
 export async function insertTestLink(databaseUrl: string, input: {
   workspaceId: string;
-  createdByUserId?: string;
+  createdBy?: string;
   slug: string;
   destinationUrl?: string;
   isEnabled?: boolean;
@@ -161,17 +123,13 @@ export async function insertTestLink(databaseUrl: string, input: {
   startsAt?: Date | null;
   expirationDestination?: string | null;
   maximumVisits?: number | null;
-  successfulVisitCount?: number;
+  clickCount?: number;
 }) {
   const db = openTestDatabase(databaseUrl);
-  const id = newId();
-  const now = new Date();
-  await db.insert(links).values({
-    id,
+  const [link] = await db.insert(links).values({
     workspaceId: input.workspaceId,
-    createdByUserId: input.createdByUserId ?? null,
+    createdBy: input.createdBy ?? null,
     slug: input.slug,
-    title: null,
     destinationUrl: input.destinationUrl ?? 'https://example.com/target',
     destinationHost: 'example.com',
     isEnabled: input.isEnabled ?? true,
@@ -180,15 +138,12 @@ export async function insertTestLink(databaseUrl: string, input: {
     startsAt: input.startsAt ?? null,
     expirationDestination: input.expirationDestination ?? null,
     maximumVisits: input.maximumVisits ?? null,
-    successfulVisitCount: input.successfulVisitCount ?? 0,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,
     utmContent: input.utmContent ?? null,
-    clickCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  });
-  return id;
+    clickCount: input.clickCount ?? 0,
+  }).returning();
+  return link!.id;
 }
 
 export async function readTestLink(databaseUrl: string, linkId: string) {

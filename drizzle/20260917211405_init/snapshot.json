@@ -1,11 +1,55 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "fe6de27d-631d-4ec1-96a3-81a0f66d1a44",
+  "id": "a35827bc-69b4-4a23-bf21-9049dbc81003",
   "prevIds": [
-    "c38f3d9b-e221-44a4-8013-b528d24019a2"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
+    {
+      "values": [
+        "password",
+        "google",
+        "microsoft"
+      ],
+      "name": "auth_provider",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "owner",
+        "member"
+      ],
+      "name": "member_role",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "email_verify",
+        "password_reset"
+      ],
+      "name": "token_purpose",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "trial",
+        "active",
+        "trial_expired"
+      ],
+      "name": "workspace_plan",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "audit_events",
+      "entityType": "tables",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": false,
       "name": "auth_identities",
@@ -26,7 +70,13 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "email_verification_tokens",
+      "name": "hosts",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "link_daily_stats",
       "entityType": "tables",
       "schema": "public"
     },
@@ -50,25 +100,13 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "password_reset_tokens",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "reserved_slugs",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "security_events",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
       "name": "tags",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "user_tokens",
       "entityType": "tables",
       "schema": "public"
     },
@@ -97,11 +135,111 @@
       "schema": "public"
     },
     {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "audit_events_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "9223372036854775807",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "workspace_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "actor_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "link_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "detail",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -110,7 +248,7 @@
       "table": "auth_identities"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -123,8 +261,8 @@
       "table": "auth_identities"
     },
     {
-      "type": "text",
-      "typeSchema": null,
+      "type": "auth_provider",
+      "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
       "default": null,
@@ -166,7 +304,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -179,7 +317,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
@@ -188,11 +326,11 @@
       "table": "auth_identities"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -201,7 +339,7 @@
       "table": "campaigns"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -214,14 +352,14 @@
       "table": "campaigns"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "created_by_user_id",
+      "name": "created_by",
       "entityType": "columns",
       "schema": "public",
       "table": "campaigns"
@@ -270,7 +408,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -283,7 +421,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
@@ -292,40 +430,23 @@
       "table": "campaigns"
     },
     {
-      "type": "text",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
-      "identity": null,
+      "identity": {
+        "type": "always",
+        "name": "click_events_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "9223372036854775807",
+        "cache": 1,
+        "cycle": false
+      },
       "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "link_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "workspace_id",
       "entityType": "columns",
       "schema": "public",
       "table": "click_events"
@@ -335,7 +456,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -344,98 +465,7 @@
       "table": "click_events"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "referrer_host",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "country",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "device_category",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "browser_category",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "outcome",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "is_bot",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "bot_category",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "type": "text",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -448,85 +478,224 @@
       "table": "click_events"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "id",
+      "name": "workspace_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "email_verification_tokens"
+      "table": "click_events"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "user_id",
+      "name": "link_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "email_verification_tokens"
+      "table": "click_events"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
+      "type": "integer",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "consumed_at",
+      "name": "referrer_host",
       "entityType": "columns",
       "schema": "public",
-      "table": "email_verification_tokens"
+      "table": "click_events"
     },
     {
-      "type": "timestamp with time zone",
+      "type": "smallint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "created_at",
+      "name": "outcome",
       "entityType": "columns",
       "schema": "public",
-      "table": "email_verification_tokens"
+      "table": "click_events"
+    },
+    {
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "device",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "browser",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "type": "smallint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "bot_category",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "type": "char(2)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "country",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_bot",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "hosts_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "hosts"
     },
     {
       "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "host",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "hosts"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "link_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_daily_stats"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "day",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_daily_stats"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "human_clicks",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_daily_stats"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "0",
+      "generated": null,
+      "identity": null,
+      "name": "bot_requests",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_daily_stats"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "workspace_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "link_tags"
+    },
+    {
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -539,7 +708,7 @@
       "table": "link_tags"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -552,11 +721,11 @@
       "table": "link_tags"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -565,7 +734,7 @@
       "table": "links"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -578,14 +747,27 @@
       "table": "links"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "created_by_user_id",
+      "name": "campaign_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_by",
       "entityType": "columns",
       "schema": "public",
       "table": "links"
@@ -663,20 +845,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "password_hash",
+      "name": "starts_at",
       "entityType": "columns",
       "schema": "public",
       "table": "links"
@@ -689,7 +858,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "starts_at",
+      "name": "expires_at",
       "entityType": "columns",
       "schema": "public",
       "table": "links"
@@ -708,7 +877,20 @@
       "table": "links"
     },
     {
-      "type": "integer",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "password_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "bigint",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
@@ -721,20 +903,7 @@
       "table": "links"
     },
     {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "0",
-      "generated": null,
-      "identity": null,
-      "name": "successful_visit_count",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "type": "integer",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -742,19 +911,6 @@
       "generated": null,
       "identity": null,
       "name": "click_count",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "campaign_id",
       "entityType": "columns",
       "schema": "public",
       "table": "links"
@@ -814,9 +970,22 @@
     {
       "type": "timestamp with time zone",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "deleted_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -829,7 +998,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
@@ -838,11 +1007,11 @@
       "table": "links"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -894,7 +1063,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -903,206 +1072,11 @@
       "table": "mail_outbox"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "consumed_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "workspace_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "reserved_slugs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "slug",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "reserved_slugs"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "released_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "reserved_slugs"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "type",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "actor_user_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "link_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "detail",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -1111,7 +1085,7 @@
       "table": "tags"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1154,7 +1128,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -1163,11 +1137,111 @@
       "table": "tags"
     },
     {
-      "type": "text",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "user_tokens_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "9223372036854775807",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "token_purpose",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purpose",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "bytea",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "token_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "consumed_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -1256,9 +1330,22 @@
     {
       "type": "timestamp with time zone",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "last_login_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -1271,7 +1358,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
@@ -1280,24 +1367,11 @@
       "table": "users"
     },
     {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "last_login_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "users"
-    },
-    {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -1306,7 +1380,7 @@
       "table": "workspace_invitations"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1332,7 +1406,7 @@
       "table": "workspace_invitations"
     },
     {
-      "type": "text",
+      "type": "bytea",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1345,27 +1419,14 @@
       "table": "workspace_invitations"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "invited_by_user_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "workspace_invitations"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
+      "name": "invited_by",
       "entityType": "columns",
       "schema": "public",
       "table": "workspace_invitations"
@@ -1410,20 +1471,20 @@
       "table": "workspace_invitations"
     },
     {
-      "type": "text",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "id",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "workspace_members"
+      "table": "workspace_invitations"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1436,7 +1497,7 @@
       "table": "workspace_members"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -1449,8 +1510,8 @@
       "table": "workspace_members"
     },
     {
-      "type": "text",
-      "typeSchema": null,
+      "type": "member_role",
+      "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
       "default": null,
@@ -1479,7 +1540,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -1492,7 +1553,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
@@ -1501,27 +1562,14 @@
       "table": "workspace_members"
     },
     {
-      "type": "text",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "workspaces"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "name",
       "entityType": "columns",
       "schema": "public",
       "table": "workspaces"
@@ -1542,6 +1590,19 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "workspaces"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
@@ -1553,11 +1614,11 @@
       "table": "workspaces"
     },
     {
-      "type": "text",
-      "typeSchema": null,
+      "type": "workspace_plan",
+      "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
-      "default": "'TRIAL'",
+      "default": "'trial'",
       "generated": null,
       "identity": null,
       "name": "plan",
@@ -1622,7 +1683,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -1635,13 +1696,69 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "workspaces"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "workspace_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "audit_events_workspace_created_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "audit_events"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "link_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "link_id is not null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "audit_events_link_created_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "audit_events"
     },
     {
       "nameExplicit": true,
@@ -1703,34 +1820,6 @@
           "opclass": null
         },
         {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "campaigns_workspace_id_created_at_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "campaigns"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "workspace_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
           "value": "utm_campaign",
           "isExpression": false,
           "asc": true,
@@ -1752,7 +1841,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "link_id",
+          "value": "workspace_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -1761,7 +1850,7 @@
         {
           "value": "created_at",
           "isExpression": false,
-          "asc": true,
+          "asc": false,
           "nullsFirst": false,
           "opclass": null
         }
@@ -1771,10 +1860,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "click_events_link_id_created_at_idx",
+      "name": "campaigns_workspace_created_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "click_events"
+      "table": "campaigns"
     },
     {
       "nameExplicit": true,
@@ -1787,13 +1876,6 @@
           "opclass": null
         },
         {
-          "value": "outcome",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
           "value": "created_at",
           "isExpression": false,
           "asc": true,
@@ -1806,7 +1888,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "click_events_link_id_outcome_created_at_idx",
+      "name": "click_events_link_created_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "click_events"
@@ -1834,31 +1916,10 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "click_events_workspace_id_created_at_idx",
+      "name": "click_events_workspace_created_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "click_events"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "email_verification_tokens_user_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "email_verification_tokens"
     },
     {
       "nameExplicit": true,
@@ -1892,55 +1953,6 @@
           "opclass": null
         },
         {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "links_workspace_id_created_at_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "campaign_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "links_campaign_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "workspace_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
           "value": "slug",
           "isExpression": false,
           "asc": true,
@@ -1962,28 +1974,7 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "password_reset_tokens_user_id_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "link_id",
+          "value": "workspace_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -1992,20 +1983,69 @@
         {
           "value": "created_at",
           "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "deleted_at is null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "links_workspace_created_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "workspace_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "click_count",
+          "isExpression": false,
+          "asc": false,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": "deleted_at is null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "links_workspace_clicks_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "campaign_id",
+          "isExpression": false,
           "asc": true,
           "nullsFirst": false,
           "opclass": null
         }
       ],
       "isUnique": false,
-      "where": null,
+      "where": "deleted_at is null",
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "security_events_link_id_created_at_idx",
+      "name": "links_campaign_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "security_events"
+      "table": "links"
     },
     {
       "nameExplicit": true,
@@ -2039,14 +2079,14 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "workspace_id",
+          "value": "user_id",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
           "opclass": null
         },
         {
-          "value": "created_at",
+          "value": "purpose",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -2058,10 +2098,31 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "tags_workspace_id_created_at_idx",
+      "name": "user_tokens_user_purpose_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "tags"
+      "table": "user_tokens"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "expires_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "user_tokens_expires_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "user_tokens"
     },
     {
       "nameExplicit": true,
@@ -2088,27 +2149,6 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "email",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "workspace_invitations_email_idx",
-      "entityType": "indexes",
-      "schema": "public",
-      "table": "workspace_invitations"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
           "value": "workspace_id",
           "isExpression": false,
           "asc": true,
@@ -2116,7 +2156,7 @@
           "opclass": null
         },
         {
-          "value": "user_id",
+          "value": "email",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -2124,14 +2164,14 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "accepted_at is null and revoked_at is null",
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "workspace_members_workspace_user_unique_idx",
+      "name": "workspace_invitations_open_idx",
       "entityType": "indexes",
       "schema": "public",
-      "table": "workspace_members"
+      "table": "workspace_invitations"
     },
     {
       "nameExplicit": true,
@@ -2166,35 +2206,48 @@
         }
       ],
       "isUnique": true,
-      "where": "role = 'OWNER'",
+      "where": "role = 'owner'",
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "workspace_members_single_owner_idx",
+      "name": "workspace_members_one_owner_idx",
       "entityType": "indexes",
       "schema": "public",
       "table": "workspace_members"
     },
     {
-      "nameExplicit": true,
+      "nameExplicit": false,
       "columns": [
-        {
-          "value": "slug",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+        "workspace_id"
       ],
-      "isUnique": true,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "workspaces_slug_unique_idx",
-      "entityType": "indexes",
+      "schemaTo": "public",
+      "tableTo": "workspaces",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "audit_events_workspace_id_workspaces_id_fkey",
+      "entityType": "fks",
       "schema": "public",
-      "table": "workspaces"
+      "table": "audit_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "actor_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "audit_events_actor_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "audit_events"
     },
     {
       "nameExplicit": false,
@@ -2233,7 +2286,7 @@
     {
       "nameExplicit": false,
       "columns": [
-        "created_by_user_id"
+        "created_by"
       ],
       "schemaTo": "public",
       "tableTo": "users",
@@ -2242,7 +2295,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
-      "name": "campaigns_created_by_user_id_users_id_fkey",
+      "name": "campaigns_created_by_users_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "campaigns"
@@ -2250,16 +2303,16 @@
     {
       "nameExplicit": false,
       "columns": [
-        "link_id"
+        "referrer_host"
       ],
       "schemaTo": "public",
-      "tableTo": "links",
+      "tableTo": "hosts",
       "columnsTo": [
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "click_events_link_id_links_id_fkey",
+      "onDelete": "NO ACTION",
+      "name": "click_events_referrer_host_hosts_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "click_events"
@@ -2276,27 +2329,10 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "click_events_workspace_id_workspaces_id_fkey",
+      "name": "link_tags_workspace_id_workspaces_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "click_events"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "users",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "email_verification_tokens_user_id_users_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "email_verification_tokens"
+      "table": "link_tags"
     },
     {
       "nameExplicit": false,
@@ -2352,23 +2388,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "created_by_user_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "users",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "SET NULL",
-      "name": "links_created_by_user_id_users_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "links"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "campaign_id"
       ],
       "schemaTo": "public",
@@ -2386,41 +2405,7 @@
     {
       "nameExplicit": false,
       "columns": [
-        "user_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "users",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "password_reset_tokens_user_id_users_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "password_reset_tokens"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "workspace_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "workspaces",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "reserved_slugs_workspace_id_workspaces_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "reserved_slugs"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "actor_user_id"
+        "created_by"
       ],
       "schemaTo": "public",
       "tableTo": "users",
@@ -2429,27 +2414,10 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
-      "name": "security_events_actor_user_id_users_id_fkey",
+      "name": "links_created_by_users_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "security_events"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "link_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "links",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "SET NULL",
-      "name": "security_events_link_id_links_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "security_events"
+      "table": "links"
     },
     {
       "nameExplicit": false,
@@ -2471,6 +2439,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "user_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "user_tokens_user_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "user_tokens"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "workspace_id"
       ],
       "schemaTo": "public",
@@ -2488,7 +2473,7 @@
     {
       "nameExplicit": false,
       "columns": [
-        "invited_by_user_id"
+        "invited_by"
       ],
       "schemaTo": "public",
       "tableTo": "users",
@@ -2497,7 +2482,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
-      "name": "workspace_invitations_invited_by_user_id_users_id_fkey",
+      "name": "workspace_invitations_invited_by_users_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "workspace_invitations"
@@ -2538,6 +2523,28 @@
     },
     {
       "columns": [
+        "created_at",
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "click_events_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "click_events"
+    },
+    {
+      "columns": [
+        "link_id",
+        "day"
+      ],
+      "nameExplicit": false,
+      "name": "link_daily_stats_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "link_daily_stats"
+    },
+    {
+      "columns": [
         "link_id",
         "tag_id"
       ],
@@ -2550,13 +2557,23 @@
     {
       "columns": [
         "workspace_id",
-        "slug"
+        "user_id"
       ],
       "nameExplicit": false,
-      "name": "reserved_slugs_pkey",
+      "name": "workspace_members_pkey",
       "entityType": "pks",
       "schema": "public",
-      "table": "reserved_slugs"
+      "table": "workspace_members"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "audit_events_pkey",
+      "schema": "public",
+      "table": "audit_events",
+      "entityType": "pks"
     },
     {
       "columns": [
@@ -2583,19 +2600,9 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "click_events_pkey",
+      "name": "hosts_pkey",
       "schema": "public",
-      "table": "click_events",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "email_verification_tokens_pkey",
-      "schema": "public",
-      "table": "email_verification_tokens",
+      "table": "hosts",
       "entityType": "pks"
     },
     {
@@ -2623,29 +2630,19 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "password_reset_tokens_pkey",
-      "schema": "public",
-      "table": "password_reset_tokens",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "security_events_pkey",
-      "schema": "public",
-      "table": "security_events",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "tags_pkey",
       "schema": "public",
       "table": "tags",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "user_tokens_pkey",
+      "schema": "public",
+      "table": "user_tokens",
       "entityType": "pks"
     },
     {
@@ -2673,16 +2670,6 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "workspace_members_pkey",
-      "schema": "public",
-      "table": "workspace_members",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
       "name": "workspaces_pkey",
       "schema": "public",
       "table": "workspaces",
@@ -2691,12 +2678,12 @@
     {
       "nameExplicit": false,
       "columns": [
-        "token_hash"
+        "host"
       ],
       "nullsNotDistinct": false,
-      "name": "email_verification_tokens_token_hash_key",
+      "name": "hosts_host_key",
       "schema": "public",
-      "table": "email_verification_tokens",
+      "table": "hosts",
       "entityType": "uniques"
     },
     {
@@ -2705,9 +2692,9 @@
         "token_hash"
       ],
       "nullsNotDistinct": false,
-      "name": "password_reset_tokens_token_hash_key",
+      "name": "user_tokens_token_hash_key",
       "schema": "public",
-      "table": "password_reset_tokens",
+      "table": "user_tokens",
       "entityType": "uniques"
     },
     {
@@ -2731,6 +2718,80 @@
       "schema": "public",
       "table": "workspace_invitations",
       "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "slug"
+      ],
+      "nullsNotDistinct": false,
+      "name": "workspaces_slug_key",
+      "schema": "public",
+      "table": "workspaces",
+      "entityType": "uniques"
+    },
+    {
+      "value": "(\"provider\" = 'password') = (\"password_hash\" is not null)",
+      "name": "auth_identities_password_hash_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "auth_identities"
+    },
+    {
+      "value": "\"slug\" ~ '^[a-z0-9_-]{1,64}$'",
+      "name": "links_slug_format_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "value": "\"maximum_visits\" > 0",
+      "name": "links_maximum_visits_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "value": "\"click_count\" >= 0",
+      "name": "links_click_count_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "value": "\"starts_at\" is null or \"expires_at\" is null or \"starts_at\" < \"expires_at\"",
+      "name": "links_schedule_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "value": "\"campaign_id\" is null or \"utm_campaign\" is null",
+      "name": "links_campaign_utm_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "links"
+    },
+    {
+      "value": "\"email\" = lower(\"email\")",
+      "name": "users_email_lower_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "users"
+    },
+    {
+      "value": "\"email\" = lower(\"email\")",
+      "name": "workspace_invitations_email_lower_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "workspace_invitations"
+    },
+    {
+      "value": "\"slug\" ~ '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'",
+      "name": "workspaces_slug_format_check",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "workspaces"
     }
   ],
   "renames": []
