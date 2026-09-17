@@ -8,8 +8,17 @@ export function dailyVisitorSalt(secret: string) {
   return `${secret}:${Math.floor(Date.now() / 86_400_000)}`;
 }
 
+// The column only counts distinct values, so 64 bits of the digest are enough
+// and count(distinct) on an integer is much faster than on text.
+export function visitorHash(salt: string, linkId: string, ip: string, userAgent: string): bigint {
+  const digest = new Bun.CryptoHasher('sha256')
+    .update(`${salt}:${linkId}:${ip}:${userAgent}`)
+    .digest();
+  return new DataView(digest.buffer, digest.byteOffset, 8).getBigInt64(0);
+}
+
 // ponytail: shared IP merges visitors; upgrade path is none — deliberate privacy trade
-export function visitorHashForLink(event: H3Event, linkId: string): string {
+export function visitorHashForLink(event: H3Event, linkId: string): bigint {
   const { sessionPassword, visitorHashSecret, trustedProxyDepth } = useRuntimeConfig();
   // Its own secret, so rotating one does not change the other. The session
   // password is the fallback, which keeps an existing deployment working.
@@ -17,8 +26,5 @@ export function visitorHashForLink(event: H3Event, linkId: string): string {
   // A caller who picks their own address counts as a new visitor on every hit.
   const ip = clientIp(event, Number(trustedProxyDepth) || 0);
   const ua = getRequestHeaders(event)['user-agent'] ?? '';
-  return new Bun.CryptoHasher('sha256')
-    .update(`${salt}:${linkId}:${ip}:${ua}`)
-    .digest('hex')
-    .slice(0, 32);
+  return visitorHash(salt, linkId, ip, ua);
 }

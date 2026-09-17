@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBot } from '#server/utils/request-meta';
+import { browserFromUa, isBot } from '#server/utils/request-meta';
 
 describe('isBot', () => {
   it('classifies Googlebot as a search crawler', () => {
@@ -36,5 +36,15 @@ describe('isBot', () => {
   it('classifies Chrome as a human', () => {
     const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     expect(isBot(ua)).toEqual({ isBot: false, botCategory: null });
+  });
+});
+
+describe('browserFromUa', () => {
+  it('returns lowercase labels from the codes module', () => {
+    expect(browserFromUa('Mozilla/5.0 Firefox/130.0')).toBe('firefox');
+    expect(browserFromUa('Mozilla/5.0 Chrome/120.0.0.0 Edg/120.0')).toBe('edge');
+    expect(browserFromUa('Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36')).toBe('chrome');
+    expect(browserFromUa('Mozilla/5.0 (Macintosh) Version/17.0 Safari/605.1.15')).toBe('safari');
+    expect(browserFromUa('curl/8.4.0')).toBe('other');
   });
 });

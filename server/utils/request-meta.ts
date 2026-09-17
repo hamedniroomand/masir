@@ -1,7 +1,8 @@
 import type { H3Event } from 'h3';
+import type { BotCategoryLabel, BrowserLabel, DeviceLabel } from '#shared/codes';
 import { getRequestHeaders } from 'h3';
 
-export type BotCategory = 'search' | 'social_preview' | 'monitoring' | 'automation';
+export type BotCategory = BotCategoryLabel;
 
 export type BotClassification = {
   isBot: boolean;
@@ -11,8 +12,8 @@ export type BotClassification = {
 export type RequestMeta = {
   referrerHost: string;
   country: string | null;
-  deviceCategory: 'desktop' | 'mobile' | 'tablet' | 'other';
-  browserCategory: string;
+  deviceCategory: DeviceLabel;
+  browserCategory: BrowserLabel;
   isBot: boolean;
   botCategory: BotCategory | null;
 };
@@ -71,7 +72,7 @@ export function parseRequestMeta(event: H3Event): RequestMeta {
   };
 }
 
-function deviceFromUa(ua: string): RequestMeta['deviceCategory'] {
+export function deviceFromUa(ua: string): DeviceLabel {
   const text = ua.toLowerCase();
   if (/ipad|tablet/.test(text))
     return 'tablet';
@@ -82,15 +83,15 @@ function deviceFromUa(ua: string): RequestMeta['deviceCategory'] {
   return 'other';
 }
 
-function browserFromUa(ua: string): string {
+export function browserFromUa(ua: string): BrowserLabel {
   const text = ua.toLowerCase();
   if (text.includes('firefox'))
-    return 'Firefox';
+    return 'firefox';
   if (text.includes('edg/'))
-    return 'Edge';
+    return 'edge';
   if (text.includes('chrome') && !text.includes('edg/'))
-    return 'Chrome';
+    return 'chrome';
   if (text.includes('safari') && !text.includes('chrome'))
-    return 'Safari';
-  return 'Other';
+    return 'safari';
+  return 'other';
 }

@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3';
-import type { ClickEventOutcome } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
+import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
 import { recordEvent } from '#server/utils/analytics';
 import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
@@ -14,7 +14,7 @@ import { deriveLinkStatus } from '#shared/link-status';
 import { RESERVED_SLUGS } from '#shared/slug';
 import { buildDestination, utmParamsFor } from '#shared/utm';
 
-function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outcome: ClickEventOutcome, meta: RequestMeta) {
+function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outcome: OutcomeLabel, meta: RequestMeta) {
   const visitorHash = !meta.isBot && outcome === 'redirect_success'
     ? visitorHashForLink(event, linkId)
     : null;
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     expiresAt: link.expiresAt,
     startsAt: link.startsAt,
     maximumVisits: link.maximumVisits,
-    successfulVisitCount: link.successfulVisitCount,
+    clickCount: link.clickCount,
   });
 
   // Set once above every branch rather than on each path that reaches a

@@ -1,6 +1,19 @@
 import { fetch, setup } from '@nuxt/test-utils';
+import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, insertTestCampaign, insertTestLink, resetTestDb, testDatabaseUrl } from './helpers';
+import { clickEvents, hosts } from '#server/database/schema';
+import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
+import {
+  CHROME_UA,
+  e2eSetupOptions,
+  insertTestCampaign,
+  insertTestLink,
+  readTestLink,
+  resetTestDb,
+  testDatabaseUrl,
+  waitFor,
+} from './helpers';
+import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('redirect');
 
@@ -81,5 +94,51 @@ describe('redirect middleware', async () => {
     const res = await fetch('/login');
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
+  });
+
+  it('stores one hosts row for a repeated referrer and integer codes on the event', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const referer = 'https://news.example.test/story';
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'referred' });
+
+    for (let i = 0; i < 2; i++) {
+      await fetch('/referred', {
+        redirect: 'manual',
+        headers: { 'user-agent': CHROME_UA, referer },
+      });
+    }
+
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 2,
+    );
+    expect(events).toHaveLength(2);
+
+    const hostRows = await db.select().from(hosts).where(eq(hosts.host, 'news.example.test'));
+    expect(hostRows).toHaveLength(1);
+
+    const stored = events[0]!;
+    expect(stored.outcome).toBe(OUTCOME.redirect_success);
+    expect(stored.device).toBe(DEVICE.desktop);
+    expect(stored.browser).toBe(BROWSER.chrome);
+    expect(stored.referrerHost).toBe(hostRows[0]!.id);
+    expect(typeof stored.visitorHash).toBe('bigint');
+    expect(stored.botCategory).toBeNull();
+  });
+
+  it('does not raise the counter for a bot', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'bot-counted' });
+    await fetch('/bot-counted', {
+      redirect: 'manual',
+      headers: { 'user-agent': 'Googlebot/2.1' },
+    });
+
+    await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 1,
+    );
+    const row = await readTestLink(TEST_DB, linkId);
+    expect(row.clickCount).toBe(0);
   });
 });
