@@ -73,6 +73,6 @@ export async function revokeAuthTokens(purpose: TokenPurpose, userId: string) {
 export async function sendVerification(userId: string, email: string) {
   const { rootDomain } = useRuntimeConfig();
   const raw = await createAuthToken('email_verify', userId, VERIFICATION_LIFETIME_MS);
-  const link = `${rootDomain.replace(/\/$/, '')}/verify-email?token=${raw}`;
+  const link = `${rootDomain.replace(/\/$/, '')}/verify-email?token=${raw}&email=${encodeURIComponent(email)}`;
   await sendMail(verifyEmailMessage(email, link));
 }
