@@ -2,12 +2,14 @@ import process from 'node:process';
 import { hashPassword } from '#scripts/hash-password';
 import { openDatabase } from '#server/database/client';
 import { runMigrations } from '#server/database/migrate';
-import { authIdentities, securityEvents, users } from '#server/database/schema';
+import { authIdentities, securityEvents, users, workspaceMembers, workspaces } from '#server/database/schema';
 import { newId } from '#shared/id';
+import { normalizeWorkspaceSlug } from '#shared/workspace-slug';
 
 const email = process.env.ADMIN_EMAIL;
 const password = process.env.ADMIN_PASSWORD;
 const databaseUrl = process.env.NUXT_DATABASE_URL ?? 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard';
+const workspaceName = process.env.WORKSPACE_NAME ?? 'My workspace';
 
 if (!email || !password) {
   console.error('Set ADMIN_EMAIL and ADMIN_PASSWORD');
@@ -55,5 +57,28 @@ await db.insert(securityEvents).values({
   detail: JSON.stringify({ email: normalizedEmail }),
 });
 
+// A user without a workspace can sign in and reach nothing, so the first
+// workspace and its owner membership are seeded together.
+const workspaceId = newId();
+const workspaceSlug = normalizeWorkspaceSlug(workspaceName) || 'workspace';
+await db.insert(workspaces).values({
+  id: workspaceId,
+  name: workspaceName,
+  slug: workspaceSlug,
+  plan: 'TRIAL',
+  createdAt: now,
+  updatedAt: now,
+});
+
+await db.insert(workspaceMembers).values({
+  id: newId(),
+  workspaceId,
+  userId: id,
+  role: 'OWNER',
+  createdAt: now,
+  updatedAt: now,
+});
+
 console.log('Admin created:', normalizedEmail);
+console.log('Workspace created:', `${workspaceName} (${workspaceSlug})`);
 await db.$client.end();
