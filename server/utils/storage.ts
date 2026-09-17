@@ -102,3 +102,9 @@ export function deleteObject(key: string) {
 export function publicUrl(key: string) {
   return resolveDriver().publicUrl(key);
 }
+
+// workspaces.logo_url holds a key, not a URL, so a moved bucket needs no
+// data migration. Every response maps it here.
+export function publicUrlOrNull(key: string | null) {
+  return key ? publicUrl(key) : null;
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
 
-const { data } = await useFetch<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
+const { data, refresh } = await useFetch<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
@@ -11,11 +11,17 @@ const message = ref('');
 const error = ref('');
 const saving = ref(false);
 const confirming = ref(false);
+const logoFile = ref<File | null>(null);
+const logoBusy = ref(false);
 
 watch(current, (workspace) => {
   if (workspace)
     name.value = workspace.name;
 }, { immediate: true });
+
+function reasonOf(failure: unknown) {
+  return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason;
+}
 
 async function save() {
   error.value = '';
@@ -26,12 +32,47 @@ async function save() {
     message.value = 'Saved.';
   }
   catch (failure) {
-    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
-      ?? 'We could not save the workspace.';
+    error.value = reasonOf(failure) ?? 'We could not save the workspace.';
   }
   finally {
     saving.value = false;
   }
+}
+
+// The logo route takes the workspace id, because it also serves the onboarding
+// page on the root domain, where the host names no workspace.
+async function saveLogo(request: () => Promise<unknown>, done: string, fallback: string) {
+  error.value = '';
+  message.value = '';
+  logoBusy.value = true;
+  try {
+    await request();
+    await refresh();
+    message.value = done;
+  }
+  catch (failure) {
+    error.value = reasonOf(failure) ?? fallback;
+  }
+  finally {
+    logoFile.value = null;
+    logoBusy.value = false;
+  }
+}
+
+watch(logoFile, (file) => {
+  if (!file || !current.value)
+    return;
+  const body = new FormData();
+  body.set('workspaceId', current.value.id);
+  body.set('file', file);
+  saveLogo(() => $fetch('/api/workspaces/logo', { method: 'POST', body }), 'Logo saved.', 'We could not save the logo.');
+});
+
+function removeLogo() {
+  if (!current.value?.logoUrl)
+    return;
+  const body = { workspaceId: current.value.id };
+  saveLogo(() => $fetch('/api/workspaces/logo', { method: 'DELETE', body }), 'Logo removed.', 'We could not remove the logo.');
 }
 
 async function remove() {
@@ -42,8 +83,7 @@ async function remove() {
     await navigateTo('/workspaces');
   }
   catch (failure) {
-    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
-      ?? 'We could not delete the workspace.';
+    error.value = reasonOf(failure) ?? 'We could not delete the workspace.';
   }
 }
 </script>
@@ -60,6 +100,9 @@ async function remove() {
     </div>
 
     <div class="space-y-5">
+      <UFormField v-if="current?.role === 'OWNER'" label="Logo">
+        <WorkspaceLogoField v-model="logoFile" :name="name" :url="current?.logoUrl ?? null" :busy="logoBusy" @remove="removeLogo" />
+      </UFormField>
       <UFormField label="Workspace name">
         <UInput v-model="name" icon="i-lucide-building-2" />
       </UFormField>

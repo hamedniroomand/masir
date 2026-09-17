@@ -40,20 +40,19 @@ export function workspaceNotFound() {
   return createError({ statusCode: 404, statusMessage: 'Workspace not found' });
 }
 
-export async function requireWorkspaceMember(
+// For a route that names its workspace in the request. The root domain sets no
+// event.context.workspace, so the onboarding page cannot use the guard below.
+export async function requireMemberOf(
   event: H3Event,
+  workspaceId: string,
   permission: Permission,
 ): Promise<WorkspaceContext> {
-  const workspace = event.context.workspace as { id: string } | undefined;
-  if (!workspace)
-    throw workspaceNotFound();
-
   const session = await requireUserSession(event);
   const user = session.user as SessionUser;
 
   // One read covers the session version and the membership. Checking them
   // apart would cost two round trips on every workspace request.
-  const access = await findMemberAccess(workspace.id, user.id);
+  const access = await findMemberAccess(workspaceId, user.id);
 
   if (!access || access.sessionVersion !== user.sessionVersion) {
     if (access)
@@ -65,5 +64,15 @@ export async function requireWorkspaceMember(
   if (!can(role, permission))
     throw workspaceNotFound();
 
-  return { workspaceId: workspace.id, role };
+  return { workspaceId, role };
+}
+
+export async function requireWorkspaceMember(
+  event: H3Event,
+  permission: Permission,
+): Promise<WorkspaceContext> {
+  const workspace = event.context.workspace as { id: string } | undefined;
+  if (!workspace)
+    throw workspaceNotFound();
+  return requireMemberOf(event, workspace.id, permission);
 }

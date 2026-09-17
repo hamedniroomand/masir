@@ -87,6 +87,7 @@ export default defineNuxtConfig({
       secretAccessKey: '',
       bucket: '',
       endpoint: '',
+      maxUploadBytes: 2_097_152,
     },
     allowPrivateDestinations: false,
     geoCountryHeader: '',

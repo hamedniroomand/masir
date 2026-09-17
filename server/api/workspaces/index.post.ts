@@ -15,7 +15,6 @@ import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-s
 const bodySchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a workspace name.'), v.maxLength(120)),
   slug: v.optional(v.string()),
-  logoUrl: v.optional(v.nullable(v.string())),
 });
 
 const SLUG_TAKEN = 'This workspace address is taken.';
@@ -66,7 +65,8 @@ export default defineEventHandler(async (event) => {
     const workspace = await createWorkspaceWithOwner({
       name: body.name,
       slug: parsed.output,
-      logoUrl: body.logoUrl ?? null,
+      // Only POST /api/workspaces/logo sets a logo, after it checks the bytes.
+      logoUrl: null,
       ownerUserId: user.id,
     });
     await writeAuditEvent('workspace_created', { slug: workspace.slug }, { workspaceId: workspace.id, actor: user.id });

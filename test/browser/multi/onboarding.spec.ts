@@ -1,7 +1,9 @@
+import { Buffer } from 'node:buffer';
 import { expect, test } from '../fixtures';
 
 const EMAIL = 'founder@example.com';
 const PASSWORD = 'founder-password-12345';
+const PNG = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, ...Array.from({ length: 24 }).fill(0) as number[]]);
 
 test.beforeAll(({ db }) => {
   db.reset();
@@ -25,6 +27,11 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
 
   await page.getByLabel('Company or workspace name').fill('Zeta Corp');
   await expect(page.getByLabel('Workspace address')).toHaveValue('zeta-corp');
+  // The logo is picked before the workspace exists and uploaded right after.
+  await expect(page.getByText('Z', { exact: true })).toBeVisible();
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Upload logo' }).click();
+  await (await chooser).setFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
   await page.getByRole('button', { name: 'Create workspace' }).click();
   await expect(page).toHaveURL(/\/workspaces\/invite\?slug=zeta-corp$/);
   await expect(page.getByRole('heading', { name: 'Invite your team' })).toBeVisible();
@@ -33,6 +40,9 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
   await page.getByRole('link', { name: 'Skip for now' }).click();
   await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
   await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+
+  await page.goto(`${server.hostUrl('zeta-corp')}/settings/workspace`);
+  await expect(page.getByRole('img', { name: 'Zeta Corp logo' })).toHaveAttribute('src', /\/uploads\/logos\//);
 });
 
 test('sends the root host straight to the only workspace', async ({ page, login, server }) => {

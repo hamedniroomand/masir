@@ -1,4 +1,20 @@
+import type { ImageType } from '#server/utils/image-validate';
 import { normalize, resolve, sep } from 'node:path';
+
+// The file driver serves the content type from the file name, so the
+// extension must match the bytes.
+const EXTENSION: Record<ImageType, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+};
+
+// A random suffix, so a replaced logo never reuses a URL a browser or CDN
+// still holds in its cache.
+export function logoStorageKey(workspaceId: string, type: ImageType): string {
+  return `logos/${workspaceId}/${crypto.randomUUID()}.${EXTENSION[type]}`;
+}
 
 // A key can come from user input. Refuse an absolute path, a climb out of the
 // root, and a null byte.

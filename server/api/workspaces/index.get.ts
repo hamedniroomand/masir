@@ -1,4 +1,5 @@
 import { requireUser } from '#server/utils/auth';
+import { publicUrlOrNull } from '#server/utils/storage';
 import { listMembershipsForUser } from '#server/utils/workspace-repo';
 import { workspaceUrl } from '#shared/deployment';
 
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
       id: row.workspace.id,
       name: row.workspace.name,
       slug: row.workspace.slug,
-      logoUrl: row.workspace.logoUrl,
+      logoUrl: publicUrlOrNull(row.workspace.logoUrl),
       role: row.role,
       url: workspaceUrl(row.workspace.slug, config as never),
     })),

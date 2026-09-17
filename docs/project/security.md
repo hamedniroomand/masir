@@ -116,8 +116,14 @@ a shared store is wired in.
 ## Uploads
 
 Workspace logos are validated by their bytes, not by the name or the declared
-content type. Size is capped and dimensions are bounded before anything is
-written.
+content type. PNG, JPEG, GIF, and WebP pass; an SVG is refused because it can
+hold script. Size is capped at `NUXT_STORAGE_MAX_UPLOAD_BYTES` before anything
+is written. Dimensions are not bounded. Only an owner can set or remove a logo,
+and the route takes the workspace id from the request, so it authorizes the
+same way on the root domain and on a workspace host.
+
+The whole request body is read before the size check runs, so an oversized
+upload costs memory once before it is refused.
 
 Storage keys are resolved against the root and checked before any write. An
 absolute path, a `..` climb, a backslash, and a null byte are all refused, so a

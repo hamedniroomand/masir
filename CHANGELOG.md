@@ -30,6 +30,10 @@ block. Read them for every version between yours and the one you install.
 - `bun run test` starts the db service and waits for it
 - Browser tests with Playwright, one project per deployment shape
 - `NUXT_SESSION_COOKIE_SECURE` for an instance served over plain http
+- Workspace logo upload, replace, and remove on the workspace settings page and
+  the create workspace page, with `POST` and `DELETE /api/workspaces/logo`. The
+  bytes are checked before anything is written. `NUXT_STORAGE_MAX_UPLOAD_BYTES`
+  caps the size, 2 MiB by default
 
 ### Changed
 
@@ -48,6 +52,8 @@ block. Read them for every version between yours and the one you install.
 - A link with a campaign cannot carry its own `utm_campaign`. The create and
   update routes answer 400.
 - Inviting an address that already has an open invitation answers 409.
+- `POST` and `PATCH /api/workspaces` ignore `logoUrl`. Only the logo upload
+  route sets a logo, and the column now holds the storage key, not the URL.
 - Application pages render on the client only. The server renders the visitor
   error page behind a short link, so previews and crawlers read it without
   JavaScript.

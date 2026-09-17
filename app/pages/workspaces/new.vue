@@ -18,6 +18,8 @@ useFormRevalidation(form, state);
 const error = ref('');
 const loading = ref(false);
 const slugTouched = ref(false);
+const logo = ref<File | null>(null);
+const showError = useErrorToast();
 
 // The address is suggested from the name until the user edits it. It is
 // immutable after creation, so they must see it before they submit.
@@ -26,14 +28,30 @@ watch(() => state.name, (name) => {
     state.slug = normalizeWorkspaceSlug(name);
 });
 
+// The workspace exists by now, so a failed logo must not block the flow. The
+// settings page offers the upload again.
+async function uploadLogo(workspaceId: string, file: File) {
+  const body = new FormData();
+  body.set('workspaceId', workspaceId);
+  body.set('file', file);
+  try {
+    await $fetch('/api/workspaces/logo', { method: 'POST', body });
+  }
+  catch (failure) {
+    showError(failure);
+  }
+}
+
 async function onSubmit() {
   error.value = '';
   loading.value = true;
   try {
-    const workspace = await $fetch<{ slug: string }>('/api/workspaces', {
+    const workspace = await $fetch<{ id: string; slug: string }>('/api/workspaces', {
       method: 'POST',
       body: { name: state.name, slug: state.slug },
     });
+    if (logo.value)
+      await uploadLogo(workspace.id, logo.value);
     await navigateTo(`/workspaces/invite?slug=${encodeURIComponent(workspace.slug)}`);
   }
   catch (failure) {
@@ -57,6 +75,12 @@ async function onSubmit() {
       </p>
     </div>
     <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+      <UFormField label="Logo">
+        <WorkspaceLogoField v-model="logo" :name="state.name" :url="null" />
+        <template #help>
+          <span class="text-xs text-muted">Optional. PNG, JPEG, GIF, or WebP.</span>
+        </template>
+      </UFormField>
       <UFormField label="Company or workspace name" name="name" required>
         <UInput v-model="state.name" icon="i-lucide-building-2" placeholder="Acme" />
       </UFormField>
