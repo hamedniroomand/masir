@@ -23,6 +23,9 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
   const config = useRuntimeConfig();
 
+  // The only two paths to a membership are this one and invitation acceptance.
+  // Both refuse an unverified address, so requireWorkspaceMember already keeps
+  // an unverified account away from links and campaigns. Do not drop this.
   if (!user.emailVerified) {
     const reason = 'Verify your email before you make a workspace.';
     throw createError({ statusCode: 403, statusMessage: reason, data: { reason } });

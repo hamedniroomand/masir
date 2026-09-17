@@ -34,14 +34,6 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   return user;
 }
 
-// Verification gates every action that creates data.
-export async function requireVerifiedUser(event: H3Event): Promise<SessionUser> {
-  const user = await requireUser(event);
-  if (!user.emailVerified)
-    throw createError({ statusCode: 403, statusMessage: 'Verify your email first.' });
-  return user;
-}
-
 // A stranger and a member without the permission get the same answer. A 403
 // would confirm that the workspace exists.
 export function workspaceNotFound() {
