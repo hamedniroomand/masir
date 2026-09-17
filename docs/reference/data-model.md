@@ -171,8 +171,14 @@ across millions of rows, so the string is stored once. The server keeps a
 `host -> id` map in memory.
 
 Columns are ordered by alignment: 8 bytes, then 4, 2, 1, then variable. Postgres
-pads to alignment, and this order saves up to 7 bytes for each row. A stored row
-measures 87 to 93 bytes.
+pads to alignment, and this order saves up to 7 bytes for each row.
+
+A stored row measures 96 bytes with every column set, and 102 bytes at its
+widest. The extra bytes are the null bitmap, which Postgres adds to the row
+header as soon as one column is null. A human click leaves `bot_category` null,
+so the common row carries it. Making the column `NOT NULL` would not help:
+`country` and `visitor_hash` are nullable for real reasons, so the bitmap stays
+either way.
 
 **No foreign key to `links` or `workspaces`.** An event log must never block or
 cascade a delete. The rows of a deleted link age out with their partition.

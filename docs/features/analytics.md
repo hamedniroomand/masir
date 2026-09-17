@@ -108,7 +108,7 @@ inside the visit limit, and one insert writes the event.
 The event row holds small integers, not words: the outcome, the device, the
 browser, and the bot category are codes from `shared/codes.ts`. The API turns
 them back into labels before they leave the server, so a caller never sees a
-number. A row measures under 100 bytes.
+number. A row measures 96 to 102 bytes.
 
 `click_events` is partitioned by month. Boot makes the partition for the current
 month and the next one. Dropping an old month is one `drop table`.
