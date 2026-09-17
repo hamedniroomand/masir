@@ -45,6 +45,15 @@ async function waitForReady(url: string, server: Subprocess) {
   throw new Error(`test server was not ready in ${READY_TIMEOUT_MS}ms\n${await serverOutput(server)}`);
 }
 
+// Bun loads the repository .env into every process it starts, this one and
+// the server below. A developer with NUXT_MULTI_WORKSPACE=true in .env would
+// otherwise hand it to every test server. Only the values in `env` may reach
+// the server, so both leaks are closed here.
+function serverEnv(env: Record<string, string>, port: number) {
+  const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('NUXT_')));
+  return { ...inherited, ...env, PORT: String(port), NODE_ENV: 'production' };
+}
+
 // The app needs the bun runtime for bun:sql, and test-utils starts a server with
 // node. So this starts the server and setup() only gets the host.
 //
@@ -53,8 +62,8 @@ async function waitForReady(url: string, server: Subprocess) {
 export async function startTestServer(env: Record<string, string>, attempt = 1): Promise<string> {
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
-  const server = Bun.spawn(['bun', resolve(TEST_OUTPUT_DIR, 'server/index.mjs')], {
-    env: { ...process.env, ...env, PORT: String(port), NODE_ENV: 'production' },
+  const server = Bun.spawn(['bun', '--env-file=/dev/null', resolve(TEST_OUTPUT_DIR, 'server/index.mjs')], {
+    env: serverEnv(env, port),
     stdout: 'pipe',
     stderr: 'pipe',
   });
