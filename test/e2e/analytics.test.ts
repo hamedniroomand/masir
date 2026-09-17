@@ -1,8 +1,9 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { ensureClickEventPartitions } from '#server/database/migrate';
 import { clickEvents, links } from '#server/database/schema';
-import { newId } from '#shared/id';
+import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
 import {
   CHROME_UA,
   e2eSetupOptions,
@@ -16,6 +17,8 @@ import {
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('analytics');
+
+type Breakdown = { label: string; count: number };
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
@@ -60,7 +63,7 @@ describe('link analytics', async () => {
     await fetch('/an-bot', { redirect: 'manual', headers: { 'user-agent': 'Googlebot/2.1' } });
 
     const db = openTestDatabase(TEST_DB);
-    const outcomes = (linkId: string, expected: string) => waitFor(
+    const outcomes = (linkId: string, expected: number) => waitFor(
       async () => {
         const rows = await db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId));
         return rows.map(r => r.outcome);
@@ -68,10 +71,10 @@ describe('link analytics', async () => {
       found => found.includes(expected),
     );
 
-    expect(await outcomes(disabledId, 'disabled_block')).toContain('disabled_block');
-    expect(await outcomes(scheduledId, 'scheduled_block')).toContain('scheduled_block');
-    expect(await outcomes(expiredId, 'expired_block')).toContain('expired_block');
-    expect(await outcomes(botId, 'bot_request')).toContain('bot_request');
+    expect(await outcomes(disabledId, OUTCOME.disabled_block)).toContain(OUTCOME.disabled_block);
+    expect(await outcomes(scheduledId, OUTCOME.scheduled_block)).toContain(OUTCOME.scheduled_block);
+    expect(await outcomes(expiredId, OUTCOME.expired_block)).toContain(OUTCOME.expired_block);
+    expect(await outcomes(botId, OUTCOME.bot_request)).toContain(OUTCOME.bot_request);
 
     const botLink = await db.select().from(links).where(eq(links.id, botId)).limit(1);
     expect(botLink[0]?.clickCount).toBe(0);
@@ -100,8 +103,9 @@ describe('link analytics', async () => {
     expect(stats.uniqueVisitors).toBe(1);
 
     const rows = await db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId));
-    expect(rows.every(r => !String(r.referrerHost).includes('127.0.0.1'))).toBe(true);
-    expect(rows.every(r => r.visitorHash != null)).toBe(true);
+    const stored = JSON.stringify(rows, (_key, value) => typeof value === 'bigint' ? value.toString() : value);
+    expect(stored).not.toContain('127.0.0.1');
+    expect(rows.every(r => typeof r.visitorHash === 'bigint')).toBe(true);
   });
 
   it('filters chart traffic by classification', async () => {
@@ -122,34 +126,58 @@ describe('link analytics', async () => {
     expect(bot.periodClicks).toBe(1);
   });
 
-  it('keeps legacy clicks visible and flags the boundary', async () => {
-    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-legacy' });
+  it('answers with labels, never codes, and without the legacy fields', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-labels' });
     const db = openTestDatabase(TEST_DB);
     await db.insert(clickEvents).values({
-      id: newId(),
-      linkId,
       workspaceId,
-      createdAt: new Date(Date.now() - 3600_000),
-      referrerHost: 'direct',
-      country: null,
-      deviceCategory: 'desktop',
-      browserCategory: 'Chrome',
-      outcome: null,
-      isBot: null,
-      botCategory: null,
-      visitorHash: null,
+      linkId,
+      outcome: OUTCOME.redirect_success,
+      device: DEVICE.mobile,
+      browser: BROWSER.safari,
+      country: 'NL',
+      isBot: false,
+      visitorHash: 42n,
     });
 
     const cookie = await loginCookie();
-    const stats = await $fetch<{
-      periodClicks: number;
-      uniqueVisitors: number;
-      periodCoversLegacy: boolean;
-      classificationAvailableFrom: string | null;
+    const stats = await $fetch<Record<string, unknown> & {
+      devices: Breakdown[];
+      browsers: Breakdown[];
+      topCountries: Breakdown[];
+      topReferrers: Breakdown[];
     }>(`/api/links/${linkId}/analytics`, { query: { period: '24h' }, headers: { cookie } });
 
-    expect(stats.periodClicks).toBe(1);
-    expect(stats.uniqueVisitors).toBe(0);
-    expect(stats.periodCoversLegacy).toBe(true);
+    expect(stats).not.toHaveProperty('classificationAvailableFrom');
+    expect(stats).not.toHaveProperty('periodCoversLegacy');
+
+    expect(stats.devices).toEqual([{ label: 'mobile', count: 1, percentage: 100 }]);
+    expect(stats.browsers).toEqual([{ label: 'safari', count: 1, percentage: 100 }]);
+    expect(stats.topCountries).toEqual([{ label: 'NL', count: 1 }]);
+    for (const row of [...stats.devices, ...stats.browsers, ...stats.topCountries, ...stats.topReferrers])
+      expect(typeof row.label).toBe('string');
+  });
+
+  it('puts an older event in the partition of its month', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const lastMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 15));
+    await ensureClickEventPartitions(db, lastMonth);
+
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-partition' });
+    await db.insert(clickEvents).values({
+      workspaceId,
+      linkId,
+      createdAt: lastMonth,
+      outcome: OUTCOME.redirect_success,
+      device: DEVICE.desktop,
+      browser: BROWSER.chrome,
+      isBot: false,
+    });
+
+    const rows = await db.select({ table: sql<string>`tableoid::regclass::text` })
+      .from(clickEvents)
+      .where(eq(clickEvents.linkId, linkId));
+    const month = String(lastMonth.getUTCMonth() + 1).padStart(2, '0');
+    expect(rows[0]!.table).toBe(`click_events_${lastMonth.getUTCFullYear()}_${month}`);
   });
 });

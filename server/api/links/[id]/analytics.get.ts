@@ -1,15 +1,10 @@
 import { getLinkAnalytics } from '#server/utils/analytics';
 import { requireWorkspaceMember } from '#server/utils/auth';
-import { findLinkById } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const id = getRouterParam(event, 'id');
   if (!id)
-    throw createError({ statusCode: 404, statusMessage: 'Not found' });
-
-  const link = await findLinkById(id, workspaceId);
-  if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const periodRaw = getQuery(event).period;
@@ -20,6 +15,10 @@ export default defineEventHandler(async (event) => {
   const trafficRaw = getQuery(event).traffic;
   const traffic = trafficRaw === 'bot' || trafficRaw === 'all' ? trafficRaw : 'human';
 
-  const data = await getLinkAnalytics(link.id, workspaceId, period, traffic);
+  // getLinkAnalytics reads the link itself and scopes it to the workspace, so a
+  // second read here would only repeat that statement.
+  const data = await getLinkAnalytics(id, workspaceId, period, traffic);
+  if (!data)
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
   return data;
 });

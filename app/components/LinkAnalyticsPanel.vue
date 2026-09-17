@@ -26,13 +26,6 @@ const seriesColumns = [
   { accessorKey: 'bucket', header: 'Time' },
   { accessorKey: 'count', header: 'Clicks' },
 ];
-
-const legacyNote = computed(() => {
-  const from = analytics.value?.classificationAvailableFrom;
-  return from
-    ? `available from ${new Date(from).toLocaleDateString()}`
-    : 'are not available yet';
-});
 </script>
 
 <template>
@@ -51,10 +44,6 @@ const legacyNote = computed(() => {
     </div>
 
     <template v-if="analytics">
-      <p v-if="analytics.periodCoversLegacy" class="text-xs text-muted">
-        Unique visitor and bot analytics {{ legacyNote }}. Older clicks stay in the totals.
-      </p>
-
       <div class="metric-grid" :class="analytics.maximumVisits == null ? 'lg:grid-cols-3' : 'lg:grid-cols-4'">
         <MetricStat label="Total clicks" :value="analytics.totalClicks.toLocaleString()" hint="Successful human redirects" /><MetricStat label="Unique visitors" :value="analytics.uniqueVisitors.toLocaleString()" /><MetricStat label="Bot requests" :value="analytics.botRequests.toLocaleString()" /><MetricStat
           v-if="analytics.maximumVisits != null"
