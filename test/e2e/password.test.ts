@@ -86,7 +86,6 @@ describe('link password API', async () => {
 
     const afterView = await readTestLink(TEST_DB, link.id);
     expect(afterView.clickCount).toBe(before.clickCount);
-    expect(afterView.successfulVisitCount).toBe(before.successfulVisitCount);
 
     const bad = await fetch('/api/links/verify-password', {
       method: 'POST',

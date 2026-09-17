@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     expiresAt: link.expiresAt,
     startsAt: link.startsAt,
     maximumVisits: link.maximumVisits,
-    successfulVisitCount: link.successfulVisitCount,
+    clickCount: link.clickCount,
   });
 
   if (status !== 'active') {

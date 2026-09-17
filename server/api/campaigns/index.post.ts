@@ -1,9 +1,9 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { campaignToDto, createCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
 
 const bodySchema = v.object({
@@ -20,12 +20,12 @@ export default defineEventHandler(async (event) => {
   try {
     const campaign = await createCampaign({
       workspaceId,
-      createdByUserId: user.id,
+      createdBy: user.id,
       name: body.name,
       utmCampaign: body.utmCampaign,
       utmMedium: emptyToNull(body.utmMedium),
     });
-    await writeSecurityEvent('campaign_created', { name: body.name }, { workspaceId, actor: user.id });
+    await writeAuditEvent('campaign_created', { name: body.name }, { workspaceId, actor: user.id });
     setResponseStatus(event, 201);
     if (!campaign)
       throw createError({ statusCode: 500, statusMessage: 'Campaign could not be read back' });

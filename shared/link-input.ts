@@ -2,6 +2,17 @@ import * as v from 'valibot';
 
 export const MAX_TAGS_PER_LINK = 20;
 
+export const CAMPAIGN_UTM_CONFLICT = 'A campaign sets utm_campaign. Clear one of the two.';
+
+// A campaign owns utm_campaign. A database check refuses the pair, so the form
+// and the route both ask this before the write.
+export function hasCampaignUtmConflict(input: {
+  campaignId?: string | null;
+  utmCampaign?: string | null;
+}) {
+  return Boolean(input.campaignId) && Boolean(input.utmCampaign);
+}
+
 export const maximumVisitsSchema = v.optional(v.nullable(v.pipe(
   v.number('Maximum visits must be a number.'),
   v.integer('Maximum visits must be a whole number.'),

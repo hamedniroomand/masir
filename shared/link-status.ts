@@ -5,7 +5,7 @@ export function deriveLinkStatus(link: {
   expiresAt: Date | null;
   startsAt?: Date | null;
   maximumVisits?: number | null;
-  successfulVisitCount?: number;
+  clickCount?: number;
 }, now = Date.now()): LinkStatus {
   if (!link.isEnabled)
     return 'disabled';
@@ -15,7 +15,7 @@ export function deriveLinkStatus(link: {
     return 'expired';
 
   const maximumVisits = link.maximumVisits;
-  const used = link.successfulVisitCount ?? 0;
+  const used = link.clickCount ?? 0;
   if (maximumVisits != null && used >= maximumVisits)
     return 'limit_reached';
 

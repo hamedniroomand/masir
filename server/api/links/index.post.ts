@@ -1,5 +1,6 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
@@ -8,10 +9,9 @@ import { createLink, linkToDto, tagNamesByLinkIds } from '#server/utils/link-rep
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
-import { maximumVisitsSchema, tagsSchema } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, tagsSchema } from '#shared/link-input';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
   const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
   if (!rl.ok) {
-    await writeSecurityEvent('rate_limit_exceeded', { scope: 'create' }, { workspaceId, actor: user.id });
+    await writeAuditEvent('rate_limit_exceeded', { scope: 'create' }, { workspaceId, actor: user.id });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
   }
@@ -68,6 +68,10 @@ export default defineEventHandler(async (event) => {
   const maximumVisits = body.maximumVisits ?? null;
 
   const campaignId = emptyToNull(body.campaignId);
+  const utmCampaign = emptyToNull(body.utmCampaign);
+  if (hasCampaignUtmConflict({ campaignId, utmCampaign })) {
+    throw createError({ statusCode: 400, statusMessage: CAMPAIGN_UTM_CONFLICT, data: { reason: CAMPAIGN_UTM_CONFLICT } });
+  }
   if (campaignId && !await findCampaignForWorkspace(campaignId, workspaceId)) {
     throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
   }
@@ -101,7 +105,7 @@ export default defineEventHandler(async (event) => {
   try {
     const link = await createLink({
       workspaceId,
-      createdByUserId: user.id,
+      createdBy: user.id,
       destinationUrl: dest.url,
       title: body.title,
       slug,
@@ -112,13 +116,13 @@ export default defineEventHandler(async (event) => {
       passwordHash: body.password ? await hashSecret(body.password) : null,
       campaignId,
       utmSource: emptyToNull(body.utmSource),
-      utmCampaign: emptyToNull(body.utmCampaign),
+      utmCampaign,
       utmTerm: emptyToNull(body.utmTerm),
       utmContent: emptyToNull(body.utmContent),
     });
     if (body.tags?.length)
       await setLinkTags(link.id, workspaceId, body.tags);
-    await writeSecurityEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
+    await writeAuditEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
     setResponseStatus(event, 201);
     const tagMap = await tagNamesByLinkIds([link.id]);
     return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
@@ -128,7 +132,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'This short link is already taken.', data: { reason: 'This short link is already taken.' } });
     }
     if (error instanceof SlugExhaustedError) {
-      await writeSecurityEvent('slug_generation_exhausted', {}, { workspaceId, actor: user.id });
+      await writeAuditEvent('slug_generation_exhausted', {}, { workspaceId, actor: user.id });
       throw createError({ statusCode: 500, statusMessage: 'Could not generate a slug.' });
     }
     throw error;

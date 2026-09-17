@@ -1,12 +1,12 @@
 import * as v from 'valibot';
 import { recordEvent } from '#server/utils/analytics';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { readValidBody } from '#server/utils/body';
 import { findLinkBySlug } from '#server/utils/link-repo';
 import { verifySecret } from '#server/utils/password';
 import { setPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { deriveLinkStatus } from '#shared/link-status';
 
 const bodySchema = v.object({
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
   const rl = await rateLimitCheck(`pwd:${workspace.id}:${body.slug}:${clientKey}`, limit, 60_000);
   if (!rl.ok) {
-    await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' }, { workspaceId: workspace.id });
+    await writeAuditEvent('rate_limit_exceeded', { scope: 'password' }, { workspaceId: workspace.id });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     expiresAt: link.expiresAt,
     startsAt: link.startsAt,
     maximumVisits: link.maximumVisits,
-    successfulVisitCount: link.successfulVisitCount,
+    clickCount: link.clickCount,
   });
   if (status !== 'active') {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });

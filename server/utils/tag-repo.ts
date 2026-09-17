@@ -1,8 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { linkTags, tags } from '#server/database/schema';
-import { getDb, isUniqueViolation } from '#server/utils/db';
+import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
 import { InvalidTagNameError, TagNameTakenError } from '#server/utils/errors';
-import { newId } from '#shared/id';
 
 export function normalizeTagName(name: string): string {
   const trimmed = name.trim();
@@ -26,6 +25,8 @@ export async function listTags(workspaceId: string) {
 }
 
 export async function findTagForWorkspace(id: string, workspaceId: string) {
+  if (!isUuid(id))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(tags).where(and(eq(tags.id, id), eq(tags.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
@@ -44,16 +45,13 @@ export async function createTag(workspaceId: string, name: string) {
     return existing;
 
   const db = await getDb();
-  const id = newId();
-  const displayName = name.trim();
   try {
-    await db.insert(tags).values({
-      id,
+    const [created] = await db.insert(tags).values({
       workspaceId,
-      name: displayName,
+      name: name.trim(),
       normalizedName,
-      createdAt: new Date(),
-    });
+    }).returning();
+    return created ?? null;
   }
   catch (error) {
     if (isUniqueViolation(error)) {
@@ -63,7 +61,6 @@ export async function createTag(workspaceId: string, name: string) {
     }
     throw error;
   }
-  return findTagForWorkspace(id, workspaceId);
 }
 
 export async function renameTag(id: string, workspaceId: string, name: string) {
@@ -111,7 +108,7 @@ export async function setLinkTags(linkId: string, workspaceId: string, names: st
   await db.transaction(async (tx) => {
     await tx.delete(linkTags).where(eq(linkTags.linkId, linkId));
     if (tagIds.length)
-      await tx.insert(linkTags).values(tagIds.map(tagId => ({ linkId, tagId })));
+      await tx.insert(linkTags).values(tagIds.map(tagId => ({ workspaceId, linkId, tagId })));
   });
 
   return tagIds;

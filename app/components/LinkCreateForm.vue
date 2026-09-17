@@ -2,12 +2,12 @@
 import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui';
 import type { LinkItem } from '~/composables/useLinks';
 import * as v from 'valibot';
-import { toVisitLimit } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 
-const schema = v.object({
+const fields = v.object({
   destinationUrl: v.pipe(
     v.string(),
     v.trim(),
@@ -27,6 +27,8 @@ const schema = v.object({
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
   tags: v.optional(v.array(v.string())),
 });
+
+const schema = v.pipe(fields, v.check(input => !hasCampaignUtmConflict(input), CAMPAIGN_UTM_CONFLICT));
 
 type Schema = v.InferOutput<typeof schema>;
 

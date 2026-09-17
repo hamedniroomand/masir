@@ -6,7 +6,7 @@ const base = {
   expiresAt: null as Date | null,
   startsAt: null as Date | null,
   maximumVisits: null as number | null,
-  successfulVisitCount: 0,
+  clickCount: 0,
 };
 
 describe('deriveLinkStatus precedence', () => {
@@ -32,7 +32,7 @@ describe('deriveLinkStatus precedence', () => {
     expect(deriveLinkStatus({
       ...base,
       maximumVisits: 10,
-      successfulVisitCount: 10,
+      clickCount: 10,
       startsAt: new Date('2026-12-01T00:00:00.000Z'),
     }, now)).toBe('limit_reached');
   });
@@ -49,7 +49,7 @@ describe('deriveLinkStatus precedence', () => {
       ...base,
       startsAt: new Date('2026-01-01T00:00:00.000Z'),
       maximumVisits: 5,
-      successfulVisitCount: 2,
+      clickCount: 2,
       expiresAt: new Date('2027-01-01T00:00:00.000Z'),
     }, now)).toBe('active');
   });

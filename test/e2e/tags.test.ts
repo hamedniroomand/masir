@@ -1,10 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { authIdentities, links, linkTags, users } from '#server/database/schema';
-import { hashSecret } from '#server/utils/password';
-import { newId } from '#shared/id';
-import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { links, linkTags } from '#server/database/schema';
+import { e2eSetupOptions, insertTestLink, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('tags');
@@ -25,33 +23,10 @@ describe('tags API', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
   let workspaceId = '';
-  let otherUserId = '';
 
   beforeAll(async () => {
     ({ workspaceId } = await resetTestDb(TEST_DB));
-    const db = openTestDatabase(TEST_DB);
-    otherUserId = newId();
-    const now = new Date();
-    await db.insert(users).values({
-      id: otherUserId,
-      email: 'other@example.com',
-      emailVerifiedAt: now,
-      firstName: 'Other',
-      lastName: null,
-      avatarUrl: null,
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: null,
-    });
-    await db.insert(authIdentities).values({
-      id: newId(),
-      userId: otherUserId,
-      provider: 'PASSWORD',
-      providerAccountId: otherUserId,
-      passwordHash: await hashSecret(TEST_PASSWORD),
-      createdAt: now,
-      updatedAt: now,
-    });
+    await insertTestUser(TEST_DB, { email: 'other@example.com', password: TEST_PASSWORD });
   });
 
   it('creates, renames, and deletes tags', async () => {
@@ -93,7 +68,7 @@ describe('tags API', async () => {
     });
     const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'tagged-link' });
     const db = openTestDatabase(TEST_DB);
-    await db.insert(linkTags).values({ linkId, tagId: tag.id });
+    await db.insert(linkTags).values({ workspaceId, linkId, tagId: tag.id });
     await $fetch(`/api/tags/${tag.id}`, { method: 'DELETE', headers: { cookie } });
     const rows = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
     expect(rows[0]?.id).toBe(linkId);

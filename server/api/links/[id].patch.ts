@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
@@ -7,10 +8,9 @@ import { findLinkById, linkToDto, tagNamesByLinkIds, updateLink } from '#server/
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
-import { maximumVisitsSchema, tagsSchema } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, tagsSchema } from '#shared/link-input';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (body.maximumVisits !== undefined) {
-    if (body.maximumVisits != null && body.maximumVisits < existing.successfulVisitCount)
+    if (body.maximumVisits != null && body.maximumVisits < existing.clickCount)
       throw visitLimitBelowUsage();
     patch.maximumVisits = body.maximumVisits;
   }
@@ -113,6 +113,14 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
     }
     patch.campaignId = campaignId;
+  }
+
+  // The patch can set either side, so the pair is judged on the row that the
+  // write would leave behind.
+  const nextCampaignId = patch.campaignId !== undefined ? patch.campaignId : existing.campaignId;
+  const nextUtmCampaign = patch.utmCampaign !== undefined ? patch.utmCampaign : existing.utmCampaign;
+  if (hasCampaignUtmConflict({ campaignId: nextCampaignId, utmCampaign: nextUtmCampaign })) {
+    throw createError({ statusCode: 400, statusMessage: CAMPAIGN_UTM_CONFLICT, data: { reason: CAMPAIGN_UTM_CONFLICT } });
   }
   if (body.destinationUrl !== undefined) {
     const dest = validateDestination(body.destinationUrl, config.allowPrivateDestinations);
@@ -141,13 +149,13 @@ export default defineEventHandler(async (event) => {
   if (body.tags !== undefined)
     await setLinkTags(id, workspaceId, body.tags);
   if (body.password !== undefined) {
-    await writeSecurityEvent(
+    await writeAuditEvent(
       body.password == null ? 'link_password_removed' : 'link_password_set',
       {},
       { workspaceId, actor: user.id, linkId: id },
     );
   }
-  await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
+  await writeAuditEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
   const tagMap = await tagNamesByLinkIds([updated.id]);
   return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? []);
 });

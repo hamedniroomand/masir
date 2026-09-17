@@ -1,9 +1,8 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { campaigns, links } from '#server/database/schema';
-import { getDb, isUniqueViolation } from '#server/utils/db';
+import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
 import { CampaignTakenError } from '#server/utils/errors';
 import { invalidateAllLinks } from '#server/utils/link-cache';
-import { newId } from '#shared/id';
 
 export function campaignToDto(campaign: typeof campaigns.$inferSelect, stats?: { linkCount: number; clickCount: number }) {
   return {
@@ -38,6 +37,8 @@ export async function listCampaigns(workspaceId: string) {
 }
 
 export async function findCampaignForWorkspace(id: string, workspaceId: string) {
+  if (!isUuid(id))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
@@ -45,32 +46,27 @@ export async function findCampaignForWorkspace(id: string, workspaceId: string) 
 
 export async function createCampaign(input: {
   workspaceId: string;
-  createdByUserId: string;
+  createdBy: string;
   name: string;
   utmCampaign: string;
   utmMedium: string | null;
 }) {
   const db = await getDb();
-  const now = new Date();
-  const id = newId();
   try {
-    await db.insert(campaigns).values({
-      id,
+    const [created] = await db.insert(campaigns).values({
       workspaceId: input.workspaceId,
-      createdByUserId: input.createdByUserId,
+      createdBy: input.createdBy,
       name: input.name,
       utmCampaign: input.utmCampaign,
       utmMedium: input.utmMedium,
-      createdAt: now,
-      updatedAt: now,
-    });
+    }).returning();
+    return created ?? null;
   }
   catch (error) {
     if (isUniqueViolation(error))
       throw new CampaignTakenError();
     throw error;
   }
-  return findCampaignForWorkspace(id, input.workspaceId);
 }
 
 export async function updateCampaign(id: string, workspaceId: string, patch: {

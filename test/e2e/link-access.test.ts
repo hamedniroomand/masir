@@ -123,7 +123,7 @@ describe('link access controls', async () => {
       headers: { 'user-agent': 'Googlebot/2.1' },
     });
     const row = await readTestLink(TEST_DB, linkId);
-    expect(row.successfulVisitCount).toBe(0);
+    expect(row.clickCount).toBe(0);
   });
 
   it('redirects expired links to a custom destination without counting a click', async () => {
@@ -139,7 +139,6 @@ describe('link access controls', async () => {
     expect(res.headers.get('location')).toBe('https://example.com/expired-landing');
     const rowAfter = await readTestLink(TEST_DB, linkId);
     expect(rowAfter.clickCount).toBe(rowBefore.clickCount);
-    expect(rowAfter.successfulVisitCount).toBe(rowBefore.successfulVisitCount);
   });
 
   it('shows the default expired page when no fallback is set', async () => {
@@ -179,7 +178,7 @@ describe('link access controls', async () => {
       workspaceId,
       slug: 'patch-cap',
       maximumVisits: 10,
-      successfulVisitCount: 3,
+      clickCount: 3,
     });
     await expect($fetch(`/api/links/${linkId}`, {
       method: 'PATCH',
@@ -205,7 +204,7 @@ describe('link access controls', async () => {
       workspaceId,
       slug: 'clear-cap',
       maximumVisits: 5,
-      successfulVisitCount: 5,
+      clickCount: 5,
     });
     const updated = await $fetch<{ maximumVisits: number | null; status: string }>(`/api/links/${linkId}`, {
       method: 'PATCH',
