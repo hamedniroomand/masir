@@ -4,6 +4,9 @@ layout: home
 hero:
   name: Masir
   text: Short links your team actually owns.
+  image:
+    src: /icon.svg
+    alt: Masir
   tagline: >-
     Self-hosted link management with workspaces, real access control, and
     analytics that never store a visitor's IP address. Change where a link

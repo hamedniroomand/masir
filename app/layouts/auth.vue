@@ -13,7 +13,7 @@
       </div>
     </main>
     <footer class="flex items-center justify-center gap-2 px-6 py-6 text-xs text-muted">
-      <UIcon name="i-lucide-link-2" class="size-3.5" />Masir<span class="mx-1 text-dimmed">/</span>Your links. Your infrastructure.
+      <UIcon name="i-lucide-link-2" class="size-3.5" />Masir<span class="mx-1 text-dimmed">/</span>Every link has a destination.
     </footer>
   </div>
 </template>

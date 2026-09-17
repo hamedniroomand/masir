@@ -1,5 +1,7 @@
 # Masir
 
+Every link has a destination.
+
 Link manager for teams. Create short links, change destinations without changing the URL, and view click analytics.
 
 One codebase serves two shapes. **Self-hosted** holds one workspace on your own

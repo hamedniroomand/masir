@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 import { icon } from './icons.ts';
 
 const DESCRIPTION
-  = 'Masir is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
+  = 'Every link has a destination. Masir is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
 
 // Sidebar links carry the icon the page used to declare in its frontmatter.
 function link(name: string, text: string, path: string) {
@@ -56,6 +56,7 @@ export default defineConfig({
 
   themeConfig: {
     siteTitle: 'Masir',
+    logo: '/icon.svg',
 
     nav: [
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },

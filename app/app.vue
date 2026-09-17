@@ -10,7 +10,7 @@ useHead({
 
 useSeoMeta({
   title: 'Masir',
-  description: 'Self-hosted link manager',
+  description: 'Every link has a destination.',
 });
 </script>
 
