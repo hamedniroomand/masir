@@ -8,7 +8,7 @@ import { migrate } from 'drizzle-orm/bun-sql/migrator';
 
 const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
 
-const TABLES = 'mail_outbox, email_verification_tokens, password_reset_tokens, auth_identities, click_events, security_events, link_tags, tags, links, campaigns, users, reserved_slugs';
+const TABLES = 'click_events, security_events, link_tags, tags, links, campaigns, reserved_slugs, mail_outbox, email_verification_tokens, password_reset_tokens, auth_identities, workspace_members, workspaces, users';
 
 const DATABASE_EXISTS = '42P04';
 

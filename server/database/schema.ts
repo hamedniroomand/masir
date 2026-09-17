@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { boolean, index, integer, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 function timestampTz(name: string) {
@@ -19,6 +20,43 @@ export const users = pgTable('users', {
   lastLoginAt: timestampTz('last_login_at'),
 });
 
+export const workspacePlans = ['TRIAL', 'ACTIVE', 'TRIAL_EXPIRED'] as const;
+export const workspaceRoles = ['OWNER', 'MEMBER'] as const;
+
+export const workspaces = pgTable('workspaces', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  logoUrl: text('logo_url'),
+  plan: text('plan', { enum: workspacePlans }).notNull().default('TRIAL'),
+  trialStartedAt: timestampTz('trial_started_at'),
+  trialEndsAt: timestampTz('trial_ends_at'),
+  subscriptionStatus: text('subscription_status'),
+  deletedAt: timestampTz('deleted_at'),
+  createdAt: timestampTz('created_at').notNull(),
+  updatedAt: timestampTz('updated_at').notNull(),
+}, table => [
+  uniqueIndex('workspaces_slug_unique_idx').on(table.slug),
+]);
+
+export const workspaceMembers = pgTable('workspace_members', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: workspaceRoles }).notNull(),
+  deactivatedAt: timestampTz('deactivated_at'),
+  createdAt: timestampTz('created_at').notNull(),
+  updatedAt: timestampTz('updated_at').notNull(),
+}, table => [
+  uniqueIndex('workspace_members_workspace_user_unique_idx').on(table.workspaceId, table.userId),
+  index('workspace_members_user_id_idx').on(table.userId),
+  // One owner for each workspace. The database refuses a second one even when
+  // application code slips.
+  uniqueIndex('workspace_members_single_owner_idx')
+    .on(table.workspaceId)
+    .where(sql`role = 'OWNER'`),
+]);
+
 export const authProviders = ['PASSWORD', 'GOOGLE', 'MICROSOFT'] as const;
 
 export type AuthProvider = typeof authProviders[number];
@@ -38,21 +76,23 @@ export const authIdentities = pgTable('auth_identities', {
 
 export const campaigns = pgTable('campaigns', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   utmCampaign: text('utm_campaign').notNull(),
   utmMedium: text('utm_medium'),
   createdAt: timestampTz('created_at').notNull(),
   updatedAt: timestampTz('updated_at').notNull(),
 }, table => [
-  index('campaigns_user_id_created_at_idx').on(table.userId, table.createdAt),
-  uniqueIndex('campaigns_user_id_utm_campaign_unique_idx').on(table.userId, table.utmCampaign),
+  index('campaigns_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
+  uniqueIndex('campaigns_workspace_utm_campaign_unique_idx').on(table.workspaceId, table.utmCampaign),
 ]);
 
 export const links = pgTable('links', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
-  slug: text('slug').notNull().unique(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  slug: text('slug').notNull(),
   title: text('title'),
   destinationUrl: text('destination_url').notNull(),
   destinationHost: text('destination_host').notNull(),
@@ -72,20 +112,20 @@ export const links = pgTable('links', {
   createdAt: timestampTz('created_at').notNull(),
   updatedAt: timestampTz('updated_at').notNull(),
 }, table => [
-  index('links_user_id_created_at_idx').on(table.userId, table.createdAt),
+  index('links_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
   index('links_campaign_id_idx').on(table.campaignId),
-  uniqueIndex('links_slug_unique_idx').on(table.slug),
+  uniqueIndex('links_workspace_slug_unique_idx').on(table.workspaceId, table.slug),
 ]);
 
 export const tags = pgTable('tags', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   normalizedName: text('normalized_name').notNull(),
   createdAt: timestampTz('created_at').notNull(),
 }, table => [
-  uniqueIndex('tags_user_id_normalized_name_unique_idx').on(table.userId, table.normalizedName),
-  index('tags_user_id_created_at_idx').on(table.userId, table.createdAt),
+  uniqueIndex('tags_workspace_normalized_name_unique_idx').on(table.workspaceId, table.normalizedName),
+  index('tags_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
 ]);
 
 export const linkTags = pgTable('link_tags', {
@@ -112,6 +152,7 @@ export type ClickEventOutcome = typeof clickEventOutcomes[number];
 export const clickEvents = pgTable('click_events', {
   id: text('id').primaryKey(),
   linkId: text('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   createdAt: timestampTz('created_at').notNull(),
   referrerHost: text('referrer_host'),
   country: text('country'),
@@ -124,6 +165,7 @@ export const clickEvents = pgTable('click_events', {
 }, table => [
   index('click_events_link_id_created_at_idx').on(table.linkId, table.createdAt),
   index('click_events_link_id_outcome_created_at_idx').on(table.linkId, table.outcome, table.createdAt),
+  index('click_events_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
 ]);
 
 export const securityEvents = pgTable('security_events', {
@@ -137,10 +179,14 @@ export const securityEvents = pgTable('security_events', {
   index('security_events_link_id_created_at_idx').on(table.linkId, table.createdAt),
 ]);
 
+// A slug released in one workspace must not block another workspace.
 export const reservedSlugs = pgTable('reserved_slugs', {
-  slug: text('slug').primaryKey(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  slug: text('slug').notNull(),
   releasedAt: timestampTz('released_at'),
-});
+}, table => [
+  primaryKey({ columns: [table.workspaceId, table.slug] }),
+]);
 
 export const emailVerificationTokens = pgTable('email_verification_tokens', {
   id: text('id').primaryKey(),
@@ -174,6 +220,8 @@ export const mailOutbox = pgTable('mail_outbox', {
   createdAt: timestampTz('created_at').notNull(),
 });
 
+export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type Link = typeof links.$inferSelect;
