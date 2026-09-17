@@ -25,6 +25,15 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    // nuxt-auth-utils declares session.cookie without a domain key, and Nitro's
+    // applyEnv only overwrites keys that already exist. Without this line
+    // NUXT_SESSION_COOKIE_DOMAIN can never bind, and multi-workspace mode
+    // refuses to boot however the operator sets it.
+    session: {
+      cookie: {
+        domain: '',
+      },
+    },
     sessionPassword: '',
     databaseUrl: 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard',
     databasePoolMax: 10,
