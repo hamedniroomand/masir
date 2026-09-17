@@ -6,6 +6,7 @@ import process from 'node:process';
 import { TEST_OUTPUT_DIR } from '../global-setup';
 
 const READY_TIMEOUT_MS = 30_000;
+const PORT_ATTEMPTS = 5;
 
 const servers: Subprocess[] = [];
 
@@ -46,7 +47,10 @@ async function waitForReady(url: string, server: Subprocess) {
 
 // The app needs the bun runtime for bun:sql, and test-utils starts a server with
 // node. So this starts the server and setup() only gets the host.
-export async function startTestServer(env: Record<string, string>) {
+//
+// freePort closes the probe socket before the server binds it. Test files run
+// together, so another file can take that port in between. Retry on the clash.
+export async function startTestServer(env: Record<string, string>, attempt = 1): Promise<string> {
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
   const server = Bun.spawn(['bun', resolve(TEST_OUTPUT_DIR, 'server/index.mjs')], {
@@ -55,7 +59,15 @@ export async function startTestServer(env: Record<string, string>) {
     stderr: 'pipe',
   });
   servers.push(server);
-  await waitForReady(url, server);
+
+  try {
+    await waitForReady(url, server);
+  }
+  catch (e) {
+    if (attempt < PORT_ATTEMPTS && String(e).includes('EADDRINUSE'))
+      return startTestServer(env, attempt + 1);
+    throw e;
+  }
   return url;
 }
 

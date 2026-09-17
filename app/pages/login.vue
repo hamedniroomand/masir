@@ -86,8 +86,14 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       </p>
       <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" block :loading="loading" />
     </UForm>
-    <p class="mt-7 flex items-center justify-center gap-2 text-xs text-muted">
-      <UIcon name="i-lucide-lock-keyhole" class="size-3.5" />Access is managed by your workspace administrator.
+    <p class="mt-7 text-center text-xs text-muted">
+      <ULink to="/forgot-password">
+        Forgot your password?
+      </ULink>
+      <span class="mx-2">·</span>
+      <ULink to="/register">
+        Create an account
+      </ULink>
     </p>
   </div>
 </template>

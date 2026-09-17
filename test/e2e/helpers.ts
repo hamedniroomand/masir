@@ -10,6 +10,8 @@ export { testDatabaseUrl } from './test-db';
 const sharedEnv = {
   NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
   NUXT_PUBLIC_SHORT_DOMAIN: 'http://127.0.0.1:3000',
+  NUXT_ALLOW_REGISTRATION: 'true',
+  NUXT_MAIL_DRIVER: 'outbox',
 };
 
 // The Nuxt server migrates on boot, so the database must exist before setup().
