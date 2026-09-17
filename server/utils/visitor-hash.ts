@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3';
-import { createHash } from 'node:crypto';
 import { getRequestHeaders, getRequestIP } from 'h3';
 
 // The day number is public. Without a secret, an attacker can try each IP address
@@ -14,7 +13,7 @@ export function visitorHashForLink(event: H3Event, linkId: string): string {
   const salt = dailyVisitorSalt(sessionPassword);
   const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
   const ua = getRequestHeaders(event)['user-agent'] ?? '';
-  return createHash('sha256')
+  return new Bun.CryptoHasher('sha256')
     .update(`${salt}:${linkId}:${ip}:${ua}`)
     .digest('hex')
     .slice(0, 32);

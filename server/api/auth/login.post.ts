@@ -1,5 +1,7 @@
 import * as v from 'valibot';
 import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
+import { matchAbsentSecret, verifySecret } from '#server/utils/password';
+import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
@@ -12,6 +14,21 @@ const GENERIC = 'Invalid email or password.';
 export default defineEventHandler(async (event) => {
   const body = v.parse(bodySchema, await readBody(event));
   const email = normalizeEmail(body.email);
+  const config = useRuntimeConfig();
+
+  // argon2id holds 64MiB for each check. Without a limit, an unauthenticated
+  // caller can both guess passwords and exhaust the memory of the process.
+  const clientKey = await hashClientKey(event);
+  const byClient = await rateLimitCheck(`login:${clientKey}`, config.rateLimitLoginPerMinute, 60_000);
+  if (!byClient.ok) {
+    setResponseHeader(event, 'Retry-After', byClient.retryAfterSec);
+    throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
+  }
+  const byEmail = await rateLimitCheck(`login-email:${email}`, config.rateLimitLoginPerMinute, 60_000);
+  if (!byEmail.ok) {
+    setResponseHeader(event, 'Retry-After', byEmail.retryAfterSec);
+    throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
+  }
 
   const fail = async () => {
     await writeSecurityEvent('login_failed', { email });
@@ -20,14 +37,16 @@ export default defineEventHandler(async (event) => {
   };
 
   const user = await findUserByEmail(email);
-  if (!user)
-    return fail();
+  const identity = user ? await findIdentity('PASSWORD', user.id) : null;
 
-  const identity = await findIdentity('PASSWORD', user.id);
-  if (!identity?.passwordHash)
+  // No account, or an account that signs in with a provider only. Spend the
+  // same time a real check spends, so the answer does not name which.
+  if (!user || !identity?.passwordHash) {
+    await matchAbsentSecret(body.password);
     return fail();
+  }
 
-  const ok = await verifyPassword(identity.passwordHash, body.password);
+  const ok = await verifySecret(body.password, identity.passwordHash);
   if (!ok)
     return fail();
 

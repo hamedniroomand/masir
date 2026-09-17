@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { recordEvent } from '#server/utils/analytics';
 import { findLinkBySlug } from '#server/utils/link-repo';
+import { verifySecret } from '#server/utils/password';
 import { setPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
@@ -46,7 +47,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
 
-  const ok = await verifyPassword(link.passwordHash, body.password);
+  const ok = await verifySecret(body.password, link.passwordHash);
   if (!ok) {
     const meta = parseRequestMeta(event);
     await recordEvent(workspace.id, link.id, meta, 'password_failed').catch(() => {});

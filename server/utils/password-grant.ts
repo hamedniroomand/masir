@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3';
 import { Buffer } from 'node:buffer';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import { getCookie, setCookie } from 'h3';
 
 // Use one cookie for each link. A single shared cookie loses the grant when the
@@ -12,7 +12,7 @@ function cookieName(workspaceId: string, slug: string) {
 }
 
 function sign(workspaceId: string, slug: string, exp: number, secret: string) {
-  return createHmac('sha256', secret).update(`${workspaceId}:${slug}:${exp}`).digest('base64url');
+  return new Bun.CryptoHasher('sha256', secret).update(`${workspaceId}:${slug}:${exp}`).digest('base64url');
 }
 
 export function setPasswordGrant(event: H3Event, workspaceId: string, slug: string, secret: string, ttlSec = 900) {

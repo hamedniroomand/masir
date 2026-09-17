@@ -1,5 +1,7 @@
 import type { QrCodeGenerateResult } from 'uqr';
 import { Buffer } from 'node:buffer';
+// ponytail: node:zlib, not Bun.deflateSync — a PNG IDAT needs zlib-framed
+// deflate (0x78 0x9c) and Bun emits raw deflate with no option to frame it.
 import { deflateSync } from 'node:zlib';
 
 function crc32(buffer: Buffer): number {

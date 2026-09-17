@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { sendVerification } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
 import { createUserWithIdentity, findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
+import { hashSecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const user = await createUserWithIdentity({
     email,
     provider: 'PASSWORD',
-    passwordHash: await hashPassword(body.password),
+    passwordHash: await hashSecret(body.password),
     emailVerified: false,
   });
   await writeSecurityEvent('user_registered', { email }, user.id);

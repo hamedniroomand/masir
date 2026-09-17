@@ -1,8 +1,8 @@
 import process from 'node:process';
-import { hashPassword } from '#scripts/hash-password';
 import { openDatabase } from '#server/database/client';
 import { runMigrations } from '#server/database/migrate';
 import { authIdentities, securityEvents, users, workspaceMembers, workspaces } from '#server/database/schema';
+import { hashSecret } from '#server/utils/password';
 import { newId } from '#shared/id';
 import { normalizeWorkspaceSlug } from '#shared/workspace-slug';
 
@@ -44,7 +44,7 @@ await db.insert(authIdentities).values({
   userId: id,
   provider: 'PASSWORD',
   providerAccountId: id,
-  passwordHash: await hashPassword(password),
+  passwordHash: await hashSecret(password),
   createdAt: now,
   updatedAt: now,
 });

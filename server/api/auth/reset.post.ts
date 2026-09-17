@@ -3,6 +3,7 @@ import { passwordResetTokens } from '#server/database/schema';
 import { consumeAuthToken, revokeAuthTokens } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
 import { bumpSessionVersion, setPasswordHash } from '#server/utils/identity-repo';
+import { hashSecret } from '#server/utils/password';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!result.ok)
     throw createError({ statusCode: 400, statusMessage: 'This recovery link is not valid.' });
 
-  await setPasswordHash(result.userId, await hashPassword(body.password));
+  await setPasswordHash(result.userId, await hashSecret(body.password));
   // Every other outstanding link stops working.
   await revokeAuthTokens(passwordResetTokens, result.userId);
   // Every session anywhere stops working, not only the caller's. A stolen

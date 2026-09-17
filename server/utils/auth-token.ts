@@ -1,5 +1,4 @@
 import type { passwordResetTokens } from '#server/database/schema';
-import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { emailVerificationTokens } from '#server/database/schema';
 import { verifyEmailMessage } from '#server/emails/verify-email';
@@ -13,12 +12,14 @@ export const VERIFICATION_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const RESET_LIFETIME_MS = 60 * 60 * 1000;
 
 export function newAuthToken() {
-  return randomBytes(32).toString('base64url');
+  // 32 bytes of CSPRNG output, url safe and unpadded so the token can sit in a
+  // link without escaping.
+  return crypto.getRandomValues(new Uint8Array(32)).toBase64({ alphabet: 'base64url', omitPadding: true });
 }
 
 // The database holds the hash. A stolen database row cannot be replayed.
 export function hashAuthToken(raw: string) {
-  return createHash('sha256').update(raw).digest('hex');
+  return new Bun.CryptoHasher('sha256').update(raw).digest('hex');
 }
 
 export async function createAuthToken(table: AuthTokenTable, userId: string, lifetimeMs: number) {

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { hashPassword } from '#scripts/hash-password';
 import { authIdentities, campaigns, links, users, workspaceMembers, workspaces } from '#server/database/schema';
+import { hashSecret } from '#server/utils/password';
 import { newId } from '#shared/id';
 import { createTestDatabase, openTestDatabase, truncateTestDatabase } from './test-db';
 import { startTestServer } from './test-server';
@@ -63,7 +63,7 @@ export async function resetTestDb(databaseUrl: string) {
     userId,
     provider: 'PASSWORD',
     providerAccountId: userId,
-    passwordHash: await hashPassword(TEST_PASSWORD),
+    passwordHash: await hashSecret(TEST_PASSWORD),
     createdAt: now,
     updatedAt: now,
   });

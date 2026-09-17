@@ -1,8 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { hashPassword } from '#scripts/hash-password';
 import { authIdentities, users, workspaceMembers, workspaces } from '#server/database/schema';
+import { hashSecret } from '#server/utils/password';
 import { newId } from '#shared/id';
 import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
@@ -52,7 +52,7 @@ describe('workspace members and owner protection', async () => {
       userId: memberUserId,
       provider: 'PASSWORD',
       providerAccountId: memberUserId,
-      passwordHash: await hashPassword(TEST_PASSWORD),
+      passwordHash: await hashSecret(TEST_PASSWORD),
       createdAt: now,
       updatedAt: now,
     });

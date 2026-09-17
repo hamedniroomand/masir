@@ -5,6 +5,7 @@ import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
 import { VisitLimitBelowUsageError } from '#server/utils/errors';
 import { findLinkById, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
+import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
@@ -95,7 +96,7 @@ export default defineEventHandler(async (event) => {
       patch.passwordHash = null;
     }
     else {
-      patch.passwordHash = await hashPassword(body.password);
+      patch.passwordHash = await hashSecret(body.password);
     }
   }
   if (body.utmSource !== undefined)

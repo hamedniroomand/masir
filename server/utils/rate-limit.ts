@@ -17,9 +17,8 @@ export async function rateLimitCheck(
   return { ok: true };
 }
 
+// The signature stays async because every caller awaits it.
 export async function hashClientKey(event: import('h3').H3Event): Promise<string> {
   const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
-  const data = new TextEncoder().encode(`${salt}:${ip}`);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  return new Bun.CryptoHasher('sha256').update(`${salt}:${ip}`).digest('hex');
 }

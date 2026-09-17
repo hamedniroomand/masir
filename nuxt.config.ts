@@ -57,6 +57,7 @@ export default defineNuxtConfig({
     },
     allowPrivateDestinations: false,
     geoCountryHeader: '',
+    rateLimitLoginPerMinute: 10,
     rateLimitCreatePerHour: 30,
     rateLimitRedirectPerMinute: 120,
     rateLimitPasswordPerMinute: 10,

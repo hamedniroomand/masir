@@ -6,6 +6,7 @@ import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
 import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
 import { createLink, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
+import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { setLinkTags } from '#server/utils/tag-repo';
@@ -108,7 +109,7 @@ export default defineEventHandler(async (event) => {
       startsAt,
       expirationDestination,
       maximumVisits,
-      passwordHash: body.password ? await hashPassword(body.password) : null,
+      passwordHash: body.password ? await hashSecret(body.password) : null,
       campaignId,
       utmSource: emptyToNull(body.utmSource),
       utmCampaign: emptyToNull(body.utmCampaign),
