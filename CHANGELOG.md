@@ -65,7 +65,7 @@ block. Read them for every version between yours and the one you install.
 
 - The sidebar and the workspace settings page show the workspace the host
   names, not the first membership; the root host of a multi-workspace instance
-  goes to the workspace chooser
+  goes straight to the only workspace, or to the chooser when there are several
 - A short link that does not exist, or a slug on a host without a workspace,
   answers 404 again instead of the application shell
 - The test servers no longer inherit the developer's `.env`, which made the

@@ -30,8 +30,16 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
   await expect(page.getByRole('heading', { name: 'Invite your team' })).toBeVisible();
 
   // The session cookie carries the parent domain, so the subdomain is signed in.
-  await page.goto(server.hostUrl('zeta-corp'));
+  await page.getByRole('link', { name: 'Skip for now' }).click();
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
   await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+});
+
+test('sends the root host straight to the only workspace', async ({ page, login, server }) => {
+  await login(EMAIL, PASSWORD);
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
+  await page.goto('/');
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
 });
 
 test('refuses a verification link a second time', async ({ page, db }) => {

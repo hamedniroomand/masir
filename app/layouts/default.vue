@@ -11,7 +11,7 @@ if (!workspaces.value?.items.length)
 // No current workspace means the root host. Never fall back to the first
 // membership: the shell would show one workspace and edit another.
 else if (!current.value)
-  await navigateTo('/workspaces');
+  await landInWorkspace(workspaces.value?.items ?? []);
 
 const isOwner = computed(() => current.value?.role === 'OWNER');
 const switcher = computed(() => [(workspaces.value?.items ?? []).map(workspace => ({
