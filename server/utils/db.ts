@@ -1,6 +1,7 @@
 import type { SQL } from 'drizzle-orm';
 import type { AppDatabase } from '#server/database/client';
 import { or } from 'drizzle-orm';
+import * as v from 'valibot';
 import {
 
   closeDatabase,
@@ -12,6 +13,15 @@ import {
 export { type AppDatabase, closeDatabase, openDatabase };
 
 const UNIQUE_VIOLATION = '23505';
+
+const uuidSchema = v.pipe(v.string(), v.uuid());
+
+// An id from a route or a body reaches a uuid column. Postgres refuses a
+// malformed value with 22P02, which would answer 500 where the route means
+// "not found". Every lookup by an outside id asks this first.
+export function isUuid(value: string) {
+  return v.is(uuidSchema, value);
+}
 
 export function anyOf(...conditions: SQL[]): SQL {
   return or(...conditions) as SQL;
