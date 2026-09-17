@@ -57,6 +57,23 @@ export const workspaceMembers = pgTable('workspace_members', {
     .where(sql`role = 'OWNER'`),
 ]);
 
+// Every invitation joins as MEMBER, so the table carries no role. A workspace
+// holds one owner, and only transfer changes who that is.
+export const workspaceInvitations = pgTable('workspace_invitations', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  invitedByUserId: text('invited_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestampTz('created_at').notNull(),
+  expiresAt: timestampTz('expires_at').notNull(),
+  acceptedAt: timestampTz('accepted_at'),
+  revokedAt: timestampTz('revoked_at'),
+}, table => [
+  index('workspace_invitations_workspace_id_idx').on(table.workspaceId),
+  index('workspace_invitations_email_idx').on(table.email),
+]);
+
 export const authProviders = ['PASSWORD', 'GOOGLE', 'MICROSOFT'] as const;
 
 export type AuthProvider = typeof authProviders[number];
@@ -222,6 +239,7 @@ export const mailOutbox = pgTable('mail_outbox', {
 
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
+export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type Link = typeof links.$inferSelect;

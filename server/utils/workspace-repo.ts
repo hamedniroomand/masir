@@ -11,6 +11,12 @@ export async function findWorkspaceBySlug(slug: string) {
   return rows[0] ?? null;
 }
 
+export async function findWorkspaceById(id: string) {
+  const db = await getDb();
+  const rows = await db.select().from(workspaces).where(and(eq(workspaces.id, id), isNull(workspaces.deletedAt))).limit(1);
+  return rows[0] ?? null;
+}
+
 // Self-hosted holds one workspace. The host carries no subdomain there.
 export async function findSingleWorkspace() {
   const db = await getDb();
