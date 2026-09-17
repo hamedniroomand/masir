@@ -1,5 +1,6 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
+import { readValidBody } from '#server/utils/body';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
     return ACK;
   }
 
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   await writeSecurityEvent('abuse_report', { slug: body.slug.trim().toLowerCase(), reason: body.reason });
   return ACK;
 });

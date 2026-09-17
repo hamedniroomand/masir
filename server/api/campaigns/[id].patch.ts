@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
+import { readValidBody } from '#server/utils/body';
 import { campaignToDto, findCampaignForWorkspace, updateCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
 import { writeSecurityEvent } from '#server/utils/security-log';
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   const patch: Parameters<typeof updateCampaign>[2] = {};
   if (body.name !== undefined)
     patch.name = body.name;

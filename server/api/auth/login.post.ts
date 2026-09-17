@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { readValidBody } from '#server/utils/body';
 import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
 import { matchAbsentSecret, verifySecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
@@ -12,7 +13,7 @@ const bodySchema = v.object({
 const GENERIC = 'Invalid email or password.';
 
 export default defineEventHandler(async (event) => {
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   const email = normalizeEmail(body.email);
   const config = useRuntimeConfig();
 

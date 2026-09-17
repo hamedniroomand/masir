@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { recordEvent } from '#server/utils/analytics';
+import { readValidBody } from '#server/utils/body';
 import { findLinkBySlug } from '#server/utils/link-repo';
 import { verifySecret } from '#server/utils/password';
 import { setPasswordGrant } from '#server/utils/password-grant';
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const body = v.parse(bodySchema, await readBody(event));
+  const body = await readValidBody(event, bodySchema);
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
