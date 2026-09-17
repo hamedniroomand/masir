@@ -2,13 +2,14 @@ import type { DeploymentConfig } from '#shared/deployment';
 import { describe, expect, it } from 'vitest';
 import { assertDeploymentConfig, isCloud, workspaceUrl } from '#shared/deployment';
 
-function config(over: Partial<DeploymentConfig> = {}): DeploymentConfig {
+function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }> = {}) {
   return {
     deploymentMode: 'CLOUD',
     rootDomain: 'https://linkyard.dev',
     multiWorkspace: true,
     trialDays: 7,
     allowRegistration: true,
+    sessionCookieDomain: '.linkyard.dev',
     ...over,
   };
 }
@@ -69,6 +70,20 @@ describe('assertDeploymentConfig', () => {
   it('accepts an IP root domain in single mode', () => {
     const c = config({ rootDomain: 'http://192.168.1.10:3000', multiWorkspace: false });
     expect(() => assertDeploymentConfig(c)).not.toThrow();
+  });
+
+  it('demands a session cookie domain in multi mode', () => {
+    expect(() => assertDeploymentConfig({ ...config(), sessionCookieDomain: '' }))
+      .toThrow(/NUXT_SESSION_COOKIE_DOMAIN/);
+    expect(() => assertDeploymentConfig({ ...config(), sessionCookieDomain: '.linkyard.dev' }))
+      .not
+      .toThrow();
+  });
+
+  it('does not demand one in single mode', () => {
+    expect(() => assertDeploymentConfig({ ...config({ multiWorkspace: false }), sessionCookieDomain: '' }))
+      .not
+      .toThrow();
   });
 
   it('rejects a trial length below one day', () => {

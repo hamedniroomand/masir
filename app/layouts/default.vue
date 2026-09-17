@@ -1,5 +1,14 @@
 <script setup lang="ts">
 const { user, clear } = useUserSession();
+const { data: workspaces } = await useFetch<{ items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
+const current = computed(() => workspaces.value?.items[0] ?? null);
+const isOwner = computed(() => current.value?.role === 'OWNER');
+const switcher = computed(() => [(workspaces.value?.items ?? []).map(w => ({
+  label: w.name,
+  icon: 'i-lucide-building-2',
+  // A workspace lives on its own host, so this is a navigation, not a route.
+  onSelect: () => { window.location.href = w.url; },
+}))]);
 const route = useRoute();
 const config = useRuntimeConfig();
 const mobileOpen = ref(false);
@@ -11,6 +20,12 @@ const workspaceNav = computed(() => [
 ]);
 
 const adminNav = computed(() => [
+  ...(isOwner.value
+    ? [
+        { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
+        { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
+      ]
+    : []),
   { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
 ]);
 
@@ -41,16 +56,15 @@ async function signOut() {
       <NuxtLink to="/" aria-label="Linkyard home" class="px-2.5">
         <AppLogo />
       </NuxtLink>
-      <div class="mx-1 mb-7 mt-7 flex items-center gap-2.5 rounded-lg border border-default bg-default/70 px-3 py-3 shadow-control">
-        <UIcon name="i-lucide-building-2" class="size-4 shrink-0 text-muted" />
-        <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-highlighted">
-            My workspace
-          </p><p class="truncate text-xs text-muted" :title="domain">
-            {{ domain }}
-          </p>
-        </div>
-      </div>
+      <UDropdownMenu :items="switcher" :content="{ align: 'start' }" class="mx-1 mb-7 mt-7 w-[calc(100%-0.5rem)]">
+        <UButton color="neutral" variant="ghost" class="w-full rounded-lg border border-default bg-default/70 px-3 py-3 shadow-control" :trailing-icon="(workspaces?.items.length ?? 0) > 1 ? 'i-lucide-chevrons-up-down' : undefined">
+          <UIcon name="i-lucide-building-2" class="size-4 shrink-0 text-muted" />
+          <span class="min-w-0 flex-1 text-left">
+            <span class="block truncate text-sm font-medium text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
+            <span class="block truncate text-xs font-normal text-muted" :title="domain">{{ domain }}</span>
+          </span>
+        </UButton>
+      </UDropdownMenu>
       <nav class="space-y-7">
         <div>
           <p class="px-2.5 pb-2 text-[11px] font-medium text-muted">

@@ -11,6 +11,8 @@ export const RESERVED_SLUGS = new Set([
   'verify-email',
   'forgot-password',
   'reset-password',
+  'invite',
+  'workspaces',
   'dashboard',
   'api',
   'settings',

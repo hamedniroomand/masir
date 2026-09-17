@@ -21,7 +21,7 @@ export function workspaceUrl(slug: string, config: DeploymentConfig) {
   return url.origin;
 }
 
-export function assertDeploymentConfig(config: DeploymentConfig) {
+export function assertDeploymentConfig(config: DeploymentConfig & { sessionCookieDomain?: string }) {
   if (config.deploymentMode !== 'CLOUD' && config.deploymentMode !== 'SELF_HOSTED')
     throw new Error('Missing or invalid NUXT_DEPLOYMENT_MODE (must be CLOUD or SELF_HOSTED)');
 
@@ -40,6 +40,13 @@ export function assertDeploymentConfig(config: DeploymentConfig) {
   // one exception, because *.localhost resolves on a development machine.
   if (config.multiWorkspace && (IP_HOST.test(host) || (!host.includes('.') && host !== 'localhost')))
     throw new Error(`NUXT_ROOT_DOMAIN "${host}" cannot hold a wildcard subdomain; set NUXT_MULTI_WORKSPACE=false`);
+
+  // A session sealed for one subdomain does not reach another. Without the
+  // parent domain on the cookie, every workspace would ask the user to sign in
+  // again, so the boot refuses rather than fail quietly at run time.
+  if (config.multiWorkspace && !config.sessionCookieDomain) {
+    throw new Error(`NUXT_MULTI_WORKSPACE is true, so NUXT_SESSION_COOKIE_DOMAIN must be set (for example ".${host}")`);
+  }
 
   if (!Number.isInteger(config.trialDays) || config.trialDays < 1)
     throw new Error('Missing or invalid NUXT_TRIAL_DAYS (must be a whole number of days, 1 or more)');

@@ -39,8 +39,20 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: { email: state.email, password: state.password },
     });
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
-    await navigateTo(redirect);
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '';
+    if (redirect) {
+      await navigateTo(redirect);
+      return;
+    }
+
+    // One workspace goes straight there. Several offer a choice. None means
+    // this person has nowhere to land yet.
+    const { items } = await $fetch<{ items: { url: string }[] }>('/api/workspaces');
+    if (items.length === 1) {
+      window.location.href = items[0]!.url;
+      return;
+    }
+    await navigateTo(items.length === 0 ? '/workspaces/new' : '/workspaces');
   }
   catch {
     error.value = 'Invalid email or password.';
