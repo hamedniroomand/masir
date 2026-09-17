@@ -35,15 +35,17 @@ export default defineEventHandler(async (event) => {
   const inboundQuery = queryStart === -1 ? '' : path.slice(queryStart + 1);
 
   const segment = pathname.replace(/^\//, '').split('/')[0];
-  if (!segment || segment.includes('.') || segment.includes('/'))
+  // Nuxt and Nitro internals start with an underscore (/_nuxt, /__nuxt_error).
+  if (!segment || segment.includes('.') || segment.includes('/') || segment.startsWith('_'))
     return;
   if (RESERVED_SLUGS.has(segment))
     return;
 
-  // Short links live only inside a workspace. The root host serves none.
+  // Short links live only inside a workspace. The root host serves none, and
+  // without SSR the Vue app cannot answer 404 itself, so the server does.
   const workspace = event.context.workspace as { id: string } | undefined;
   if (!workspace)
-    return;
+    throw createError({ statusCode: 404, statusMessage: 'Link not found' });
 
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);
@@ -62,7 +64,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!link)
-    return;
+    throw createError({ statusCode: 404, statusMessage: 'Link not found' });
 
   const status = deriveLinkStatus({
     isEnabled: link.isEnabled,
