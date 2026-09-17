@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { requireUser } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { isUniqueViolation } from '#server/utils/db';
+import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import {
   countWorkspaces,
@@ -25,6 +26,18 @@ export default defineEventHandler(async (event) => {
   if (!user.emailVerified) {
     const reason = 'Verify your email before you make a workspace.';
     throw createError({ statusCode: 403, statusMessage: reason, data: { reason } });
+  }
+
+  // Link limits are keyed by workspace, so a caller who makes workspaces freely
+  // resets them. Key this one on the user.
+  const limit = await rateLimitCheck(
+    `workspace-create:${user.id}`,
+    Number(config.rateLimitWorkspacePerDay) || 5,
+    86_400_000,
+  );
+  if (!limit.ok) {
+    setResponseHeader(event, 'Retry-After', limit.retryAfterSec);
+    throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
 
   // One workspace for a single-workspace instance. The server refuses the
