@@ -10,6 +10,9 @@ RUN bun run build
 FROM oven/bun:1
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/.output ./.output
+COPY --from=build --chown=bun:bun /app/.output ./.output
+# The base image ships this user. Serving as root gives a container escape one
+# less step to take.
+USER bun
 EXPOSE 3000
 CMD ["bun", ".output/server/index.mjs"]

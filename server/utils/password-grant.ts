@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3';
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
-import { getCookie, setCookie } from 'h3';
+import { getCookie, getRequestProtocol, setCookie } from 'h3';
 
 // Use one cookie for each link. A single shared cookie loses the grant when the
 // visitor unlocks a different link. The name and the signature both carry the
@@ -20,6 +20,7 @@ export function setPasswordGrant(event: H3Event, workspaceId: string, slug: stri
   setCookie(event, cookieName(workspaceId, slug), `${exp}.${sign(workspaceId, slug, exp, secret)}`, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: getRequestProtocol(event) === 'https',
     maxAge: ttlSec,
     path: '/',
   });

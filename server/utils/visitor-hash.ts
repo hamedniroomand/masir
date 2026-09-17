@@ -10,8 +10,10 @@ export function dailyVisitorSalt(secret: string) {
 
 // ponytail: shared IP merges visitors; upgrade path is none — deliberate privacy trade
 export function visitorHashForLink(event: H3Event, linkId: string): string {
-  const { sessionPassword, trustedProxyDepth } = useRuntimeConfig();
-  const salt = dailyVisitorSalt(sessionPassword);
+  const { sessionPassword, visitorHashSecret, trustedProxyDepth } = useRuntimeConfig();
+  // Its own secret, so rotating one does not change the other. The session
+  // password is the fallback, which keeps an existing deployment working.
+  const salt = dailyVisitorSalt(visitorHashSecret || sessionPassword);
   // A caller who picks their own address counts as a new visitor on every hit.
   const ip = clientIp(event, Number(trustedProxyDepth) || 0);
   const ua = getRequestHeaders(event)['user-agent'] ?? '';

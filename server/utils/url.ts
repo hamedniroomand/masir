@@ -39,7 +39,7 @@ function isBlockedHost(host: string): boolean {
     return false;
   const a = Number(match[1]);
   const b = Number(match[2]);
-  if (a === 127)
+  if (a === 0 || a === 127)
     return true;
   if (a === 10)
     return true;

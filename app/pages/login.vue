@@ -41,7 +41,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     });
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '';
     if (redirect) {
-      await navigateTo(redirect);
+      // navigateTo throws on an absolute or protocol-relative value rather than
+      // following it. The sign-in already succeeded, so land on the dashboard
+      // instead of showing an error.
+      try {
+        await navigateTo(redirect);
+      }
+      catch {
+        await navigateTo('/');
+      }
       return;
     }
 
