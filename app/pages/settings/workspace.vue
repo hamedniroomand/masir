@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
 
-const { data } = await useFetch<{ items: Workspace[] }>('/api/workspaces');
+const { data } = await useFetch<{ items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
@@ -38,7 +38,8 @@ async function remove() {
   error.value = '';
   try {
     await $fetch('/api/workspaces', { method: 'DELETE' });
-    await navigateTo('/login');
+    // Still signed in, so /login would bounce back to the deleted workspace.
+    await navigateTo('/workspaces');
   }
   catch (failure) {
     error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
@@ -83,7 +84,7 @@ async function remove() {
 
     <USeparator />
 
-    <div v-if="current?.role === 'OWNER'" class="space-y-3">
+    <div v-if="current?.role === 'OWNER' && data?.multiWorkspace" class="space-y-3">
       <h2 class="text-sm font-medium text-highlighted">
         Delete this workspace
       </h2>

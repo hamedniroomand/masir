@@ -150,16 +150,20 @@ describe('workspace members and owner protection', async () => {
       .toMatchObject({ statusCode: 404 });
   });
 
-  it('hides the workspace after the new owner deletes it', async () => {
+  // Deleting the only workspace would stop every short link and leave nothing
+  // to sign in to, and recreating it does not bring the links back, because
+  // they stay attached to the deleted workspace.
+  it('refuses to delete the only workspace of a single-workspace instance', async () => {
     const cookie = await loginCookie(MEMBER_EMAIL, TEST_PASSWORD);
-    await $fetch('/api/workspaces', { method: 'DELETE', headers: { cookie } });
+    await expect($fetch('/api/workspaces', { method: 'DELETE', headers: { cookie } }))
+      .rejects
+      .toMatchObject({ statusCode: 409 });
 
     const db = openTestDatabase(TEST_DB);
     const rows = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId));
-    expect(rows[0]!.deletedAt).not.toBeNull();
+    expect(rows[0]!.deletedAt).toBeNull();
 
-    await expect($fetch('/api/links', { headers: { cookie } }))
-      .rejects
-      .toMatchObject({ statusCode: 404 });
+    // The instance keeps working.
+    await expect($fetch('/api/links', { headers: { cookie } })).resolves.toBeTruthy();
   });
 });

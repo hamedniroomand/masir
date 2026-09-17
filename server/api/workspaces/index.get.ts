@@ -7,6 +7,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const rows = await listMembershipsForUser(user.id);
   return {
+    multiWorkspace: Boolean(config.multiWorkspace),
     items: rows.map(row => ({
       id: row.workspace.id,
       name: row.workspace.name,

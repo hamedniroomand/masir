@@ -11,7 +11,7 @@ const { data } = await useFetch<{ items: { id: string; name: string; slug: strin
         Choose workspace
       </h1>
       <p class="mt-2 text-sm text-muted">
-        You belong to more than one.
+        {{ data?.items?.length ? 'You belong to more than one.' : 'You do not belong to a workspace yet.' }}
       </p>
     </div>
     <ul class="divide-y divide-default rounded-lg border border-default">
