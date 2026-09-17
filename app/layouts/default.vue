@@ -2,6 +2,13 @@
 const { user, clear } = useUserSession();
 const { data: workspaces } = await useFetch<{ items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
 const current = computed(() => workspaces.value?.items[0] ?? null);
+
+// Every page in this layout is workspace-scoped, so without one the person sits
+// on a shell whose every request answers 404. The list is already fetched, so
+// this costs no extra call.
+if (!workspaces.value?.items.length)
+  await navigateTo('/workspaces/new');
+
 const isOwner = computed(() => current.value?.role === 'OWNER');
 const switcher = computed(() => [(workspaces.value?.items ?? []).map(workspace => ({
   label: workspace.name,
