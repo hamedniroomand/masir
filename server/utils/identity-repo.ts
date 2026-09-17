@@ -137,3 +137,72 @@ export async function setSessionUser(event: H3Event, user: User) {
   });
   await markLogin(user.id);
 }
+
+export interface OAuthProfile {
+  sub?: string;
+  id?: string;
+  email?: string | null;
+  email_verified?: boolean;
+  mail?: string | null;
+  userPrincipalName?: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  givenName?: string | null;
+  surname?: string | null;
+  picture?: string | null;
+}
+
+export function oauthEmailOf(provider: AuthProvider, profile: OAuthProfile): string | null {
+  if (provider === 'GOOGLE')
+    return profile.email ? normalizeEmail(profile.email) : null;
+  // Microsoft Graph gives mail for a licensed mailbox and falls back to the
+  // principal name.
+  const address = profile.mail ?? profile.userPrincipalName ?? null;
+  return address ? normalizeEmail(address) : null;
+}
+
+export function oauthAccountIdOf(profile: OAuthProfile): string | null {
+  return profile.sub ?? profile.id ?? null;
+}
+
+// Google states whether it verified the address. Microsoft does not, and its
+// tenant owns the mailbox, so a Microsoft address counts as verified.
+export function oauthEmailVerified(provider: AuthProvider, profile: OAuthProfile) {
+  return provider === 'GOOGLE' ? profile.email_verified === true : true;
+}
+
+export async function resolveOAuthUser(provider: AuthProvider, profile: OAuthProfile): Promise<
+  { ok: true; user: User } | { ok: false; reason: string }
+> {
+  const accountId = oauthAccountIdOf(profile);
+  const email = oauthEmailOf(provider, profile);
+  if (!accountId || !email)
+    return { ok: false, reason: 'This provider did not give an email address.' };
+
+  const identity = await findIdentity(provider, accountId);
+  if (identity) {
+    const user = await findUserById(identity.userId);
+    if (!user)
+      return { ok: false, reason: 'This account is not available.' };
+    return { ok: true, user };
+  }
+
+  const existing = await findUserByEmail(email);
+  if (existing) {
+    if (!canLinkToUser(existing, oauthEmailVerified(provider, profile)))
+      return { ok: false, reason: 'An account already uses this email. Sign in with your password first, then connect this provider.' };
+    await attachIdentity(existing.id, { provider, providerAccountId: accountId });
+    return { ok: true, user: existing };
+  }
+
+  const user = await createUserWithIdentity({
+    email,
+    provider,
+    providerAccountId: accountId,
+    emailVerified: oauthEmailVerified(provider, profile),
+    firstName: profile.given_name ?? profile.givenName ?? null,
+    lastName: profile.family_name ?? profile.surname ?? null,
+    avatarUrl: profile.picture ?? null,
+  });
+  return { ok: true, user };
+}

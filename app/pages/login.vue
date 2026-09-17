@@ -4,6 +4,8 @@ import * as v from 'valibot';
 
 definePageMeta({ layout: 'auth' });
 
+const { data: providers } = await useFetch('/api/auth/providers');
+
 const route = useRoute();
 
 const schema = v.object({
@@ -61,6 +63,27 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       <p class="mt-2 text-sm text-muted">
         Sign in to your link workspace.
       </p>
+    </div>
+    <div v-if="providers?.google || providers?.microsoft" class="mb-5 space-y-3">
+      <UButton
+        v-if="providers?.google"
+        to="/api/auth/google"
+        external
+        label="Continue with Google"
+        icon="i-simple-icons-google"
+        variant="subtle"
+        block
+      />
+      <UButton
+        v-if="providers?.microsoft"
+        to="/api/auth/microsoft"
+        external
+        label="Continue with Microsoft"
+        icon="i-simple-icons-microsoft"
+        variant="subtle"
+        block
+      />
+      <USeparator label="or" />
     </div>
     <UForm :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
