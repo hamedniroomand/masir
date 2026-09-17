@@ -87,6 +87,7 @@ A single container.
 bun .output/server/index.mjs
 ```
 
-Migrations run on boot. Configuration is read at runtime, so one image serves
+Migrations run on boot under an advisory lock, so several instances apply them
+once. Configuration is read at runtime, so one image serves
 staging and production. `GET /api/health` checks the database and answers 503
 when it is unreachable, which is what a load balancer should watch.

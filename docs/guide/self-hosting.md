@@ -61,11 +61,19 @@ Two parts of Linkyard keep state in the process:
 instances means each keeps its own, so an edit can take up to a minute to show
 everywhere. That is usually acceptable.
 
-**The rate limiter** counts in memory, which is not acceptable. With three
-instances behind a load balancer, your login rate limit is effectively three
-times looser than you configured. The counters sit behind a store interface
-specifically so a shared driver can be added; until you add one, run a single
-instance.
+**The rate limiter** counts in memory until you point it at Redis. With three
+instances behind a load balancer, your sign-in limit is three times looser than
+you configured.
+
+```sh [.env]
+NUXT_REDIS_URL=rediss://user:pass@host.upstash.io:6379
+```
+
+Set the proxy depth as well, or every caller shares one bucket:
+
+```sh [.env]
+NUXT_TRUSTED_PROXY_DEPTH=1
+```
 
 Also lower the connection pool if you scale out:
 
@@ -94,5 +102,6 @@ git pull
 docker compose up -d --build
 ```
 
-Migrations run on boot. They are incremental and additive, so your data comes
-along.
+Migrations run on boot under an advisory lock, so a rolling deploy applies them
+once and the other instances wait. They are incremental and additive, so your
+data comes along.

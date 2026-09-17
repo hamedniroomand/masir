@@ -87,6 +87,7 @@ export default defineConfig({
           items: [
             link('server', 'Self-hosting', '/guide/self-hosting'),
             link('cloud', 'Multi-workspace mode', '/guide/multi-workspace'),
+            link('triangle', 'Vercel', '/guide/vercel'),
             link('life-buoy', 'Troubleshooting', '/guide/troubleshooting'),
           ],
         },

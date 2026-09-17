@@ -35,7 +35,8 @@ the first user, the first workspace, and the owner membership that ties them
 together. Sign in at `/login`.
 
 ::: tip
-Migrations run automatically when the app boots. You do not need to run them by
+Migrations run when the app boots, under an advisory lock so several
+instances apply them once. You do not need to run them by
 hand after an upgrade.
 :::
 

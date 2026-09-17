@@ -21,6 +21,12 @@ way to sign everybody out.
 |---|---|---|
 | `NUXT_DATABASE_URL` | `postgres://linkyard:linkyard@127.0.0.1:5432/linkyard` | |
 | `NUXT_DATABASE_POOL_MAX` | `10` | Connections per instance |
+| `NUXT_MIGRATE_ON_BOOT` | `true` | Apply migrations when the server starts |
+
+Migrations take a Postgres advisory lock, so a rolling deploy or `--scale app=3`
+applies them exactly once and the other instances wait. On serverless, set
+`NUXT_MIGRATE_ON_BOOT=false` — every cold start would otherwise run them — and
+migrate as a deploy step against the direct connection string.
 
 Multiply the pool by your instance count and keep it under the Postgres
 `max_connections`, which defaults to 100. On serverless, set it to `1` and use a
@@ -115,6 +121,18 @@ only.
 |---|---|---|
 | `NUXT_ALLOW_PRIVATE_DESTINATIONS` | `false` | Allow private-network destinations |
 | `NUXT_GEO_COUNTRY_HEADER` | — | Country header your proxy sets |
+| `NUXT_TRUSTED_PROXY_DEPTH` | `0` | Proxies in front of the app |
+| `NUXT_VISITOR_HASH_SECRET` | — | Falls back to the session password |
+
+::: warning Set the proxy depth to match your deployment
+At `0` the client address comes from the socket and `X-Forwarded-For` is
+ignored. Behind one nginx or one CDN, set `1`.
+
+Getting this wrong in either direction costs you. Too low behind a proxy puts
+every caller in one bucket, so one noisy client rate-limits everybody. Too high
+lets a caller write their own address and reset every limit, which is the same
+as having none.
+:::
 
 Keep `NUXT_ALLOW_PRIVATE_DESTINATIONS` off in production. A shortener that
 accepts `http://169.254.169.254/` is a request-forgery tool pointed at your own
@@ -126,7 +144,9 @@ Counted in memory, per instance.
 
 | Variable | Default |
 |---|---|
+| `NUXT_REDIS_URL` | — |
 | `NUXT_RATE_LIMIT_LOGIN_PER_MINUTE` | `10` |
+| `NUXT_RATE_LIMIT_WORKSPACE_PER_DAY` | `5` |
 | `NUXT_RATE_LIMIT_REDIRECT_PER_MINUTE` | `120` |
 | `NUXT_RATE_LIMIT_CREATE_PER_HOUR` | `30` |
 | `NUXT_RATE_LIMIT_UPDATE_PER_MINUTE` | `60` |
@@ -134,10 +154,16 @@ Counted in memory, per instance.
 | `NUXT_RATE_LIMIT_SLUG_CHECK_PER_MINUTE` | `30` |
 | `NUXT_RATE_LIMIT_INVITE_PER_HOUR` | `30` |
 
-::: warning Several instances
-Counters live in the process. Three instances behind a load balancer means each
-limit is effectively three times looser than configured. Run one instance until
-a shared store is wired in.
+Counters live in the process unless `NUXT_REDIS_URL` is set. Three instances
+then means each limit is three times looser than configured, so set it before
+you run more than one.
+
+Use the **TLS** endpoint (`rediss://…upstash.io:6379`), not the REST URL.
+
+::: warning What happens when the store is unreachable
+Authentication routes **refuse**, so an outage cannot quietly turn off
+brute-force protection. The redirect path keeps serving, because a shortener
+that stops redirecting when Redis blinks is the worse failure.
 :::
 
 ## Seed script
