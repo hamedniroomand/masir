@@ -1,5 +1,8 @@
 import type { H3Event } from 'h3';
+import type { Permission, WorkspaceRole } from '#shared/permissions';
 import { sessionVersionOf } from '#server/utils/identity-repo';
+import { findMemberAccess } from '#server/utils/workspace-repo';
+import { can } from '#shared/permissions';
 
 // The session is sealed as JSON, so it holds a flag and not a date. A Date
 // would come back as a string and every comparison on it would be wrong.
@@ -8,6 +11,11 @@ export interface SessionUser {
   email: string;
   emailVerified: boolean;
   sessionVersion: number;
+}
+
+export interface WorkspaceContext {
+  workspaceId: string;
+  role: WorkspaceRole;
 }
 
 export async function requireUser(event: H3Event): Promise<SessionUser> {
@@ -32,4 +40,38 @@ export async function requireVerifiedUser(event: H3Event): Promise<SessionUser> 
   if (!user.emailVerified)
     throw createError({ statusCode: 403, statusMessage: 'Verify your email first.' });
   return user;
+}
+
+// A stranger and a member without the permission get the same answer. A 403
+// would confirm that the workspace exists.
+export function workspaceNotFound() {
+  return createError({ statusCode: 404, statusMessage: 'Workspace not found' });
+}
+
+export async function requireWorkspaceMember(
+  event: H3Event,
+  permission: Permission,
+): Promise<WorkspaceContext> {
+  const workspace = event.context.workspace as { id: string } | undefined;
+  if (!workspace)
+    throw workspaceNotFound();
+
+  const session = await requireUserSession(event);
+  const user = session.user as SessionUser;
+
+  // One read covers the session version and the membership. Checking them
+  // apart would cost two round trips on every workspace request.
+  const access = await findMemberAccess(workspace.id, user.id);
+
+  if (!access || access.sessionVersion !== user.sessionVersion) {
+    if (access)
+      await clearUserSession(event);
+    throw workspaceNotFound();
+  }
+
+  const role = access.role as WorkspaceRole;
+  if (!can(role, permission))
+    throw workspaceNotFound();
+
+  return { workspaceId: workspace.id, role };
 }
