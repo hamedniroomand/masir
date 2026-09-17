@@ -53,3 +53,6 @@ Rules:
 - Code syntax, identifiers, API names, and library names do not need to follow ASD-STE100.
 - Breakdown files to unit parts as much as possibles. components, utilities, Codes must follow clean code and unit structure.
 - Do not write comments for each line of code. a good code is those no need a comment. don't write comment unless you want to explain something that is not clear for developers by default.
+- Short-form // comments, never JSDoc blocks; comment only WHY (a constraint the code cannot express, still true for a reader who never saw your change), never WHAT.
+- Types over interfaces (except when extending third-party interfaces); string literals over enums (except GraphQL enums); no any; descriptive generics (TData, not T).
+- Named exports only. Functional components only.
