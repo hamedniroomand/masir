@@ -85,13 +85,19 @@ NUXT_MULTI_WORKSPACE=true
 NUXT_ROOT_DOMAIN=http://lvh.me:3000
 NUXT_PUBLIC_SHORT_DOMAIN=http://lvh.me:3000
 NUXT_SESSION_COOKIE_DOMAIN=.lvh.me
+NUXT_SESSION_COOKIE_SECURE=false
 ```
+
+The last line matters: Chrome accepts a `Secure` cookie from `http://localhost`
+but from no other plain-http host, so without it `http://lvh.me` also loops back
+to the login page.
 
 Then browse to `http://acme.lvh.me:3000`. Offline, add `lvh.me` and the
 workspace names you use to `/etc/hosts` instead.
 
-An IP address cannot hold a wildcard subdomain, and Masir refuses to boot if
-you combine `NUXT_MULTI_WORKSPACE=true` with an IP in `NUXT_ROOT_DOMAIN`.
+Neither an IP address nor `localhost` can carry a workspace subdomain, and Masir
+refuses to boot if you combine `NUXT_MULTI_WORKSPACE=true` with either in
+`NUXT_ROOT_DOMAIN`.
 
 ## Switching workspaces
 

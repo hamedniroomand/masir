@@ -69,6 +69,9 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- Multi-workspace mode refuses to boot on `localhost` and asks for a hostname
+  with a dot; browsers drop a `Domain=.localhost` cookie, so every sign-in on a
+  workspace subdomain looped back to the login page
 - The sidebar and the workspace settings page show the workspace the host
   names, not the first membership; the root host of a multi-workspace instance
   goes straight to the only workspace, or to the chooser when there are several
