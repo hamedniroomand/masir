@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { sendVerification } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
 import { createUserWithIdentity, findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
@@ -41,6 +42,7 @@ export default defineEventHandler(async (event) => {
     emailVerified: false,
   });
   await writeSecurityEvent('user_registered', { email }, user.id);
+  await sendVerification(user.id, email);
 
   return { ok: true };
 });

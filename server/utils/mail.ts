@@ -1,3 +1,5 @@
+import { createOutboxDriver } from '#server/utils/mail-outbox';
+
 export interface MailMessage {
   to: string;
   subject: string;
@@ -64,8 +66,13 @@ function resolveDriver(): MailDriver {
     return override;
   if (memoised)
     return memoised;
-  const { mailApiKey, mailFrom } = useRuntimeConfig();
-  memoised = mailApiKey ? createResendDriver(mailApiKey, mailFrom) : createLogDriver();
+  const { mailDriver, mailApiKey, mailFrom } = useRuntimeConfig();
+  if (mailDriver === 'outbox')
+    memoised = createOutboxDriver();
+  else if (mailApiKey)
+    memoised = createResendDriver(mailApiKey, mailFrom);
+  else
+    memoised = createLogDriver();
   return memoised;
 }
 

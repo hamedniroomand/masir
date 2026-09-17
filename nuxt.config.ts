@@ -32,6 +32,7 @@ export default defineNuxtConfig({
     multiWorkspace: false,
     trialDays: 7,
     allowRegistration: false,
+    mailDriver: '',
     mailApiKey: '',
     mailFrom: 'Linkyard <no-reply@localhost>',
     storageAccessKeyId: '',
