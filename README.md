@@ -10,12 +10,15 @@ both; a flag decides.
 
 ## Quick start
 
+Postgres 18 or newer. Every primary key defaults to the native `uuidv7()`,
+which arrived in 18.
+
 ```sh
 git clone <repo>
 cd masir
 cp .env.example .env
 # Edit .env — set NUXT_SESSION_PASSWORD (32+ chars), NUXT_PUBLIC_SHORT_DOMAIN and NUXT_DATABASE_URL
-docker compose -f compose.dev.yaml up -d db   # or point NUXT_DATABASE_URL at your own Postgres
+docker compose -f compose.dev.yaml up -d db   # or point NUXT_DATABASE_URL at your own Postgres 18
 bun install
 bun run db:migrate
 bun run db:seed:admin
@@ -156,7 +159,7 @@ Steps:
 2. **Redirect** — middleware lookup, access checks, then `302` or a block page.
 3. **Edit** — destination, title, schedule, limits, password, tags, campaign, UTM values; slug unchanged.
 4. **Disable / expire / limit / schedule** — the visitor sees a state page or a fallback URL.
-5. **Delete** — slug moves to `reserved_slugs` so it cannot be reused immediately.
+5. **Delete** — the row keeps `deleted_at`, so the slug stays taken and the click history stays.
 
 ## Password protection
 

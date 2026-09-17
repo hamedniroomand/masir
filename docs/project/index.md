@@ -63,7 +63,7 @@ picked. Adding a transport is a file, not a branch in a resolver.
 | Runtime | Bun 1.4 |
 | Framework | Nuxt 4, Nitro server |
 | Interface | Vue 3, Nuxt UI 4, Tailwind 4 |
-| Database | Postgres 17+, Drizzle ORM |
+| Database | Postgres 18+, Drizzle ORM |
 | Sessions | `nuxt-auth-utils`, sealed cookies |
 | Tests | Vitest, `@nuxt/test-utils` |
 

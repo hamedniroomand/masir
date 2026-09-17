@@ -4,7 +4,7 @@ The default shape. One workspace, your own domain, no subdomain machinery.
 
 ## What you need
 
-Postgres 17 or newer, and somewhere to run a container. Masir is a single
+Postgres 18 or newer, and somewhere to run a container. Masir is a single
 Nitro process; it holds no state of its own beyond an in-memory cache.
 
 ## Configuration

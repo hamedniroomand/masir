@@ -24,14 +24,10 @@ Every command is `bun run <name>`.
 | `db:studio` | Drizzle Studio, a browser client for the data |
 | `db:seed:admin` | Create the first account and workspace |
 
-`scripts/upgrade-test.sh` seeds a database with the previous git tag, migrates
-it to the current commit, and boots the result. CI runs it on every push. Run it
-locally against a database you can lose before you tag a release.
-
 The normal loop after editing `server/database/schema.ts`:
 
 ```sh
-bun run db:generate   # writes server/database/migrations/NNNN_*.sql
+bun run db:generate   # writes drizzle/<timestamp>_<name>/migration.sql
 bun run db:migrate    # applies it
 ```
 

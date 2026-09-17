@@ -8,7 +8,8 @@ Enough to answer "is this working", without building a tracking company.
 
 **Unique visitors** — distinct visitors, counted by a rotating hash.
 
-**Referrers** — the host that sent them, not the full URL.
+**Referrers** — the host that sent them, not the full URL. The host name is
+stored once in a `hosts` table, and each event row holds its integer id.
 
 **Countries** — from a proxy header, when your proxy sets one.
 
@@ -28,12 +29,14 @@ addresses is one you can keep, export, and hand to a lawyer without a story.
 
 ## How unique visitors work
 
-The visitor hash is `sha256(secret:day:linkId:ip:userAgent)`, truncated to 32
-characters.
+The visitor hash is `sha256(secret:day:linkId:ip:userAgent)`. The first eight
+bytes of the digest are stored as a 64 bit integer. The column is only ever
+counted, never compared to anything outside the database, and `count(distinct)`
+over an integer is much faster than over text.
 
-The day number is in the salt, so the same person counts once per day per link
-and the hash rotates at midnight UTC. Yesterday's hashes cannot be matched to
-today's.
+The day number is in the salt, so the same person counts once per day for each
+link and the hash rotates at midnight UTC. Yesterday's hashes cannot be matched
+to today's.
 
 The secret is in the salt because the IP address space is small enough to
 search. Without it, anyone holding the table could try every address against a
@@ -96,6 +99,19 @@ The redirect is sent first. The click is recorded in the background, through
 
 A visitor never waits on an analytics insert, and a database that is slow or
 briefly down delays nothing — the redirect still lands.
+
+## How a click is stored
+
+Two statements and no transaction. One guarded update raises the link counter
+inside the visit limit, and one insert writes the event.
+
+The event row holds small integers, not words: the outcome, the device, the
+browser, and the bot category are codes from `shared/codes.ts`. The API turns
+them back into labels before they leave the server, so a caller never sees a
+number. A row measures under 100 bytes.
+
+`click_events` is partitioned by month. Boot makes the partition for the current
+month and the next one. Dropping an old month is one `drop table`.
 
 ## Export
 

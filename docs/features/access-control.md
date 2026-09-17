@@ -63,8 +63,9 @@ The increment is a single atomic statement:
 
 ```sql
 update links
-set successful_visit_count = successful_visit_count + 1
-where id = $1 and (maximum_visits is null or successful_visit_count < maximum_visits)
+set click_count = click_count + 1
+where id = $1 and deleted_at is null
+  and (maximum_visits is null or click_count < maximum_visits)
 ```
 
 The database decides, not the application. Ten simultaneous clicks on a
@@ -76,8 +77,9 @@ count and writing it.
 A switch. The link answers 404 while it is off and keeps its analytics, its
 slug, and its history. Turn it back on and everything resumes.
 
-Prefer disabling over deleting when you are not certain. Deleting reserves the
-slug permanently in that workspace.
+Prefer disabling over deleting when you are not certain. A deleted link keeps
+its row, so its slug stays taken in that workspace and its click history stays
+readable.
 
 ## What visitors see
 

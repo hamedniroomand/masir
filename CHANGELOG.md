@@ -32,6 +32,21 @@ block. Read them for every version between yours and the one you install.
 
 ### Changed
 
+- Postgres 18 is the minimum. Every primary key defaults to the native
+  `uuidv7()`.
+- Member routes address a member by user id. `PATCH` and `DELETE` on
+  `/api/workspaces/members/<id>` take the user id, and the member list answers
+  with `userId`.
+- The transfer ownership body field is `userId`, not `memberId`.
+- The link analytics response drops `classificationAvailableFrom` and
+  `periodCoversLegacy`. Every breakdown label is a string.
+- The admin route `/api/admin/security-events` is now
+  `/api/admin/audit-events`, and its rows carry `actorId` and a JSON `detail`.
+- Deleting a link keeps its slug and its click history. The slug stays taken in
+  that workspace.
+- A link with a campaign cannot carry its own `utm_campaign`. The create and
+  update routes answer 400.
+- Inviting an address that already has an open invitation answers 409.
 - Application pages render on the client only. The server renders the visitor
   error page behind a short link, so previews and crawlers read it without
   JavaScript.

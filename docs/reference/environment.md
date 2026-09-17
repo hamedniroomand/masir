@@ -3,12 +3,15 @@
 Masir validates these at boot and refuses to start on a bad one, naming the
 variable in the first line of the log.
 
+Postgres 18 is the minimum. Every primary key defaults to the native `uuidv7()`,
+which arrived in 18.
+
 ## Required
 
 | Variable | Notes |
 |---|---|
 | `NUXT_SESSION_PASSWORD` | 32 characters or more. `openssl rand -base64 32` |
-| `NUXT_DATABASE_URL` | `postgres://user:pass@host:5432/masir` |
+| `NUXT_DATABASE_URL` | `postgres://user:pass@host:5432/masir`. Postgres 18 or newer |
 | `NUXT_ROOT_DOMAIN` | Origin of the root site, with protocol |
 | `NUXT_PUBLIC_SHORT_DOMAIN` | Origin printed with short links, no trailing slash |
 

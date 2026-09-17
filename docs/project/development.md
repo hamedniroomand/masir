@@ -9,7 +9,10 @@ bun install
 cp .env.example .env
 ```
 
-Point `NUXT_DATABASE_URL` at a Postgres you can lose, then:
+Point `NUXT_DATABASE_URL` at a Postgres 18 you can lose, then:
+
+Postgres 18 is the minimum. Every primary key defaults to the native
+`uuidv7()`, which arrived in 18.
 
 ```sh
 bun run db:migrate

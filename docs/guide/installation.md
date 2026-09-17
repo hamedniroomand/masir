@@ -1,6 +1,6 @@
 # Installation
 
-Masir needs Postgres 17 or newer and, if you are building from source,
+Masir needs Postgres 18 or newer and, if you are building from source,
 [Bun](https://bun.com) 1.4 or newer.
 
 ## With Docker Compose

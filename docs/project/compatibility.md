@@ -29,8 +29,11 @@ first, and a release that changes the schema repeats that line.
 
 ## Database
 
-Postgres is the only state. Everything in this section is about keeping an
+Postgres 18 is the only state. Everything in this section is about keeping an
 operator's rows intact through a version jump and a rolling deploy.
+
+These rules apply from the first tagged release. The initial migration is the
+first frozen migration.
 
 **Every schema change is a Drizzle migration.** Edit `server/database/schema.ts`,
 run `bun run db:generate`, and read the SQL before you commit it. Drizzle infers
