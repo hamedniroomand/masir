@@ -4,7 +4,6 @@ export type DeploymentConfig = {
   deploymentMode: DeploymentMode;
   rootDomain: string;
   multiWorkspace: boolean;
-  trialDays: number;
   allowRegistration: boolean;
 };
 
@@ -47,7 +46,4 @@ export function assertDeploymentConfig(config: DeploymentConfig & { sessionCooki
   if (config.multiWorkspace && !config.sessionCookieDomain) {
     throw new Error(`NUXT_MULTI_WORKSPACE is true, so NUXT_SESSION_COOKIE_DOMAIN must be set (for example ".${host}")`);
   }
-
-  if (!Number.isInteger(config.trialDays) || config.trialDays < 1)
-    throw new Error('Missing or invalid NUXT_TRIAL_DAYS (must be a whole number of days, 1 or more)');
 }

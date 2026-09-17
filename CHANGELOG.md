@@ -54,6 +54,11 @@ block. Read them for every version between yours and the one you install.
   `POSTGRES_PASSWORD`, no longer publishes the Postgres port, restarts its
   services, and no longer starts the Mailpit catcher. Set `NUXT_MAIL_*` for a
   real provider, or messages go to the log.
+- A new workspace starts on the `active` plan in every deployment mode. No
+  trial starts and nothing expires. `NUXT_TRIAL_DAYS` is gone, and the create
+  workspace response no longer carries `trialEndsAt`. The `plan`,
+  `trial_started_at`, `trial_ends_at`, and `subscription_status` columns stay
+  for a later billing feature.
 
 ### Fixed
 

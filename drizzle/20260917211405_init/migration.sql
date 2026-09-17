@@ -168,7 +168,7 @@ CREATE TABLE "workspaces" (
 	"slug" text NOT NULL UNIQUE,
 	"name" text NOT NULL,
 	"logo_url" text,
-	"plan" "workspace_plan" DEFAULT 'trial'::"workspace_plan" NOT NULL,
+	"plan" "workspace_plan" DEFAULT 'active'::"workspace_plan" NOT NULL,
 	"trial_started_at" timestamp with time zone,
 	"trial_ends_at" timestamp with time zone,
 	"subscription_status" text,

@@ -91,7 +91,7 @@ export const workspaces = pgTable('workspaces', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   logoUrl: text('logo_url'),
-  plan: workspacePlanEnum('plan').notNull().default('trial'),
+  plan: workspacePlanEnum('plan').notNull().default('active'),
   trialStartedAt: timestampTz('trial_started_at'),
   trialEndsAt: timestampTz('trial_ends_at'),
   subscriptionStatus: text('subscription_status'),

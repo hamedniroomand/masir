@@ -9,7 +9,6 @@ describe('assertRuntimeConfig', () => {
       deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
       multiWorkspace: false,
-      trialDays: 7,
       allowRegistration: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_SESSION_PASSWORD/);
@@ -22,7 +21,6 @@ describe('assertRuntimeConfig', () => {
       deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
       multiWorkspace: false,
-      trialDays: 7,
       allowRegistration: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_DATABASE_URL/);

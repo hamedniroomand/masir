@@ -74,7 +74,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
         ...shared,
         ...multi,
         NUXT_DEPLOYMENT_MODE: 'CLOUD',
-        NUXT_TRIAL_DAYS: '14',
         // CLOUD refuses disk storage, so a bucket must be named. Nothing uploads.
         NUXT_STORAGE_BUCKET: 'test-bucket',
         NUXT_STORAGE_ACCESS_KEY_ID: 'test',

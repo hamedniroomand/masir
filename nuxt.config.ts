@@ -65,7 +65,6 @@ export default defineNuxtConfig({
     deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
     multiWorkspace: false,
-    trialDays: 7,
     allowRegistration: false,
     mail: {
       driver: '',

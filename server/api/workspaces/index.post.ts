@@ -68,7 +68,6 @@ export default defineEventHandler(async (event) => {
       slug: parsed.output,
       logoUrl: body.logoUrl ?? null,
       ownerUserId: user.id,
-      trialDays: config.deploymentMode === 'CLOUD' ? Number(config.trialDays) : null,
     });
     await writeAuditEvent('workspace_created', { slug: workspace.slug }, { workspaceId: workspace.id, actor: user.id });
     setResponseStatus(event, 201);
@@ -78,7 +77,6 @@ export default defineEventHandler(async (event) => {
       slug: workspace.slug,
       logoUrl: workspace.logoUrl,
       plan: planName(workspace.plan),
-      trialEndsAt: workspace.trialEndsAt,
     };
   }
   catch (error) {

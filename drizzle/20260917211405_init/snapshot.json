@@ -1618,7 +1618,7 @@
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
-      "default": "'trial'",
+      "default": "'active'",
       "generated": null,
       "identity": null,
       "name": "plan",

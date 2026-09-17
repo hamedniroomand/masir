@@ -100,10 +100,11 @@ quietly asking people to sign in again.
 
 ## Billing and limits
 
-Not built. The `workspaces` table already carries `plan`, `trial_started_at`,
-`trial_ends_at`, and `subscription_status`, so adding a trial, entitlements, or
-a billing provider needs no schema redesign. Billing belongs to the workspace,
-never to the user.
+Not built. Every workspace starts on `active` and nothing expires, in cloud
+mode and self-hosted alike. The `workspaces` table keeps `plan`,
+`trial_started_at`, `trial_ends_at`, and `subscription_status` unused, so a
+trial, entitlements, or a billing provider needs no schema redesign. Billing
+belongs to the workspace, never to the user.
 
 ## Environment
 

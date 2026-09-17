@@ -93,13 +93,8 @@ export async function createWorkspaceWithOwner(input: {
   slug: string;
   logoUrl: string | null;
   ownerUserId: string;
-  trialDays: number | null;
 }): Promise<Workspace> {
   const db = await getDb();
-  const now = new Date();
-  const trialEndsAt = input.trialDays == null
-    ? null
-    : new Date(now.getTime() + input.trialDays * 86_400_000);
 
   // One transaction. A workspace must never exist without its owner.
   return db.transaction(async (tx) => {
@@ -107,8 +102,6 @@ export async function createWorkspaceWithOwner(input: {
       name: input.name,
       slug: input.slug,
       logoUrl: input.logoUrl,
-      trialStartedAt: input.trialDays == null ? null : now,
-      trialEndsAt,
     }).returning();
     if (!created)
       throw new Error('The workspace vanished between its insert and its read.');

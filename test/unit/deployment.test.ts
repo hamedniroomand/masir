@@ -7,7 +7,6 @@ function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }
     deploymentMode: 'CLOUD',
     rootDomain: 'https://masir.dev',
     multiWorkspace: true,
-    trialDays: 7,
     allowRegistration: true,
     sessionCookieDomain: '.masir.dev',
     ...over,
@@ -84,10 +83,5 @@ describe('assertDeploymentConfig', () => {
     expect(() => assertDeploymentConfig({ ...config({ multiWorkspace: false }), sessionCookieDomain: '' }))
       .not
       .toThrow();
-  });
-
-  it('rejects a trial length below one day', () => {
-    expect(() => assertDeploymentConfig(config({ trialDays: 0 })))
-      .toThrow(/NUXT_TRIAL_DAYS/);
   });
 });

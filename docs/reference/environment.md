@@ -44,7 +44,6 @@ pooled connection string.
 | `NUXT_SESSION_COOKIE_DOMAIN` | — | **Required** when multi-workspace is true |
 | `NUXT_SESSION_COOKIE_SECURE` | `true` | `false` only for plain http on a private network |
 | `NUXT_ALLOW_REGISTRATION` | `false` | Public sign-up |
-| `NUXT_TRIAL_DAYS` | `7` | Cloud mode only |
 
 `NUXT_SESSION_COOKIE_DOMAIN` needs the leading dot: `.example.com`. Without it
 the session does not cross subdomains and switching workspaces asks people to
