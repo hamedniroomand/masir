@@ -40,21 +40,21 @@ describe('link analytics', async () => {
 
   it('records outcomes for blocked paths and bot traffic', async () => {
     const disabledId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-disabled', isEnabled: false });
-    await fetch('/an-disabled', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
+    await fetch('/an-disabled', { headers: { accept: 'application/json', 'user-agent': CHROME_UA } });
 
     const scheduledId = await insertTestLink(TEST_DB, {
       workspaceId,
       slug: 'an-scheduled',
       startsAt: new Date(Date.now() + 86400_000),
     });
-    await fetch('/an-scheduled', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
+    await fetch('/an-scheduled', { headers: { accept: 'application/json', 'user-agent': CHROME_UA } });
 
     const expiredId = await insertTestLink(TEST_DB, {
       workspaceId,
       slug: 'an-expired',
       expiresAt: new Date(Date.now() - 1000),
     });
-    await fetch('/an-expired', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
+    await fetch('/an-expired', { headers: { accept: 'application/json', 'user-agent': CHROME_UA } });
 
     const botId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-bot' });
     await fetch('/an-bot', { redirect: 'manual', headers: { 'user-agent': 'Googlebot/2.1' } });

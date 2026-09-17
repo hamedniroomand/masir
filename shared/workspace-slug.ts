@@ -49,16 +49,16 @@ export const workspaceSlugSchema = v.pipe(
   v.minLength(3, 'The workspace address must be at least 3 characters.'),
   v.maxLength(63, 'The workspace address must be at most 63 characters.'),
   v.regex(/^[a-z0-9-]+$/, 'The workspace address may only use lowercase letters, numbers, and hyphens.'),
-  v.check(s => !s.startsWith('-'), 'The workspace address cannot start with a hyphen.'),
-  v.check(s => !s.endsWith('-'), 'The workspace address cannot end with a hyphen.'),
-  v.check(s => !RESERVED_WORKSPACE_SLUGS.has(s), 'This workspace address is reserved.'),
+  v.check(slug => !slug.startsWith('-'), 'The workspace address cannot start with a hyphen.'),
+  v.check(slug => !slug.endsWith('-'), 'The workspace address cannot end with a hyphen.'),
+  v.check(slug => !RESERVED_WORKSPACE_SLUGS.has(slug), 'This workspace address is reserved.'),
 );
 
 export function suffixedSlug(base: string, taken: (slug: string) => boolean): string {
   if (!taken(base))
     return base;
-  for (let n = 2; n <= MAXIMUM_SUFFIX; n++) {
-    const candidate = `${base}-${n}`;
+  for (let suffix = 2; suffix <= MAXIMUM_SUFFIX; suffix++) {
+    const candidate = `${base}-${suffix}`;
     if (!taken(candidate))
       return candidate;
   }

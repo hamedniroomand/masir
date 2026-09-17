@@ -1,6 +1,6 @@
 <script setup lang="ts">
-interface Member { id: string; email: string; role: string; isActive: boolean }
-interface Invitation { id: string; email: string; expiresAt: string }
+type Member = { id: string; email: string; role: string; isActive: boolean };
+type Invitation = { id: string; email: string; expiresAt: string };
 
 const { data: members, refresh: refreshMembers } = await useFetch<{ items: Member[] }>('/api/workspaces/members');
 const { data: invites, refresh: refreshInvites } = await useFetch<{ items: Invitation[] }>('/api/workspaces/invitations');
@@ -9,8 +9,8 @@ const inviteEmail = ref('');
 const error = ref('');
 const busy = ref(false);
 
-function reason(e: unknown, fallback: string) {
-  return (e as { data?: { data?: { reason?: string } } }).data?.data?.reason ?? fallback;
+function reason(failure: unknown, fallback: string) {
+  return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason ?? fallback;
 }
 
 async function run(action: () => Promise<unknown>, fallback: string) {
@@ -20,8 +20,8 @@ async function run(action: () => Promise<unknown>, fallback: string) {
     await action();
     await Promise.all([refreshMembers(), refreshInvites()]);
   }
-  catch (e) {
-    error.value = reason(e, fallback);
+  catch (failure) {
+    error.value = reason(failure, fallback);
   }
   finally {
     busy.value = false;

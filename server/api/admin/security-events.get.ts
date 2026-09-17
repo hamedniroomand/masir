@@ -11,9 +11,9 @@ export default defineEventHandler(async (event) => {
     ? await db.select().from(securityEvents).where(eq(securityEvents.type, type)).orderBy(desc(securityEvents.createdAt)).limit(200)
     : await db.select().from(securityEvents).orderBy(desc(securityEvents.createdAt)).limit(200);
   return {
-    items: rows.map(r => ({
-      ...r,
-      detail: r.detail ? JSON.parse(r.detail) : null,
+    items: rows.map(row => ({
+      ...row,
+      detail: row.detail ? JSON.parse(row.detail) : null,
     })),
   };
 });

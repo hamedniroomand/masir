@@ -37,12 +37,12 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     );
     emit('saved', saved);
   }
-  catch (e: unknown) {
-    const err = e as { statusCode?: number; statusMessage?: string };
+  catch (error: unknown) {
+    const err = error as { statusCode?: number; statusMessage?: string };
     if (err.statusCode === 409)
-      form.value?.setErrors([{ name: 'utmCampaign', message: err.statusMessage! }]);
+      form.value?.setErrors([{ name: 'utmCampaign', message: err.statusMessage ?? 'Invalid value.' }]);
     else
-      showError(e);
+      showError(error);
   }
   finally {
     loading.value = false;

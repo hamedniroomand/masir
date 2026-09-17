@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const raw = getQuery(event).slug;
   const parsed = v.safeParse(workspaceSlugSchema, typeof raw === 'string' ? raw : '');
   if (!parsed.success)
-    return { available: false, reason: parsed.issues[0]!.message };
+    return { available: false, reason: parsed.issues[0]?.message ?? 'Invalid input.' };
 
   return { available: !await isWorkspaceSlugTaken(parsed.output), slug: parsed.output };
 });

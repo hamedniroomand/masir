@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   const requested = body.slug ?? normalizeWorkspaceSlug(body.name);
   const parsed = v.safeParse(workspaceSlugSchema, requested);
   if (!parsed.success) {
-    const reason = parsed.issues[0]!.message;
+    const reason = parsed.issues[0]?.message ?? 'Invalid input.';
     throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
   }
 
@@ -64,11 +64,11 @@ export default defineEventHandler(async (event) => {
       trialEndsAt: workspace.trialEndsAt,
     };
   }
-  catch (e) {
+  catch (error) {
     // Two requests can pass the check at the same time. The unique index is
     // what actually decides.
-    if (isUniqueViolation(e))
+    if (isUniqueViolation(error))
       throw createError({ statusCode: 409, statusMessage: SLUG_TAKEN, data: { reason: SLUG_TAKEN } });
-    throw e;
+    throw error;
   }
 });

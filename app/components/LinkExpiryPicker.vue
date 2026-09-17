@@ -12,35 +12,32 @@ const props = withDefaults(defineProps<{ emptyLabel?: string }>(), { emptyLabel:
 
 const model = defineModel<number | null>({ default: null });
 
-const tz = getLocalTimeZone();
+const zone = getLocalTimeZone();
 const open = ref(false);
 const draftDate = shallowRef<CalendarDate>();
 const draftTime = shallowRef<Time>();
 
-const df = new DateFormatter('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-const minDate = today(tz);
+const formatter = new DateFormatter('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+const minDate = today(zone);
 
 const label = computed(() => {
   if (model.value == null)
     return props.emptyLabel;
-  return df.format(new Date(model.value));
+  return formatter.format(new Date(model.value));
 });
 
 function syncDraftFromModel() {
   if (model.value == null) {
-    draftDate.value = today(tz);
+    draftDate.value = today(zone);
     draftTime.value = new Time(23, 59);
     return;
   }
-  const d = new Date(model.value);
-  draftDate.value = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
-  draftTime.value = new Time(d.getHours(), d.getMinutes());
+  const date = new Date(model.value);
+  draftDate.value = new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  draftTime.value = new Time(date.getHours(), date.getMinutes());
 }
 
-watch(open, (isOpen) => {
-  if (isOpen)
-    syncDraftFromModel();
-});
+whenever(open, syncDraftFromModel);
 
 function apply() {
   if (!draftDate.value) {
@@ -48,15 +45,15 @@ function apply() {
     open.value = false;
     return;
   }
-  const t = draftTime.value ?? new Time(23, 59);
-  const dt = new CalendarDateTime(
+  const time = draftTime.value ?? new Time(23, 59);
+  const stamp = new CalendarDateTime(
     draftDate.value.year,
     draftDate.value.month,
     draftDate.value.day,
-    t.hour,
-    t.minute,
+    time.hour,
+    time.minute,
   );
-  model.value = dt.toDate(tz).getTime();
+  model.value = stamp.toDate(zone).getTime();
   open.value = false;
 }
 

@@ -14,7 +14,7 @@ function addRow() {
 async function send() {
   error.value = '';
   loading.value = true;
-  const wanted = emails.value.map(e => e.trim()).filter(Boolean);
+  const wanted = emails.value.map(entry => entry.trim()).filter(Boolean);
   try {
     for (const email of wanted) {
       await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email } });
@@ -22,8 +22,8 @@ async function send() {
     }
     await navigateTo('/');
   }
-  catch (e) {
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+  catch (failure) {
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'We could not send every invitation.';
   }
   finally {

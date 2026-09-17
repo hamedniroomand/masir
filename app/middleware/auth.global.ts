@@ -6,7 +6,7 @@ function isPublicShortLinkPath(path: string): boolean {
   const match = path.match(/^\/([a-z0-9_-]+)$/);
   if (!match)
     return false;
-  return !RESERVED_SLUGS.has(match[1]!);
+  return !RESERVED_SLUGS.has(match[1] ?? '');
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {

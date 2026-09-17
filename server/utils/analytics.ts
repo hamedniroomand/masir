@@ -1,7 +1,7 @@
 import type { SQL } from 'drizzle-orm';
 import type { ClickEventOutcome } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
-import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
@@ -46,7 +46,7 @@ type TrafficClass = 'human' | 'bot' | 'all';
 
 // A legacy row has no outcome. The old redirect path wrote a row only after a
 // successful redirect. A legacy row is thus a click. Its bot data is unknown.
-const humanFilter = or(eq(clickEvents.outcome, 'redirect_success'), isNull(clickEvents.outcome))!;
+const humanFilter = anyOf(eq(clickEvents.outcome, 'redirect_success'), isNull(clickEvents.outcome));
 
 function trafficFilter(traffic: TrafficClass): SQL {
   if (traffic === 'human')
@@ -141,7 +141,7 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
     };
   }
 
-  const scope = inArray(clickEvents.linkId, linkRows.map(r => r.id));
+  const scope = inArray(clickEvents.linkId, linkRows.map(row => row.id));
   const windowStart = periodStart(period, Date.now());
 
   const sourceRows = await db.select({
@@ -153,21 +153,21 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
     id: clickEvents.linkId,
     count: countAll,
   }).from(clickEvents).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(clickEvents.linkId);
-  const periodByLink = new Map(linkClickRows.map(r => [r.id, Number(r.count)]));
+  const periodByLink = new Map(linkClickRows.map(row => [row.id, Number(row.count)]));
 
   return {
-    totalClicks: linkRows.reduce((sum, r) => sum + r.clickCount, 0),
+    totalClicks: linkRows.reduce((sum, row) => sum + row.clickCount, 0),
     linkCount: linkRows.length,
-    bySource: sourceRows.map(r => ({ label: r.label ?? 'not set', count: Number(r.count) })),
+    bySource: sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
     topLinks: linkRows
-      .map(r => ({
-        id: r.id,
-        slug: r.slug,
-        title: r.title,
-        utmSource: r.utmSource,
-        utmContent: r.utmContent,
-        totalClicks: r.clickCount,
-        periodClicks: periodByLink.get(r.id) ?? 0,
+      .map(row => ({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        utmSource: row.utmSource,
+        utmContent: row.utmContent,
+        totalClicks: row.clickCount,
+        periodClicks: periodByLink.get(row.id) ?? 0,
       }))
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
     ...await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human'),
@@ -204,7 +204,7 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
     trafficWhere,
   )).groupBy(bucketExpr);
 
-  const seriesMap = new Map<string, number>(rawSeries.map(r => [String(r.bucket), Number(r.count)]));
+  const seriesMap = new Map<string, number>(rawSeries.map(row => [String(row.bucket), Number(row.count)]));
   const series = zeroFillSeries(start, now, bucketMs, hourly, seriesMap);
 
   const referrers = await db.select({
@@ -236,8 +236,8 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
   return {
     periodClicks,
     series,
-    topReferrers: referrers.map(r => ({ label: r.label ?? 'direct', count: r.count })),
-    topCountries: countries.map(r => ({ label: r.label!, count: r.count })),
+    topReferrers: referrers.map(row => ({ label: row.label ?? 'direct', count: row.count })),
+    topCountries: countries.map(row => ({ label: row.label ?? 'unknown', count: row.count })),
     unknownCountryCount,
     devices,
     browsers,
@@ -252,11 +252,11 @@ async function breakdown(
   trafficWhere: SQL,
 ) {
   const rows = await db.select({ label: column, count: countAll }).from(clickEvents).where(and(scope, inWindow, trafficWhere)).groupBy(column);
-  const total = rows.reduce((s, r) => s + r.count, 0) || 1;
-  return rows.map(r => ({
-    label: r.label as string,
-    count: r.count,
-    percentage: Math.round((r.count / total) * 1000) / 10,
+  const total = rows.reduce((sum, row) => sum + row.count, 0) || 1;
+  return rows.map(row => ({
+    label: row.label as string,
+    count: row.count,
+    percentage: Math.round((row.count / total) * 1000) / 10,
   }));
 }
 
@@ -282,16 +282,16 @@ function zeroFillSeries(
   counts: Map<string, number>,
 ) {
   const out: { bucket: string; count: number }[] = [];
-  let t = hourly
+  let cursor = hourly
     ? Math.floor(startMs / 3600_000) * 3600_000
     : Math.floor(startMs / 86_400_000) * 86_400_000;
 
-  while (t <= endMs) {
+  while (cursor <= endMs) {
     const bucket = hourly
-      ? `${new Date(t).toISOString().slice(0, 13)}:00:00.000Z`
-      : new Date(t).toISOString().slice(0, 10);
+      ? `${new Date(cursor).toISOString().slice(0, 13)}:00:00.000Z`
+      : new Date(cursor).toISOString().slice(0, 10);
     out.push({ bucket, count: counts.get(bucket) ?? 0 });
-    t += bucketMs;
+    cursor += bucketMs;
   }
   return out;
 }

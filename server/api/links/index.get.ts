@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const rawTags = query.tags;
   const tagFilters = Array.isArray(rawTags)
-    ? rawTags.filter((t): t is string => typeof t === 'string')
+    ? rawTags.filter((tag): tag is string => typeof tag === 'string')
     : typeof rawTags === 'string'
       ? [rawTags]
       : [];

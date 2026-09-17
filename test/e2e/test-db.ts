@@ -49,9 +49,9 @@ export async function createTestDatabase(databaseUrl: string) {
     await admin`select pg_advisory_lock(4242)`;
     await admin.unsafe(`CREATE DATABASE "${name}"`);
   }
-  catch (e) {
-    if (String((e as { errno?: unknown }).errno) !== DATABASE_EXISTS)
-      throw e;
+  catch (error) {
+    if (String((error as { errno?: unknown }).errno) !== DATABASE_EXISTS)
+      throw error;
   }
   finally {
     await admin.close();

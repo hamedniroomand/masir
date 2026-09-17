@@ -38,7 +38,7 @@ export function generateSlug(length = 7): string {
   crypto.getRandomValues(bytes);
   let out = '';
   for (let i = 0; i < length; i++)
-    out += ALPHABET[bytes[i]! % ALPHABET.length];
+    out += ALPHABET[(bytes[i] ?? 0) % ALPHABET.length];
   return out;
 }
 
@@ -52,7 +52,7 @@ export const slugSchema = v.pipe(
   v.minLength(3, 'Slug must be at least 3 characters.'),
   v.maxLength(64, 'Slug must be at most 64 characters.'),
   v.regex(/^[a-z0-9_-]+$/, 'Slug may only use lowercase letters, numbers, hyphens, and underscores.'),
-  v.check(s => !s.startsWith('-'), 'Slug cannot start with a hyphen.'),
-  v.check(s => !s.endsWith('-'), 'Slug cannot end with a hyphen.'),
-  v.check(s => !RESERVED_SLUGS.has(s), 'This slug is reserved.'),
+  v.check(slug => !slug.startsWith('-'), 'Slug cannot start with a hyphen.'),
+  v.check(slug => !slug.endsWith('-'), 'Slug cannot end with a hyphen.'),
+  v.check(slug => !RESERVED_SLUGS.has(slug), 'This slug is reserved.'),
 );

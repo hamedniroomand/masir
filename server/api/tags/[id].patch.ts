@@ -24,13 +24,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Not found' });
     return tagToDto(updated);
   }
-  catch (e) {
-    if (e instanceof TagNameTakenError) {
+  catch (error) {
+    if (error instanceof TagNameTakenError) {
       throw createError({ statusCode: 409, statusMessage: 'A tag with this name already exists.', data: { reason: 'A tag with this name already exists.' } });
     }
-    if (e instanceof InvalidTagNameError) {
+    if (error instanceof InvalidTagNameError) {
       throw createError({ statusCode: 422, statusMessage: 'Enter a tag name.', data: { reason: 'Enter a tag name.' } });
     }
-    throw e;
+    throw error;
   }
 });

@@ -21,8 +21,8 @@ async function submit() {
     });
     await navigateTo(result.redirectTo, { external: true });
   }
-  catch (e: unknown) {
-    const err = e as { statusCode?: number; statusMessage?: string };
+  catch (failure: unknown) {
+    const err = failure as { statusCode?: number; statusMessage?: string };
     if (err.statusCode === 401)
       errorMessage.value = 'Incorrect password.';
     else if (err.statusCode === 429)

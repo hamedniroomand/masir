@@ -65,10 +65,10 @@ export async function createCampaign(input: {
       updatedAt: now,
     });
   }
-  catch (e) {
-    if (isUniqueViolation(e))
+  catch (error) {
+    if (isUniqueViolation(error))
       throw new CampaignTakenError();
-    throw e;
+    throw error;
   }
   return findCampaignForWorkspace(id, input.workspaceId);
 }
@@ -86,10 +86,10 @@ export async function updateCampaign(id: string, workspaceId: string, patch: {
   try {
     await db.update(campaigns).set({ ...patch, updatedAt: new Date() }).where(eq(campaigns.id, id));
   }
-  catch (e) {
-    if (isUniqueViolation(e))
+  catch (error) {
+    if (isUniqueViolation(error))
       throw new CampaignTakenError();
-    throw e;
+    throw error;
   }
   invalidateAllLinks();
   return findCampaignForWorkspace(id, workspaceId);

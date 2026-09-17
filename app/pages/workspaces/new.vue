@@ -34,8 +34,8 @@ async function onSubmit() {
     });
     await navigateTo(`/workspaces/invite?slug=${encodeURIComponent(workspace.slug)}`);
   }
-  catch (e) {
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+  catch (failure) {
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'We could not create the workspace.';
   }
   finally {

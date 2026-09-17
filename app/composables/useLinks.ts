@@ -1,4 +1,4 @@
-export interface LinkItem {
+export type LinkItem = {
   id: string;
   slug: string;
   title: string | null;
@@ -22,11 +22,11 @@ export interface LinkItem {
   tags: string[];
   createdAt: string;
   updatedAt: string;
-}
+};
 
 export function useLinksList() {
   const route = useRoute();
-  const q = computed({
+  const search = computed({
     get: () => (route.query.q as string) ?? '',
     set: (v: string) => navigateTo({ query: { ...route.query, q: v || undefined, page: undefined } }),
   });
@@ -49,7 +49,7 @@ export function useLinksList() {
     get: () => {
       const raw = route.query.tags;
       if (Array.isArray(raw))
-        return raw.filter((t): t is string => typeof t === 'string');
+        return raw.filter((tag): tag is string => typeof tag === 'string');
       return typeof raw === 'string' ? [raw] : [];
     },
     set: (tags: string[]) => navigateTo({
@@ -63,7 +63,7 @@ export function useLinksList() {
 
   const { data, pending, refresh, error } = useFetch(() => '/api/links', {
     query: computed(() => ({
-      q: q.value || undefined,
+      q: search.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
       tags: selectedTags.value.length ? selectedTags.value : undefined,
       page: page.value,
@@ -83,5 +83,5 @@ export function useLinksList() {
     selectedTags.value = [...set];
   }
 
-  return { data, pending, refresh, error, q, status, page, sort, selectedTags, tagList, toggleTag };
+  return { data, pending, refresh, error, search, status, page, sort, selectedTags, tagList, toggleTag };
 }

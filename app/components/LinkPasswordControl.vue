@@ -22,8 +22,8 @@ async function save() {
   try {
     await patchPassword(password.value);
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
   finally {
     saving.value = false;
@@ -35,8 +35,8 @@ async function remove() {
   try {
     await patchPassword(null);
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
   finally {
     removing.value = false;

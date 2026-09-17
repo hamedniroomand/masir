@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface Workspace { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string }
+type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
 
 const { data } = await useFetch<{ items: Workspace[] }>('/api/workspaces');
 const config = useRuntimeConfig();
@@ -12,9 +12,9 @@ const error = ref('');
 const saving = ref(false);
 const confirming = ref(false);
 
-watch(current, (w) => {
-  if (w)
-    name.value = w.name;
+watch(current, (workspace) => {
+  if (workspace)
+    name.value = workspace.name;
 }, { immediate: true });
 
 async function save() {
@@ -25,8 +25,8 @@ async function save() {
     await $fetch('/api/workspaces', { method: 'PATCH', body: { name: name.value } });
     message.value = 'Saved.';
   }
-  catch (e) {
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+  catch (failure) {
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'We could not save the workspace.';
   }
   finally {
@@ -40,8 +40,8 @@ async function remove() {
     await $fetch('/api/workspaces', { method: 'DELETE' });
     await navigateTo('/login');
   }
-  catch (e) {
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+  catch (failure) {
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'We could not delete the workspace.';
   }
 }

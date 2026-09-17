@@ -26,12 +26,12 @@ onMounted(async () => {
     });
     state.value = 'done';
     const workspaces = await $fetch<{ items: { slug: string; url: string }[] }>('/api/workspaces');
-    const joined = workspaces.items.find(w => w.slug === res.workspace?.slug);
+    const joined = workspaces.items.find(item => item.slug === res.workspace?.slug);
     window.location.href = joined?.url ?? '/';
   }
-  catch (e) {
+  catch (failure) {
     state.value = 'failed';
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'This invitation link is not valid.';
   }
 });

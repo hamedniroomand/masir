@@ -13,48 +13,51 @@ const hovered = ref<number | null>(null);
 
 const plotWidth = computed(() => Math.max(80, width.value - PAD.left - PAD.right));
 const plotHeight = HEIGHT - PAD.top - PAD.bottom;
-const maxCount = computed(() => Math.max(1, ...props.series.map(p => p.count)));
+const maxCount = computed(() => Math.max(1, ...props.series.map(entry => entry.count)));
 
-const points = computed(() => props.series.map((p, i) => ({
-  ...p,
+const points = computed(() => props.series.map((entry, i) => ({
+  ...entry,
   x: PAD.left + (props.series.length < 2 ? plotWidth.value / 2 : (i / (props.series.length - 1)) * plotWidth.value),
-  y: PAD.top + plotHeight - (p.count / maxCount.value) * plotHeight,
+  y: PAD.top + plotHeight - (entry.count / maxCount.value) * plotHeight,
 })));
 
-const linePath = computed(() => points.value.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' '));
+const linePath = computed(() => points.value.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' '));
 const areaPath = computed(() => {
   const pts = points.value;
-  if (!pts.length)
+  const last = pts.at(-1);
+  const first = pts[0];
+  if (!last || !first)
     return '';
   const base = PAD.top + plotHeight;
-  return `${linePath.value} L${pts.at(-1)!.x} ${base} L${pts[0]!.x} ${base} Z`;
+  return `${linePath.value} L${last.x} ${base} L${first.x} ${base} Z`;
 });
 
-const ticks = computed(() => [0, 0.5, 1].map(f => ({
-  value: Math.round(maxCount.value * f),
-  y: PAD.top + plotHeight - f * plotHeight,
+const ticks = computed(() => [0, 0.5, 1].map(fraction => ({
+  value: Math.round(maxCount.value * fraction),
+  y: PAD.top + plotHeight - fraction * plotHeight,
 })));
 
 function formatBucket(bucket: string) {
-  const d = new Date(bucket);
+  const date = new Date(bucket);
   return props.hourly
-    ? d.toLocaleTimeString(undefined, { hour: 'numeric' })
-    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    ? date.toLocaleTimeString(undefined, { hour: 'numeric' })
+    : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 const axisLabels = computed(() => {
   const pts = points.value;
   if (pts.length < 2)
-    return pts.map((p, i) => ({ ...p, index: i }));
+    return pts.map((point, i) => ({ ...point, index: i }));
   const wanted = Math.min(5, pts.length);
   const step = (pts.length - 1) / (wanted - 1);
-  return Array.from({ length: wanted }, (_, i) => {
-    const index = Math.round(i * step);
-    return { ...pts[index]!, index };
-  });
+  return Array.from({ length: wanted }, (_, i) => Math.round(i * step))
+    .flatMap((index) => {
+      const point = pts[index];
+      return point ? [{ ...point, index }] : [];
+    });
 });
 
-const peak = computed(() => points.value.reduce((best, p) => (p.count > best.count ? p : best), points.value[0]!));
+const peak = computed(() => points.value.reduce<typeof points.value[number] | undefined>((best, point) => (!best || point.count > best.count ? point : best), undefined));
 const active = computed(() => (hovered.value == null ? null : points.value[hovered.value] ?? null));
 
 function onMove(event: PointerEvent) {

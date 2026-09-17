@@ -81,7 +81,7 @@ function openGroupsFor(names: (string | undefined)[]) {
 }
 
 function setErrors(errors: { name: string; message: string }[]) {
-  openGroupsFor(errors.map(e => e.name));
+  openGroupsFor(errors.map(issue => issue.name));
   form.value?.setErrors(errors);
 }
 
@@ -144,8 +144,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     emit('created', link);
     reset();
   }
-  catch (e: unknown) {
-    const err = e as { statusCode?: number; statusMessage?: string };
+  catch (error: unknown) {
+    const err = error as { statusCode?: number; statusMessage?: string };
     if (err.statusCode === 409) {
       setErrors([{ name: 'slug', message: 'This short link is already taken.' }]);
     }

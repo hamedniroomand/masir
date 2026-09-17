@@ -63,10 +63,10 @@ export async function startTestServer(env: Record<string, string>, attempt = 1):
   try {
     await waitForReady(url, server);
   }
-  catch (e) {
-    if (attempt < PORT_ATTEMPTS && String(e).includes('EADDRINUSE'))
+  catch (error) {
+    if (attempt < PORT_ATTEMPTS && String(error).includes('EADDRINUSE'))
       return startTestServer(env, attempt + 1);
-    throw e;
+    throw error;
   }
   return url;
 }

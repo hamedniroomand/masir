@@ -3,7 +3,7 @@ import { RESERVED_WORKSPACE_SLUGS } from '#shared/workspace-slug';
 
 function subdomainOf(host: string, rootDomain: string): string | null {
   const rootHost = new URL(rootDomain).hostname;
-  const bare = host.split(':')[0]!.toLowerCase();
+  const [bare = host] = host.toLowerCase().split(':');
   if (bare === rootHost)
     return null;
   if (!bare.endsWith(`.${rootHost}`))

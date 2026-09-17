@@ -113,8 +113,10 @@ export async function createWorkspaceWithOwner(input: {
     });
   });
 
-  const rows = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
-  return rows[0]!;
+  const [row] = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
+  if (!row)
+    throw new Error('The workspace vanished between its insert and its read.');
+  return row;
 }
 
 export async function listMembers(workspaceId: string) {

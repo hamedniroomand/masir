@@ -105,7 +105,7 @@ describe('link password API', async () => {
 
     const ok = await fetch(`/${link.slug}`, {
       redirect: 'manual',
-      headers: { 'cookie': verifyCookie.split(';')[0]!, 'user-agent': CHROME_UA },
+      headers: { cookie: verifyCookie.split(';')[0]!, 'user-agent': CHROME_UA },
     });
     expect(ok.status).toBe(302);
     expect(ok.headers.get('location')).toContain('hidden-target');

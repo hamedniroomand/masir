@@ -8,11 +8,10 @@ useHead({ title: 'All links · Linkyard' });
 const createOpen = ref(false);
 const { data, pending, refresh, error, status, page, sort, selectedTags, tagList, toggleTag } = useLinksList();
 const searchInput = ref((route.query.q as string) ?? '');
-const debouncedQ = refDebounced(searchInput, 300);
 
-watch(debouncedQ, (v) => {
+watchDebounced(searchInput, (v) => {
   navigateTo({ query: { ...route.query, q: v || undefined, page: undefined } });
-});
+}, { debounce: 300 });
 watch(() => route.query.q, (v) => {
   searchInput.value = (v as string) ?? '';
 });

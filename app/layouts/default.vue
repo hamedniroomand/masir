@@ -3,11 +3,11 @@ const { user, clear } = useUserSession();
 const { data: workspaces } = await useFetch<{ items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
 const current = computed(() => workspaces.value?.items[0] ?? null);
 const isOwner = computed(() => current.value?.role === 'OWNER');
-const switcher = computed(() => [(workspaces.value?.items ?? []).map(w => ({
-  label: w.name,
+const switcher = computed(() => [(workspaces.value?.items ?? []).map(workspace => ({
+  label: workspace.name,
   icon: 'i-lucide-building-2',
   // A workspace lives on its own host, so this is a navigation, not a route.
-  onSelect: () => { window.location.href = w.url; },
+  onSelect: () => { window.location.href = workspace.url; },
 }))]);
 const route = useRoute();
 const config = useRuntimeConfig();
@@ -41,8 +41,8 @@ async function signOut() {
   try {
     await $fetch('/api/auth/logout', { method: 'POST' });
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
   await clear();
   await navigateTo('/login');

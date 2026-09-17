@@ -143,10 +143,10 @@ export async function createLink(input: {
         throw new Error('insert failed');
       return row;
     }
-    catch (e: unknown) {
-      if (isUniqueViolation(e))
+    catch (error: unknown) {
+      if (isUniqueViolation(error))
         throw new SlugTakenError();
-      throw e;
+      throw error;
     }
   }
 
@@ -160,9 +160,9 @@ export async function createLink(input: {
     try {
       return await attempt(slug);
     }
-    catch (e) {
-      if (!(e instanceof SlugTakenError))
-        throw e;
+    catch (error) {
+      if (!(error instanceof SlugTakenError))
+        throw error;
       if (i >= 2)
         length++;
     }
@@ -198,17 +198,17 @@ export async function listLinks(workspaceId: string, query: {
   const db = await getDb();
   const now = new Date();
   const filters = [eq(links.workspaceId, workspaceId)];
-  const notExpired = or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!;
-  const underVisitLimit = or(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`)!;
-  const started = or(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`)!;
+  const notExpired = anyOf(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`);
+  const underVisitLimit = anyOf(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`);
+  const started = anyOf(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`);
 
   if (query.q) {
     const term = `%${query.q.toLowerCase()}%`;
-    filters.push(or(
+    filters.push(anyOf(
       like(sql`lower(${links.title})`, term),
       like(sql`lower(${links.slug})`, term),
       like(sql`lower(${links.destinationHost})`, term),
-    )!);
+    ));
   }
 
   if (query.tags?.length) {

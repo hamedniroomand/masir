@@ -54,7 +54,7 @@ describe('link access controls', async () => {
     });
 
     const before = await fetch('/schedule-window', {
-      headers: { 'accept': 'application/json', 'user-agent': 'Mozilla/5.0 Chrome/120.0.0.0' },
+      headers: { accept: 'application/json', 'user-agent': 'Mozilla/5.0 Chrome/120.0.0.0' },
     });
     expect(before.status).toBe(404);
     const beforeBody = await before.json() as { data?: { linkState?: string; startsAt?: string } };
@@ -81,7 +81,7 @@ describe('link access controls', async () => {
       startsAt: new Date(Date.now() + 86400_000),
     });
     const pageRes = await fetch('/schedule-page', {
-      headers: { 'accept': 'text/html', 'user-agent': CHROME_UA },
+      headers: { accept: 'text/html', 'user-agent': CHROME_UA },
     });
     const html = await pageRes.text();
     expect(html).toContain('This link is not available yet');

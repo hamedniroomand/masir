@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
   }
 
-  const current = (await listMembers(workspaceId)).find(m => m.role === 'OWNER');
+  const current = (await listMembers(workspaceId)).find(member => member.role === 'OWNER');
   if (!current)
     throw createError({ statusCode: 409, statusMessage: 'This workspace has no owner.' });
 

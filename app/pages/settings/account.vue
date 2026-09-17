@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface Identity { id: string; provider: string; createdAt: string }
+type Identity = { id: string; provider: string; createdAt: string };
 
 const { data, refresh } = await useFetch<{ items: Identity[] }>('/api/auth/identities');
 const { data: providers } = await useFetch('/api/auth/providers');
@@ -13,8 +13,8 @@ async function disconnect(id: string) {
     await $fetch(`/api/auth/identities/${id}`, { method: 'DELETE' });
     await refresh();
   }
-  catch (e) {
-    error.value = (e as { data?: { data?: { reason?: string } } }).data?.data?.reason
+  catch (failure) {
+    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
       ?? 'We could not disconnect this method.';
   }
 }

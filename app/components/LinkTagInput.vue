@@ -3,7 +3,7 @@ const model = defineModel<string[]>({ default: () => [] });
 
 const { data } = useFetch<{ items: { name: string }[] }>(() => '/api/tags');
 
-const items = computed(() => data.value?.items.map(t => t.name) ?? []);
+const items = computed(() => data.value?.items.map(tag => tag.name) ?? []);
 
 function onCreate(item: string) {
   const name = item.trim();

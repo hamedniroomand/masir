@@ -55,13 +55,13 @@ export async function createTag(workspaceId: string, name: string) {
       createdAt: new Date(),
     });
   }
-  catch (e) {
-    if (isUniqueViolation(e)) {
+  catch (error) {
+    if (isUniqueViolation(error)) {
       const row = await findTagByNormalizedName(workspaceId, normalizedName);
       if (row)
         return row;
     }
-    throw e;
+    throw error;
   }
   return findTagForWorkspace(id, workspaceId);
 }
@@ -72,10 +72,10 @@ export async function renameTag(id: string, workspaceId: string, name: string) {
   try {
     await db.update(tags).set({ name: name.trim(), normalizedName }).where(and(eq(tags.id, id), eq(tags.workspaceId, workspaceId)));
   }
-  catch (e) {
-    if (isUniqueViolation(e))
+  catch (error) {
+    if (isUniqueViolation(error))
       throw new TagNameTakenError();
-    throw e;
+    throw error;
   }
   return findTagForWorkspace(id, workspaceId);
 }
@@ -100,7 +100,7 @@ export async function tagsForLink(linkId: string) {
 
 export async function setLinkTags(linkId: string, workspaceId: string, names: string[]) {
   const db = await getDb();
-  const uniqueNames = [...new Set(names.map(n => n.trim()).filter(Boolean))];
+  const uniqueNames = [...new Set(names.map(name => name.trim()).filter(Boolean))];
   const tagIds: string[] = [];
   for (const name of uniqueNames) {
     const tag = await createTag(workspaceId, name);

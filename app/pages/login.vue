@@ -49,7 +49,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     // this person has nowhere to land yet.
     const { items } = await $fetch<{ items: { url: string }[] }>('/api/workspaces');
     if (items.length === 1) {
-      window.location.href = items[0]!.url;
+      window.location.href = items[0]?.url ?? '/';
       return;
     }
     await navigateTo(items.length === 0 ? '/workspaces/new' : '/workspaces');

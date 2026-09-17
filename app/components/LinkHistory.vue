@@ -1,11 +1,11 @@
 <script setup lang="ts">
-interface HistoryEvent {
+type HistoryEvent = {
   id: string;
   type: string;
   createdAt: string;
   actorName: string | null;
   fields: string[] | null;
-}
+};
 
 const props = defineProps<{ linkId: string }>();
 
@@ -29,7 +29,7 @@ function describe(item: HistoryEvent) {
     return 'Created this link';
   if (item.type === 'link_disabled_by_admin')
     return 'Disabled this link';
-  const changed = item.fields?.map(f => FIELD_LABELS[f] ?? f) ?? [];
+  const changed = item.fields?.map(field => FIELD_LABELS[field] ?? field) ?? [];
   if (!changed.length)
     return 'Updated this link';
   return `Changed ${changed.join(', ')}`;

@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib';
 function crc32(buffer: Buffer): number {
   let crc = 0xFFFFFFFF;
   for (let i = 0; i < buffer.length; i++) {
-    crc ^= buffer[i]!;
+    crc ^= buffer[i] ?? 0;
     for (let j = 0; j < 8; j++)
       crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
   }

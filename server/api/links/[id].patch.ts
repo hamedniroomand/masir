@@ -130,10 +130,10 @@ export default defineEventHandler(async (event) => {
   try {
     updated = await updateLink(id, workspaceId, patch);
   }
-  catch (e) {
-    if (e instanceof VisitLimitBelowUsageError)
+  catch (error) {
+    if (error instanceof VisitLimitBelowUsageError)
       throw visitLimitBelowUsage();
-    throw e;
+    throw error;
   }
   if (!updated)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });

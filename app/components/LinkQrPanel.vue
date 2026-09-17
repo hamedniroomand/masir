@@ -18,21 +18,19 @@ const qrPngPreviewUrl = computed(
 const qrPngDownloadUrl = computed(() => `/api/links/${props.linkId}/qr?format=png`);
 const qrSvgDownloadUrl = computed(() => `/api/links/${props.linkId}/qr?format=svg`);
 
+const { copy, copied, isSupported } = useClipboardItems();
 const copying = ref(false);
-const copied = ref(false);
 const copyError = ref(false);
 
 async function copyQrImage() {
   copying.value = true;
-  copied.value = false;
   copyError.value = false;
   try {
     const res = await fetch(qrPngPreviewUrl.value);
     if (!res.ok)
       throw new Error('fetch failed');
     const blob = await res.blob();
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    copied.value = true;
+    await copy([new ClipboardItem({ 'image/png': blob })]);
   }
   catch {
     copyError.value = true;
@@ -60,7 +58,7 @@ async function copyQrImage() {
       </div>
     </div>
     <UAlert
-      v-if="copyError"
+      v-if="copyError || !isSupported"
       title="Could not copy image"
       description="Your browser may block image copy. Download PNG instead."
       color="warning"
@@ -69,6 +67,7 @@ async function copyQrImage() {
     />
     <div class="flex flex-wrap justify-center gap-2">
       <UButton
+        v-if="isSupported"
         size="sm"
         :label="copied ? 'Copied' : 'Copy image'"
         :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"

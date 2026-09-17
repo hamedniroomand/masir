@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
   if (body.slug) {
     const parsed = v.safeParse(slugSchema, body.slug);
     if (!parsed.success) {
-      const reason = parsed.issues[0]!.message;
+      const reason = parsed.issues[0]?.message ?? 'Invalid input.';
       throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
     }
     slug = parsed.output;
@@ -123,14 +123,14 @@ export default defineEventHandler(async (event) => {
     const tagMap = await tagNamesByLinkIds([link.id]);
     return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
   }
-  catch (e) {
-    if (e instanceof SlugTakenError) {
+  catch (error) {
+    if (error instanceof SlugTakenError) {
       throw createError({ statusCode: 409, statusMessage: 'This short link is already taken.', data: { reason: 'This short link is already taken.' } });
     }
-    if (e instanceof SlugExhaustedError) {
+    if (error instanceof SlugExhaustedError) {
       await writeSecurityEvent('slug_generation_exhausted', {}, user.id);
       throw createError({ statusCode: 500, statusMessage: 'Could not generate a slug.' });
     }
-    throw e;
+    throw error;
   }
 });

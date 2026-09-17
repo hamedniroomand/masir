@@ -26,11 +26,13 @@ export default defineEventHandler(async (event) => {
     });
     await writeSecurityEvent('campaign_created', { name: body.name }, user.id);
     setResponseStatus(event, 201);
-    return campaignToDto(campaign!);
+    if (!campaign)
+      throw createError({ statusCode: 500, statusMessage: 'Campaign could not be read back' });
+    return campaignToDto(campaign);
   }
-  catch (e) {
-    if (e instanceof CampaignTakenError)
+  catch (error) {
+    if (error instanceof CampaignTakenError)
       throw createError({ statusCode: 409, statusMessage: 'Another campaign already uses this utm_campaign value.', data: { reason: 'Another campaign already uses this utm_campaign value.' } });
-    throw e;
+    throw error;
   }
 });

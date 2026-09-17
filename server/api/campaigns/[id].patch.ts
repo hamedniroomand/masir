@@ -34,11 +34,13 @@ export default defineEventHandler(async (event) => {
   try {
     const updated = await updateCampaign(id, workspaceId, patch);
     await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, user.id);
-    return campaignToDto(updated!);
+    if (!updated)
+      throw createError({ statusCode: 404, statusMessage: 'Campaign not found' });
+    return campaignToDto(updated);
   }
-  catch (e) {
-    if (e instanceof CampaignTakenError)
+  catch (error) {
+    if (error instanceof CampaignTakenError)
       throw createError({ statusCode: 409, statusMessage: 'Another campaign already uses this utm_campaign value.', data: { reason: 'Another campaign already uses this utm_campaign value.' } });
-    throw e;
+    throw error;
   }
 });

@@ -10,6 +10,6 @@ export async function readValidBody<S extends BaseSchema<unknown, unknown, BaseI
   const result = safeParse(schema, await readBody(event));
   if (result.success)
     return result.output;
-  const reason = result.issues[0]!.message;
+  const reason = result.issues[0]?.message ?? 'Invalid input.';
   throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
 }

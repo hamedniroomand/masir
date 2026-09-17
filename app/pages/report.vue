@@ -30,8 +30,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     await $fetch('/api/report', { method: 'POST', body: { slug: state.slug, reason: state.reason } });
     done.value = true;
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
   finally {
     loading.value = false;
