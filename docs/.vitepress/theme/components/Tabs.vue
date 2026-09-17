@@ -4,18 +4,16 @@
   import { icon } from '../../icons';
   import { TABS } from '../tabs';
 
-  interface TabProps {
+  type TabProps = {
     label?: string;
     icon?: string;
   }
 
   const slots = useSlots();
 
-  /**
-   * Read the tabs from the slot vnodes, not from the children themselves. A
-   * child registers during its own setup, which runs after this template asks
-   * for the list, so registration renders an empty strip on the server.
-   */
+  // Read the tabs from the slot vnodes, not from the children. A child
+  // registers during its own setup, which runs after this template asks for
+  // the list, so registration renders an empty strip on the server.
   function walk(nodes: VNode[], found: TabProps[] = []): TabProps[] {
     for (const node of nodes) {
       if (Array.isArray(node.children)) walk(node.children as VNode[], found);

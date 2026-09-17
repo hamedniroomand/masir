@@ -1,12 +1,12 @@
 export type DeploymentMode = 'CLOUD' | 'SELF_HOSTED';
 
-export interface DeploymentConfig {
+export type DeploymentConfig = {
   deploymentMode: DeploymentMode;
   rootDomain: string;
   multiWorkspace: boolean;
   trialDays: number;
   allowRegistration: boolean;
-}
+};
 
 const IP_HOST = /^\d{1,3}(?:\.\d{1,3}){3}$|^\[[\da-f:]+\]$/i;
 

@@ -6,17 +6,17 @@ import { can } from '#shared/permissions';
 
 // The session is sealed as JSON, so it holds a flag and not a date. A Date
 // would come back as a string and every comparison on it would be wrong.
-export interface SessionUser {
+export type SessionUser = {
   id: string;
   email: string;
   emailVerified: boolean;
   sessionVersion: number;
-}
+};
 
-export interface WorkspaceContext {
+export type WorkspaceContext = {
   workspaceId: string;
   role: WorkspaceRole;
-}
+};
 
 export async function requireUser(event: H3Event): Promise<SessionUser> {
   const session = await requireUserSession(event);

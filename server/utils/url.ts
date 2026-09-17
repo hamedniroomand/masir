@@ -1,5 +1,5 @@
-interface Ok { ok: true; url: string }
-interface Fail { ok: false; reason: string }
+type Ok = { ok: true; url: string };
+type Fail = { ok: false; reason: string };
 
 export function validateDestination(input: string, allowPrivate: boolean): Ok | Fail {
   if (input.length > 2048)

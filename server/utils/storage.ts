@@ -2,13 +2,13 @@ import type { DeploymentMode } from '#shared/deployment';
 import { fileProvider } from '#server/utils/storage-file';
 import { s3Provider } from '#server/utils/storage-s3';
 
-export interface StorageDriver {
+export type StorageDriver = {
   put: (key: string, data: Uint8Array, contentType: string) => Promise<void>;
   delete: (key: string) => Promise<void>;
   publicUrl: (key: string) => string;
-}
+};
 
-export interface StorageConfig {
+export type StorageConfig = {
   driver: string;
   // The key stays localRoot so NUXT_STORAGE_LOCAL_ROOT keeps its meaning.
   localRoot: string;
@@ -17,17 +17,17 @@ export interface StorageConfig {
   secretAccessKey: string;
   bucket: string;
   endpoint: string;
-}
+};
 
 // One strategy for each backend. create() gives back null when the config holds
 // no credentials for that backend, so the resolver can try the next one.
-export interface StorageProvider {
+export type StorageProvider = {
   name: string;
   // true when the provider needs a disk that lives longer than one request. An
   // edge or serverless runtime has none.
   needsDisk?: boolean;
   create: (config: StorageConfig) => StorageDriver | null;
-}
+};
 
 const providers = new Map<string, StorageProvider>();
 

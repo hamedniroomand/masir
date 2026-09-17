@@ -2,18 +2,18 @@ import { outboxProvider } from '#server/utils/mail-outbox';
 import { resendProvider } from '#server/utils/mail-resend';
 import { smtpProvider } from '#server/utils/mail-smtp';
 
-export interface MailMessage {
+export type MailMessage = {
   to: string;
   subject: string;
   html: string;
   text: string;
-}
+};
 
-export interface MailDriver {
+export type MailDriver = {
   send: (message: MailMessage) => Promise<void>;
-}
+};
 
-export interface MailConfig {
+export type MailConfig = {
   driver: string;
   from: string;
   apiKey: string;
@@ -25,14 +25,14 @@ export interface MailConfig {
     secure: boolean;
     poolMax: number;
   };
-}
+};
 
 // One strategy for each transport. create() gives back null when the config
 // holds no credentials for that transport, so the resolver can try the next one.
-export interface MailProvider {
+export type MailProvider = {
   name: string;
   create: (config: MailConfig) => MailDriver | null;
-}
+};
 
 const providers = new Map<string, MailProvider>();
 

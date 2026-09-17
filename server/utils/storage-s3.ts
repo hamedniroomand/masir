@@ -2,8 +2,7 @@ import type { StorageDriver, StorageProvider } from '#server/utils/storage';
 import { S3Client } from 'bun';
 import { assertSafeKey } from '#server/utils/storage-key';
 
-// Bun holds the S3 client. The same driver serves S3, R2 and any other bucket
-// with an S3 endpoint.
+// One driver serves S3, R2 and any other bucket with an S3 endpoint.
 export function createS3Driver(options: {
   accessKeyId: string;
   secretAccessKey: string;

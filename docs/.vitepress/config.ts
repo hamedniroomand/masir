@@ -5,7 +5,7 @@ import { icon } from './icons.ts';
 const DESCRIPTION
   = 'Linkyard is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
 
-/** Sidebar links carry the icon the page used to declare in its frontmatter. */
+// Sidebar links carry the icon the page used to declare in its frontmatter.
 function link(name: string, text: string, path: string) {
   return { text: icon(name) + text, link: path };
 }

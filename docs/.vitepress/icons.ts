@@ -1,10 +1,5 @@
-/**
- * Lucide glyphs, inlined.
- *
- * The docs name icons the way the previous site did (`i-lucide-*`). Shipping
- * the handful of paths in use keeps that naming without an icon dependency or
- * a runtime fetch. Add a glyph here when a page asks for a new one.
- */
+// Inlined Lucide glyphs. Shipping the paths in use keeps the i-lucide-* naming
+// without an icon dependency or a runtime fetch.
 const PATHS: Record<string, string> = {
   'building-2':
     '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',

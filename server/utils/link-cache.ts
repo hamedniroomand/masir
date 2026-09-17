@@ -1,9 +1,9 @@
 import type { ResolvedLink } from '#server/database/schema';
 
-interface CacheEntry {
+type CacheEntry = {
   link: ResolvedLink | null;
   expiresAtMs: number;
-}
+};
 
 const POSITIVE_TTL_MS = 60_000;
 const NEGATIVE_TTL_MS = 15_000;

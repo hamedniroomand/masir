@@ -153,7 +153,7 @@ export async function setSessionUser(event: H3Event, user: User) {
   await markLogin(user.id);
 }
 
-export interface OAuthProfile {
+export type OAuthProfile = {
   sub?: string;
   id?: string;
   email?: string | null;
@@ -165,7 +165,7 @@ export interface OAuthProfile {
   givenName?: string | null;
   surname?: string | null;
   picture?: string | null;
-}
+};
 
 export function oauthEmailOf(provider: AuthProvider, profile: OAuthProfile): string | null {
   if (provider === 'GOOGLE')

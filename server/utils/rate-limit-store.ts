@@ -1,11 +1,11 @@
-export interface RateLimitHit {
+export type RateLimitHit = {
   count: number;
   resetAt: number;
-}
+};
 
-export interface RateLimitStore {
+export type RateLimitStore = {
   hit: (key: string, windowMs: number) => Promise<RateLimitHit>;
-}
+};
 
 const MAXIMUM_KEYS = 10_000;
 

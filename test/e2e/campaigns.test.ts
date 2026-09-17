@@ -4,7 +4,7 @@ import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUr
 
 const TEST_DB = testDatabaseUrl('campaigns');
 
-interface CampaignDto { id: string; name: string; utmCampaign: string; utmMedium: string | null; linkCount: number; clickCount: number }
+type CampaignDto = { id: string; name: string; utmCampaign: string; utmMedium: string | null; linkCount: number; clickCount: number };
 
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
