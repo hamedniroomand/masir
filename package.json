@@ -35,6 +35,7 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.133",
     "@iconify-json/simple-icons": "^1.2.96",
+    "@internationalized/date": "^3.12.4",
     "@nuxt/ui": "^4.11.1",
     "drizzle-orm": "rc",
     "nodemailer": "^10.0.10",

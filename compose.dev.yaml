@@ -38,7 +38,7 @@ services:
   app:
     image: oven/bun:1
     working_dir: /app
-    command: sh -c "bun install --frozen-lockfile --filter masir && bun run dev --host 0.0.0.0"
+    command: sh -c "bun ci && bun --bun nuxt dev --host 0.0.0.0"
     ports:
       - '${MASIR_APP_PORT:-3000}:3000'
     env_file: .env
