@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
 import { hashAuthToken, newAuthToken } from '#server/utils/auth-token';
 
@@ -13,17 +14,18 @@ describe('newAuthToken', () => {
 });
 
 describe('hashAuthToken', () => {
+  it('returns 32 bytes', () => {
+    const hash = hashAuthToken(newAuthToken());
+    expect(Buffer.isBuffer(hash)).toBe(true);
+    expect(hash.length).toBe(32);
+  });
+
   it('is stable for the same token', () => {
     const token = newAuthToken();
-    expect(hashAuthToken(token)).toBe(hashAuthToken(token));
+    expect(hashAuthToken(token)).toEqual(hashAuthToken(token));
   });
 
   it('differs for a different token', () => {
-    expect(hashAuthToken(newAuthToken())).not.toBe(hashAuthToken(newAuthToken()));
-  });
-
-  it('never returns the raw token', () => {
-    const token = newAuthToken();
-    expect(hashAuthToken(token)).not.toContain(token);
+    expect(hashAuthToken(newAuthToken())).not.toEqual(hashAuthToken(newAuthToken()));
   });
 });

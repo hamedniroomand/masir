@@ -1,5 +1,4 @@
 import * as v from 'valibot';
-import { passwordResetTokens } from '#server/database/schema';
 import { resetPasswordMessage } from '#server/emails/reset-password';
 import { createAuthToken, RESET_LIFETIME_MS } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
@@ -27,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const user = await findUserByEmail(email);
   if (user) {
     const { rootDomain } = useRuntimeConfig();
-    const raw = await createAuthToken(passwordResetTokens, user.id, RESET_LIFETIME_MS);
+    const raw = await createAuthToken('password_reset', user.id, RESET_LIFETIME_MS);
     const link = `${rootDomain.replace(/\/$/, '')}/reset-password?token=${raw}`;
     await sendMail(resetPasswordMessage(email, link));
   }

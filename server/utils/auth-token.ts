@@ -1,12 +1,9 @@
-import type { passwordResetTokens } from '#server/database/schema';
+import type { TokenPurpose } from '#server/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import { emailVerificationTokens } from '#server/database/schema';
+import { userTokens } from '#server/database/schema';
 import { verifyEmailMessage } from '#server/emails/verify-email';
 import { getDb } from '#server/utils/db';
 import { sendMail } from '#server/utils/mail';
-import { newId } from '#shared/id';
-
-export type AuthTokenTable = typeof emailVerificationTokens | typeof passwordResetTokens;
 
 export const VERIFICATION_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const RESET_LIFETIME_MS = 60 * 60 * 1000;
@@ -19,29 +16,29 @@ export function newAuthToken() {
 
 // The database holds the hash. A stolen database row cannot be replayed.
 export function hashAuthToken(raw: string) {
-  return new Bun.CryptoHasher('sha256').update(raw).digest('hex');
+  return new Bun.CryptoHasher('sha256').update(raw).digest();
 }
 
-export async function createAuthToken(table: AuthTokenTable, userId: string, lifetimeMs: number) {
+export async function createAuthToken(purpose: TokenPurpose, userId: string, lifetimeMs: number) {
   const db = await getDb();
   const raw = newAuthToken();
-  await db.insert(table).values({
-    id: newId(),
+  await db.insert(userTokens).values({
     userId,
+    purpose,
     tokenHash: hashAuthToken(raw),
     expiresAt: new Date(Date.now() + lifetimeMs),
-    consumedAt: null,
-    createdAt: new Date(),
   });
   return raw;
 }
 
-export async function consumeAuthToken(table: AuthTokenTable, raw: string): Promise<
+export async function consumeAuthToken(purpose: TokenPurpose, raw: string): Promise<
   { ok: true; userId: string } | { ok: false; reason: 'invalid' | 'expired' | 'used' }
 > {
   const db = await getDb();
-  const hash = hashAuthToken(raw);
-  const rows = await db.select().from(table).where(eq(table.tokenHash, hash)).limit(1);
+  const rows = await db.select().from(userTokens).where(and(
+    eq(userTokens.purpose, purpose),
+    eq(userTokens.tokenHash, hashAuthToken(raw)),
+  )).limit(1);
   const row = rows[0];
   if (!row)
     return { ok: false, reason: 'invalid' };
@@ -52,26 +49,30 @@ export async function consumeAuthToken(table: AuthTokenTable, raw: string): Prom
 
   // The guard makes the read and the write one statement, so two requests
   // carrying the same token cannot both succeed.
-  const claimed = await db.update(table)
+  const claimed = await db.update(userTokens)
     .set({ consumedAt: new Date() })
-    .where(and(eq(table.id, row.id), isNull(table.consumedAt)))
-    .returning({ id: table.id });
+    .where(and(eq(userTokens.id, row.id), isNull(userTokens.consumedAt)))
+    .returning({ id: userTokens.id });
   if (!claimed.length)
     return { ok: false, reason: 'used' };
 
   return { ok: true, userId: row.userId };
 }
 
-export async function revokeAuthTokens(table: AuthTokenTable, userId: string) {
+export async function revokeAuthTokens(purpose: TokenPurpose, userId: string) {
   const db = await getDb();
-  await db.update(table)
+  await db.update(userTokens)
     .set({ consumedAt: new Date() })
-    .where(and(eq(table.userId, userId), isNull(table.consumedAt)));
+    .where(and(
+      eq(userTokens.purpose, purpose),
+      eq(userTokens.userId, userId),
+      isNull(userTokens.consumedAt),
+    ));
 }
 
 export async function sendVerification(userId: string, email: string) {
   const { rootDomain } = useRuntimeConfig();
-  const raw = await createAuthToken(emailVerificationTokens, userId, VERIFICATION_LIFETIME_MS);
+  const raw = await createAuthToken('email_verify', userId, VERIFICATION_LIFETIME_MS);
   const link = `${rootDomain.replace(/\/$/, '')}/verify-email?token=${raw}`;
   await sendMail(verifyEmailMessage(email, link));
 }

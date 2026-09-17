@@ -1,7 +1,6 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { authIdentities } from '#server/database/schema';
-import { newId } from '#shared/id';
 import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
@@ -46,20 +45,14 @@ describe('connected identities', async () => {
 
   it('disconnects one identity when another remains', async () => {
     const db = openTestDatabase(TEST_DB);
-    const extraId = newId();
-    const now = new Date();
-    await db.insert(authIdentities).values({
-      id: extraId,
+    const [extra] = await db.insert(authIdentities).values({
       userId,
-      provider: 'GOOGLE',
+      provider: 'google',
       providerAccountId: 'google-account-1',
-      passwordHash: null,
-      createdAt: now,
-      updatedAt: now,
-    });
+    }).returning();
 
     const cookie = await loginCookie();
-    const res = await $fetch<{ ok: boolean }>(`/api/auth/identities/${extraId}`, {
+    const res = await $fetch<{ ok: boolean }>(`/api/auth/identities/${extra!.id}`, {
       method: 'DELETE',
       headers: { cookie },
     });
@@ -71,7 +64,7 @@ describe('connected identities', async () => {
 
   it('refuses to disconnect an identity of another user', async () => {
     const cookie = await loginCookie();
-    await expect($fetch(`/api/auth/identities/${newId()}`, {
+    await expect($fetch(`/api/auth/identities/${Bun.randomUUIDv7()}`, {
       method: 'DELETE',
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 404 });

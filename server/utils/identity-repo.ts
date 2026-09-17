@@ -1,9 +1,32 @@
 import type { H3Event } from 'h3';
-import type { AuthIdentity, AuthProvider, User } from '#server/database/schema';
+import type { AuthIdentity, AuthProviderLabel, User } from '#server/database/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { authIdentities, users } from '#server/database/schema';
-import { getDb } from '#server/utils/db';
-import { newId } from '#shared/id';
+import { getDb, isUuid } from '#server/utils/db';
+
+export const authProviders = ['PASSWORD', 'GOOGLE', 'MICROSOFT'] as const;
+
+export type AuthProvider = typeof authProviders[number];
+
+// The API keeps its uppercase strings. The database keeps lowercase enum
+// labels. The two maps are the only place the two spellings meet.
+const PROVIDER_LABEL: Record<AuthProvider, AuthProviderLabel> = {
+  PASSWORD: 'password',
+  GOOGLE: 'google',
+  MICROSOFT: 'microsoft',
+};
+
+const PROVIDER_NAME: Record<AuthProviderLabel, AuthProvider> = {
+  password: 'PASSWORD',
+  google: 'GOOGLE',
+  microsoft: 'MICROSOFT',
+};
+
+export type Identity = Omit<AuthIdentity, 'provider'> & { provider: AuthProvider };
+
+function toIdentity(row: AuthIdentity): Identity {
+  return { ...row, provider: PROVIDER_NAME[row.provider] };
+}
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -22,23 +45,27 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function findUserById(id: string): Promise<User | null> {
+  if (!isUuid(id))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
-export async function findIdentity(provider: AuthProvider, providerAccountId: string): Promise<AuthIdentity | null> {
+export async function findIdentity(provider: AuthProvider, providerAccountId: string): Promise<Identity | null> {
   const db = await getDb();
   const rows = await db.select().from(authIdentities).where(and(
-    eq(authIdentities.provider, provider),
+    eq(authIdentities.provider, PROVIDER_LABEL[provider]),
     eq(authIdentities.providerAccountId, providerAccountId),
   )).limit(1);
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? toIdentity(row) : null;
 }
 
-export async function listIdentities(userId: string): Promise<AuthIdentity[]> {
+export async function listIdentities(userId: string): Promise<Identity[]> {
   const db = await getDb();
-  return db.select().from(authIdentities).where(eq(authIdentities.userId, userId));
+  const rows = await db.select().from(authIdentities).where(eq(authIdentities.userId, userId));
+  return rows.map(toIdentity);
 }
 
 export async function createUserWithIdentity(input: {
@@ -52,37 +79,27 @@ export async function createUserWithIdentity(input: {
   avatarUrl?: string | null;
 }): Promise<User> {
   const db = await getDb();
-  const now = new Date();
-  const id = newId();
 
-  await db.transaction(async (tx) => {
-    await tx.insert(users).values({
-      id,
+  return db.transaction(async (tx) => {
+    const [created] = await tx.insert(users).values({
       email: normalizeEmail(input.email),
-      emailVerifiedAt: input.emailVerified ? now : null,
+      emailVerifiedAt: input.emailVerified ? new Date() : null,
       firstName: input.firstName ?? null,
       lastName: input.lastName ?? null,
       avatarUrl: input.avatarUrl ?? null,
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: null,
-    });
-    await tx.insert(authIdentities).values({
-      id: newId(),
-      userId: id,
-      provider: input.provider,
-      // A password identity has no external account, so the user id serves.
-      providerAccountId: input.providerAccountId ?? id,
-      passwordHash: input.passwordHash ?? null,
-      createdAt: now,
-      updatedAt: now,
-    });
-  });
+    }).returning();
+    if (!created)
+      throw new Error('insert failed');
 
-  const created = await findUserById(id);
-  if (!created)
-    throw new Error('insert failed');
-  return created;
+    await tx.insert(authIdentities).values({
+      userId: created.id,
+      provider: PROVIDER_LABEL[input.provider],
+      // A password identity has no external account, so the user id serves.
+      providerAccountId: input.providerAccountId ?? created.id,
+      passwordHash: input.passwordHash ?? null,
+    });
+    return created;
+  });
 }
 
 export async function attachIdentity(userId: string, input: {
@@ -91,15 +108,11 @@ export async function attachIdentity(userId: string, input: {
   passwordHash?: string | null;
 }) {
   const db = await getDb();
-  const now = new Date();
   await db.insert(authIdentities).values({
-    id: newId(),
     userId,
-    provider: input.provider,
+    provider: PROVIDER_LABEL[input.provider],
     providerAccountId: input.providerAccountId ?? userId,
     passwordHash: input.passwordHash ?? null,
-    createdAt: now,
-    updatedAt: now,
   });
 }
 
