@@ -73,21 +73,22 @@ inside a workspace, so every one of them carries its team's subdomain.
 
 ## Local development
 
-Multi-workspace mode works locally. `*.localhost` resolves in Chrome and Firefox
-with no hosts-file entry:
+Multi-workspace mode works locally, but not on `localhost`. Chrome stores a
+cookie for `localhost` as host-only and ignores a `Domain=.localhost`
+attribute, so a session started on `localhost:3000` never reaches
+`acme.localhost:3000` and every workspace asks you to sign in again. Use a
+hostname with a dot. `lvh.me` and every name under it resolve to `127.0.0.1`
+through public DNS, so nothing needs a hosts-file entry:
 
 ```sh [.env]
 NUXT_MULTI_WORKSPACE=true
-NUXT_ROOT_DOMAIN=http://localhost:3000
-NUXT_SESSION_COOKIE_DOMAIN=.localhost
+NUXT_ROOT_DOMAIN=http://lvh.me:3000
+NUXT_PUBLIC_SHORT_DOMAIN=http://lvh.me:3000
+NUXT_SESSION_COOKIE_DOMAIN=.lvh.me
 ```
 
-Then browse to `http://acme.localhost:3000`.
-
-::: warning Safari
-Safari does not resolve `*.localhost` reliably. Use Chrome or Firefox for
-multi-workspace development, or add explicit hosts entries.
-:::
+Then browse to `http://acme.lvh.me:3000`. Offline, add `lvh.me` and the
+workspace names you use to `/etc/hosts` instead.
 
 An IP address cannot hold a wildcard subdomain, and Masir refuses to boot if
 you combine `NUXT_MULTI_WORKSPACE=true` with an IP in `NUXT_ROOT_DOMAIN`.
