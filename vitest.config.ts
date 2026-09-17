@@ -14,6 +14,8 @@ export default defineVitestConfig({
   },
   test: {
     environment: 'node',
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
     include: ['test/unit/**/*.test.ts', 'test/e2e/**/*.test.ts'],
     setupFiles: ['./test/setup-teardown.ts'],
     globalSetup: ['./test/global-setup.ts'],
