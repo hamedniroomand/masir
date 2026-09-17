@@ -1,3 +1,4 @@
+import { clientIp } from '#server/utils/client-ip';
 import { resolveRateLimitStore } from '#server/utils/rate-limit-store';
 
 const salt = crypto.randomUUID();
@@ -19,6 +20,7 @@ export async function rateLimitCheck(
 
 // The signature stays async because every caller awaits it.
 export async function hashClientKey(event: import('h3').H3Event): Promise<string> {
-  const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
+  const { trustedProxyDepth } = useRuntimeConfig();
+  const ip = clientIp(event, Number(trustedProxyDepth) || 0);
   return new Bun.CryptoHasher('sha256').update(`${salt}:${ip}`).digest('hex');
 }

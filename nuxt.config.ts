@@ -67,6 +67,9 @@ export default defineNuxtConfig({
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,
+    // How many proxies sit in front. 0 reads the socket and ignores
+    // X-Forwarded-For, because a caller can write that header themselves.
+    trustedProxyDepth: 0,
     rateLimitCreatePerHour: 30,
     rateLimitRedirectPerMinute: 120,
     rateLimitPasswordPerMinute: 10,

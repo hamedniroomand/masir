@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3';
-import { getRequestHeaders, getRequestIP } from 'h3';
+import { getRequestHeaders } from 'h3';
+import { clientIp } from '#server/utils/client-ip';
 
 // The day number is public. Without a secret, an attacker can try each IP address
 // and find the visitor. The IP space is small enough to search.
@@ -9,9 +10,10 @@ export function dailyVisitorSalt(secret: string) {
 
 // ponytail: shared IP merges visitors; upgrade path is none — deliberate privacy trade
 export function visitorHashForLink(event: H3Event, linkId: string): string {
-  const { sessionPassword } = useRuntimeConfig();
+  const { sessionPassword, trustedProxyDepth } = useRuntimeConfig();
   const salt = dailyVisitorSalt(sessionPassword);
-  const ip = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
+  // A caller who picks their own address counts as a new visitor on every hit.
+  const ip = clientIp(event, Number(trustedProxyDepth) || 0);
   const ua = getRequestHeaders(event)['user-agent'] ?? '';
   return new Bun.CryptoHasher('sha256')
     .update(`${salt}:${linkId}:${ip}:${ua}`)
