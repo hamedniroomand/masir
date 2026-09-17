@@ -35,3 +35,13 @@ test('answers 404 for a subdomain that names no workspace', async ({ page, serve
   expect(response?.status()).toBe(404);
   await expect(page.getByText('Workspace not found')).toBeVisible();
 });
+
+// The shell must follow the host, not the first membership in the list. A
+// wrong pick shows one workspace and edits another.
+test('shows the workspace the host names, not the first membership', async ({ page, login, server }) => {
+  await login();
+  await page.goto(`${server.hostUrl('beta')}/settings/workspace`);
+  await expect(page.getByRole('button', { name: /Beta/ })).toBeVisible();
+  await expect(page.getByLabel('Workspace name')).toHaveValue('Beta');
+  await expect(page.getByLabel('Workspace address')).toHaveValue('beta');
+});

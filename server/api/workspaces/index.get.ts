@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const rows = await listMembershipsForUser(user.id);
   return {
     multiWorkspace: Boolean(config.multiWorkspace),
+    currentId: (event.context.workspace as { id: string } | undefined)?.id ?? null,
     items: rows.map(row => ({
       id: row.workspace.id,
       name: row.workspace.name,

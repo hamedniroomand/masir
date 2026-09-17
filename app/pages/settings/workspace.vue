@@ -1,11 +1,11 @@
 <script setup lang="ts">
 type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
 
-const { data } = await useFetch<{ items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
+const { data } = await useFetch<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
-const current = computed(() => data.value?.items[0] ?? null);
+const current = computed(() => data.value?.items.find(workspace => workspace.id === data.value?.currentId) ?? null);
 const name = ref('');
 const message = ref('');
 const error = ref('');

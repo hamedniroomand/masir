@@ -14,7 +14,7 @@ block. Read them for every version between yours and the one you install.
 - Links with slugs, destinations, tags, schedules, passwords, and expiry
 - Campaigns with UTM defaults
 - Workspaces, members, roles, and invitations
-- Password, Google, and Microsoft sign-in with email verification
+- Password, Google, and Microsoft sign-in with email verification; an account password needs at least 8 characters with at least 1 number and 1 sign, and the register and reset forms show the rules as you type
 - Login and register pages show only the configured sign-in providers first; a link reveals the email and password form
 - Click analytics without IP storage
 - Self-hosted and multi-workspace deployment modes
@@ -62,6 +62,9 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- The sidebar and the workspace settings page show the workspace the host
+  names, not the first membership; the root host of a multi-workspace instance
+  goes to the workspace chooser
 - A short link that does not exist, or a slug on a host without a workspace,
   answers 404 again instead of the application shell
 - The test servers no longer inherit the developer's `.env`, which made the
