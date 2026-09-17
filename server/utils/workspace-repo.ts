@@ -116,3 +116,71 @@ export async function createWorkspaceWithOwner(input: {
   const rows = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
   return rows[0]!;
 }
+
+export async function listMembers(workspaceId: string) {
+  const db = await getDb();
+  return db.select({
+    id: workspaceMembers.id,
+    userId: workspaceMembers.userId,
+    role: workspaceMembers.role,
+    deactivatedAt: workspaceMembers.deactivatedAt,
+    email: users.email,
+    firstName: users.firstName,
+    lastName: users.lastName,
+    createdAt: workspaceMembers.createdAt,
+  })
+    .from(workspaceMembers)
+    .innerJoin(users, eq(workspaceMembers.userId, users.id))
+    .where(eq(workspaceMembers.workspaceId, workspaceId));
+}
+
+export async function findMemberById(id: string, workspaceId: string) {
+  const db = await getDb();
+  const rows = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId))).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function setMemberDeactivated(id: string, workspaceId: string, deactivated: boolean) {
+  const db = await getDb();
+  // The flag lives on the membership. The same person may work in another
+  // workspace, and that one must not change.
+  await db.update(workspaceMembers)
+    .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
+    .where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId)));
+}
+
+export async function removeMember(id: string, workspaceId: string) {
+  const db = await getDb();
+  const changed = await db.delete(workspaceMembers)
+    .where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId)))
+    .returning({ id: workspaceMembers.id });
+  return changed.length > 0;
+}
+
+// The old owner drops to MEMBER first. The partial unique index refuses two
+// owners, so raising the new one before lowering the old one would fail.
+export async function transferOwnership(workspaceId: string, fromMemberId: string, toMemberId: string) {
+  const db = await getDb();
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx.update(workspaceMembers)
+      .set({ role: 'MEMBER', updatedAt: now })
+      .where(and(eq(workspaceMembers.id, fromMemberId), eq(workspaceMembers.workspaceId, workspaceId)));
+    await tx.update(workspaceMembers)
+      .set({ role: 'OWNER', deactivatedAt: null, updatedAt: now })
+      .where(and(eq(workspaceMembers.id, toMemberId), eq(workspaceMembers.workspaceId, workspaceId)));
+  });
+}
+
+export async function updateWorkspace(workspaceId: string, patch: { name?: string; logoUrl?: string | null }) {
+  const db = await getDb();
+  await db.update(workspaces).set({ ...patch, updatedAt: new Date() }).where(eq(workspaces.id, workspaceId));
+  return findWorkspaceById(workspaceId);
+}
+
+export async function softDeleteWorkspace(workspaceId: string) {
+  const db = await getDb();
+  await db.update(workspaces)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(eq(workspaces.id, workspaceId));
+}
