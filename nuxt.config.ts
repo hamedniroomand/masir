@@ -25,6 +25,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    migrateOnBoot: true,
     // nuxt-auth-utils declares session.cookie without a domain key, and Nitro's
     // applyEnv only overwrites keys that already exist. Without this line
     // NUXT_SESSION_COOKIE_DOMAIN can never bind, and multi-workspace mode
