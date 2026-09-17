@@ -18,7 +18,7 @@ export function campaignToDto(campaign: typeof campaigns.$inferSelect, stats?: {
   };
 }
 
-export async function listCampaigns(userId: string) {
+export async function listCampaigns(workspaceId: string) {
   const db = await getDb();
   const rows = await db.select({
     campaign: campaigns,
@@ -27,7 +27,7 @@ export async function listCampaigns(userId: string) {
   })
     .from(campaigns)
     .leftJoin(links, eq(links.campaignId, campaigns.id))
-    .where(eq(campaigns.userId, userId))
+    .where(eq(campaigns.workspaceId, workspaceId))
     .groupBy(campaigns.id)
     .orderBy(desc(campaigns.createdAt));
 
@@ -37,14 +37,15 @@ export async function listCampaigns(userId: string) {
   }));
 }
 
-export async function findCampaignForUser(id: string, userId: string) {
+export async function findCampaignForWorkspace(id: string, workspaceId: string) {
   const db = await getDb();
-  const rows = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.userId, userId))).limit(1);
+  const rows = await db.select().from(campaigns).where(and(eq(campaigns.id, id), eq(campaigns.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
 }
 
 export async function createCampaign(input: {
-  userId: string;
+  workspaceId: string;
+  createdByUserId: string;
   name: string;
   utmCampaign: string;
   utmMedium: string | null;
@@ -55,7 +56,8 @@ export async function createCampaign(input: {
   try {
     await db.insert(campaigns).values({
       id,
-      userId: input.userId,
+      workspaceId: input.workspaceId,
+      createdByUserId: input.createdByUserId,
       name: input.name,
       utmCampaign: input.utmCampaign,
       utmMedium: input.utmMedium,
@@ -68,15 +70,15 @@ export async function createCampaign(input: {
       throw new CampaignTakenError();
     throw e;
   }
-  return findCampaignForUser(id, input.userId);
+  return findCampaignForWorkspace(id, input.workspaceId);
 }
 
-export async function updateCampaign(id: string, userId: string, patch: {
+export async function updateCampaign(id: string, workspaceId: string, patch: {
   name?: string;
   utmCampaign?: string;
   utmMedium?: string | null;
 }) {
-  const existing = await findCampaignForUser(id, userId);
+  const existing = await findCampaignForWorkspace(id, workspaceId);
   if (!existing)
     return null;
 
@@ -90,11 +92,11 @@ export async function updateCampaign(id: string, userId: string, patch: {
     throw e;
   }
   invalidateAllLinks();
-  return findCampaignForUser(id, userId);
+  return findCampaignForWorkspace(id, workspaceId);
 }
 
-export async function deleteCampaign(id: string, userId: string) {
-  const existing = await findCampaignForUser(id, userId);
+export async function deleteCampaign(id: string, workspaceId: string) {
+  const existing = await findCampaignForWorkspace(id, workspaceId);
   if (!existing)
     return false;
 

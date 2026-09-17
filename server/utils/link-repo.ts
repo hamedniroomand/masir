@@ -1,3 +1,4 @@
+import type { DeploymentConfig } from '#shared/deployment';
 import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, linkTags, reservedSlugs, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation } from '#server/utils/db';
@@ -5,19 +6,20 @@ import { SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#
 import { invalidateLink } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
+import { workspaceUrl } from '#shared/deployment';
 import { newId } from '#shared/id';
 import { deriveLinkStatus } from '#shared/link-status';
 import { generateSlug } from '#shared/slug';
 
 const countAll = sql<number>`count(*)::int`;
 
-export function shortUrlFor(slug: string) {
-  const { public: { shortDomain } } = useRuntimeConfig();
-  const base = shortDomain.replace(/\/$/, '');
-  return `${base}/${slug}`;
+export function shortUrlFor(workspaceSlug: string, linkSlug: string) {
+  const config = useRuntimeConfig();
+  const base = workspaceUrl(workspaceSlug, config as unknown as DeploymentConfig);
+  return `${base}/${linkSlug}`;
 }
 
-export function linkToDto(link: typeof links.$inferSelect, tagNames: string[] = []) {
+export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string, tagNames: string[] = []) {
   return {
     id: link.id,
     slug: link.slug,
@@ -40,7 +42,7 @@ export function linkToDto(link: typeof links.$inferSelect, tagNames: string[] = 
     tags: tagNames,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
-    shortUrl: shortUrlFor(link.slug),
+    shortUrl: shortUrlFor(workspaceSlug, link.slug),
     status: deriveLinkStatus({
       isEnabled: link.isEnabled,
       expiresAt: link.expiresAt,
@@ -51,7 +53,7 @@ export function linkToDto(link: typeof links.$inferSelect, tagNames: string[] = 
   };
 }
 
-export async function findLinkBySlug(slug: string) {
+export async function findLinkBySlug(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
     link: links,
@@ -60,7 +62,7 @@ export async function findLinkBySlug(slug: string) {
   })
     .from(links)
     .leftJoin(campaigns, eq(links.campaignId, campaigns.id))
-    .where(eq(links.slug, slug))
+    .where(and(eq(links.workspaceId, workspaceId), eq(links.slug, slug)))
     .limit(1);
   const row = rows[0];
   if (!row)
@@ -72,20 +74,21 @@ export async function findLinkBySlug(slug: string) {
   };
 }
 
-export async function findLinkByIdForUser(id: string, userId: string) {
+export async function findLinkById(id: string, workspaceId: string) {
   const db = await getDb();
-  const rows = await db.select().from(links).where(and(eq(links.id, id), eq(links.userId, userId))).limit(1);
+  const rows = await db.select().from(links).where(and(eq(links.id, id), eq(links.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
 }
 
-export async function isSlugReserved(slug: string) {
+export async function isSlugReserved(workspaceId: string, slug: string) {
   const db = await getDb();
-  const rows = await db.select().from(reservedSlugs).where(eq(reservedSlugs.slug, slug)).limit(1);
+  const rows = await db.select().from(reservedSlugs).where(and(eq(reservedSlugs.workspaceId, workspaceId), eq(reservedSlugs.slug, slug))).limit(1);
   return rows.length > 0;
 }
 
 export async function createLink(input: {
-  userId: string;
+  workspaceId: string;
+  createdByUserId: string;
   destinationUrl: string;
   title?: string | null;
   slug?: string;
@@ -107,13 +110,14 @@ export async function createLink(input: {
   const gen = input.slugGenerator ?? (() => generateSlug());
 
   async function attempt(slug: string) {
-    if (await isSlugReserved(slug))
+    if (await isSlugReserved(input.workspaceId, slug))
       throw new SlugTakenError();
     try {
       const id = newId();
       await db.insert(links).values({
         id,
-        userId: input.userId,
+        workspaceId: input.workspaceId,
+        createdByUserId: input.createdByUserId,
         slug,
         title: input.title ?? null,
         destinationUrl: input.destinationUrl,
@@ -134,7 +138,7 @@ export async function createLink(input: {
         createdAt: now,
         updatedAt: now,
       });
-      const row = await findLinkByIdForUser(id, input.userId);
+      const row = await findLinkById(id, input.workspaceId);
       if (!row)
         throw new Error('insert failed');
       return row;
@@ -183,7 +187,7 @@ export async function tagNamesByLinkIds(linkIds: string[]) {
   return map;
 }
 
-export async function listLinks(userId: string, query: {
+export async function listLinks(workspaceId: string, query: {
   q?: string;
   status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   tags?: string[];
@@ -193,7 +197,7 @@ export async function listLinks(userId: string, query: {
 }) {
   const db = await getDb();
   const now = new Date();
-  const filters = [eq(links.userId, userId)];
+  const filters = [eq(links.workspaceId, workspaceId)];
   const notExpired = or(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`)!;
   const underVisitLimit = or(sql`${links.maximumVisits} IS NULL`, sql`${links.successfulVisitCount} < ${links.maximumVisits}`)!;
   const started = or(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`)!;
@@ -221,7 +225,7 @@ export async function listLinks(userId: string, query: {
         select 1 from link_tags lt
         inner join tags t on t.id = lt.tag_id
         where lt.link_id = ${links.id}
-          and t.user_id = ${userId}
+          and t.workspace_id = ${workspaceId}
           and t.normalized_name = ${normalized}
       )`);
     }
@@ -264,7 +268,7 @@ export async function listLinks(userId: string, query: {
   return { items, total };
 }
 
-export async function updateLink(id: string, userId: string, patch: {
+export async function updateLink(id: string, workspaceId: string, patch: {
   title?: string | null;
   destinationUrl?: string;
   expiresAt?: Date | null;
@@ -279,7 +283,7 @@ export async function updateLink(id: string, userId: string, patch: {
   utmTerm?: string | null;
   utmContent?: string | null;
 }) {
-  const existing = await findLinkByIdForUser(id, userId);
+  const existing = await findLinkById(id, workspaceId);
   if (!existing)
     return null;
 
@@ -316,44 +320,35 @@ export async function updateLink(id: string, userId: string, patch: {
 
   // A concurrent redirect can raise the visit count after the caller read it.
   // The guard makes the limit check and the write one statement.
+  // The workspace stays in the guard. Without it the update would reach
+  // another workspace's row of the same id.
   const guard = patch.maximumVisits != null
-    ? and(eq(links.id, id), lte(links.successfulVisitCount, patch.maximumVisits))
-    : eq(links.id, id);
+    ? and(eq(links.id, id), eq(links.workspaceId, workspaceId), lte(links.successfulVisitCount, patch.maximumVisits))
+    : and(eq(links.id, id), eq(links.workspaceId, workspaceId));
 
   const changed = await db.update(links).set(values).where(guard).returning({ id: links.id });
   if (!changed.length) {
-    if (!await findLinkByIdForUser(id, userId))
+    if (!await findLinkById(id, workspaceId))
       return null;
     throw new VisitLimitBelowUsageError();
   }
 
-  invalidateLink(existing.slug);
-  return findLinkByIdForUser(id, userId);
+  invalidateLink(workspaceId, existing.slug);
+  return findLinkById(id, workspaceId);
 }
 
-export async function deleteLink(id: string, userId: string) {
-  const existing = await findLinkByIdForUser(id, userId);
+export async function deleteLink(id: string, workspaceId: string) {
+  const existing = await findLinkById(id, workspaceId);
   if (!existing)
     return false;
 
   const db = await getDb();
   await db.transaction(async (tx) => {
-    await tx.insert(reservedSlugs).values({ slug: existing.slug, releasedAt: new Date() });
-    await tx.delete(links).where(eq(links.id, id));
+    await tx.insert(reservedSlugs).values({ workspaceId, slug: existing.slug, releasedAt: new Date() });
+    await tx.delete(links).where(and(eq(links.id, id), eq(links.workspaceId, workspaceId)));
   });
-  invalidateLink(existing.slug);
+  invalidateLink(workspaceId, existing.slug);
   return true;
-}
-
-export async function adminDisableLink(linkId: string) {
-  const db = await getDb();
-  const rows = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
-  const link = rows[0];
-  if (!link)
-    return null;
-  await db.update(links).set({ isEnabled: false, updatedAt: new Date() }).where(eq(links.id, linkId));
-  invalidateLink(link.slug);
-  return link;
 }
 
 export async function consumeVisit(linkId: string): Promise<boolean> {

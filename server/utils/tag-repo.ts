@@ -19,27 +19,27 @@ export function tagToDto(tag: typeof tags.$inferSelect) {
   };
 }
 
-export async function listTags(userId: string) {
+export async function listTags(workspaceId: string) {
   const db = await getDb();
-  const rows = await db.select().from(tags).where(eq(tags.userId, userId)).orderBy(desc(tags.createdAt));
+  const rows = await db.select().from(tags).where(eq(tags.workspaceId, workspaceId)).orderBy(desc(tags.createdAt));
   return rows.map(tagToDto);
 }
 
-export async function findTagForUser(id: string, userId: string) {
+export async function findTagForWorkspace(id: string, workspaceId: string) {
   const db = await getDb();
-  const rows = await db.select().from(tags).where(and(eq(tags.id, id), eq(tags.userId, userId))).limit(1);
+  const rows = await db.select().from(tags).where(and(eq(tags.id, id), eq(tags.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
 }
 
-export async function findTagByNormalizedName(userId: string, normalizedName: string) {
+export async function findTagByNormalizedName(workspaceId: string, normalizedName: string) {
   const db = await getDb();
-  const rows = await db.select().from(tags).where(and(eq(tags.userId, userId), eq(tags.normalizedName, normalizedName))).limit(1);
+  const rows = await db.select().from(tags).where(and(eq(tags.workspaceId, workspaceId), eq(tags.normalizedName, normalizedName))).limit(1);
   return rows[0] ?? null;
 }
 
-export async function createTag(userId: string, name: string) {
+export async function createTag(workspaceId: string, name: string) {
   const normalizedName = normalizeTagName(name);
-  const existing = await findTagByNormalizedName(userId, normalizedName);
+  const existing = await findTagByNormalizedName(workspaceId, normalizedName);
   if (existing)
     return existing;
 
@@ -49,7 +49,7 @@ export async function createTag(userId: string, name: string) {
   try {
     await db.insert(tags).values({
       id,
-      userId,
+      workspaceId,
       name: displayName,
       normalizedName,
       createdAt: new Date(),
@@ -57,35 +57,35 @@ export async function createTag(userId: string, name: string) {
   }
   catch (e) {
     if (isUniqueViolation(e)) {
-      const row = await findTagByNormalizedName(userId, normalizedName);
+      const row = await findTagByNormalizedName(workspaceId, normalizedName);
       if (row)
         return row;
     }
     throw e;
   }
-  return findTagForUser(id, userId);
+  return findTagForWorkspace(id, workspaceId);
 }
 
-export async function renameTag(id: string, userId: string, name: string) {
+export async function renameTag(id: string, workspaceId: string, name: string) {
   const normalizedName = normalizeTagName(name);
   const db = await getDb();
   try {
-    await db.update(tags).set({ name: name.trim(), normalizedName }).where(and(eq(tags.id, id), eq(tags.userId, userId)));
+    await db.update(tags).set({ name: name.trim(), normalizedName }).where(and(eq(tags.id, id), eq(tags.workspaceId, workspaceId)));
   }
   catch (e) {
     if (isUniqueViolation(e))
       throw new TagNameTakenError();
     throw e;
   }
-  return findTagForUser(id, userId);
+  return findTagForWorkspace(id, workspaceId);
 }
 
-export async function deleteTag(id: string, userId: string) {
-  const existing = await findTagForUser(id, userId);
+export async function deleteTag(id: string, workspaceId: string) {
+  const existing = await findTagForWorkspace(id, workspaceId);
   if (!existing)
     return false;
   const db = await getDb();
-  await db.delete(tags).where(and(eq(tags.id, id), eq(tags.userId, userId)));
+  await db.delete(tags).where(and(eq(tags.id, id), eq(tags.workspaceId, workspaceId)));
   return true;
 }
 
@@ -98,12 +98,12 @@ export async function tagsForLink(linkId: string) {
     .orderBy(tags.name);
 }
 
-export async function setLinkTags(linkId: string, userId: string, names: string[]) {
+export async function setLinkTags(linkId: string, workspaceId: string, names: string[]) {
   const db = await getDb();
   const uniqueNames = [...new Set(names.map(n => n.trim()).filter(Boolean))];
   const tagIds: string[] = [];
   for (const name of uniqueNames) {
-    const tag = await createTag(userId, name);
+    const tag = await createTag(workspaceId, name);
     if (tag)
       tagIds.push(tag.id);
   }

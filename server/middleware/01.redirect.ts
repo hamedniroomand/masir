@@ -14,11 +14,11 @@ import { deriveLinkStatus } from '#shared/link-status';
 import { RESERVED_SLUGS } from '#shared/slug';
 import { buildDestination, utmParamsFor } from '#shared/utm';
 
-function logLinkEvent(event: H3Event, linkId: string, outcome: ClickEventOutcome, meta: RequestMeta) {
+function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outcome: ClickEventOutcome, meta: RequestMeta) {
   const visitorHash = !meta.isBot && outcome === 'redirect_success'
     ? visitorHashForLink(event, linkId)
     : null;
-  event.waitUntil(recordEvent(linkId, meta, outcome, visitorHash).catch(() => {}));
+  event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(() => {}));
 }
 
 export default defineEventHandler(async (event) => {
@@ -40,6 +40,11 @@ export default defineEventHandler(async (event) => {
   if (RESERVED_SLUGS.has(segment))
     return;
 
+  // Short links live only inside a workspace. The root host serves none.
+  const workspace = event.context.workspace as { id: string } | undefined;
+  if (!workspace)
+    return;
+
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);
   const redirectLimit = Number(config.rateLimitRedirectPerMinute) || 120;
@@ -49,11 +54,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
 
-  let link = getCachedLink(segment);
+  let link = getCachedLink(workspace.id, segment);
   if (link === undefined) {
-    const resolved = await findLinkBySlug(segment);
+    const resolved = await findLinkBySlug(workspace.id, segment);
     link = resolved;
-    setCachedLink(segment, resolved);
+    setCachedLink(workspace.id, segment, resolved);
   }
 
   if (!link)
@@ -71,25 +76,25 @@ export default defineEventHandler(async (event) => {
   const meta = parseRequestMeta(event);
 
   if (status === 'disabled') {
-    logLinkEvent(event, link.id, 'disabled_block', meta);
+    logLinkEvent(event, workspace.id, link.id, 'disabled_block', meta);
     throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'disabled' } });
   }
   if (status === 'expired') {
     if (link.expirationDestination) {
       setResponseHeader(event, 'Cache-Control', 'private, no-store');
-      logLinkEvent(event, link.id, 'expired_redirect', meta);
+      logLinkEvent(event, workspace.id, link.id, 'expired_redirect', meta);
       await sendRedirect(event, link.expirationDestination, 302);
       return;
     }
-    logLinkEvent(event, link.id, 'expired_block', meta);
+    logLinkEvent(event, workspace.id, link.id, 'expired_block', meta);
     throw createError({ statusCode: 404, statusMessage: 'Link expired', data: { linkState: 'expired' } });
   }
   if (status === 'limit_reached') {
-    logLinkEvent(event, link.id, 'limit_reached', meta);
+    logLinkEvent(event, workspace.id, link.id, 'limit_reached', meta);
     throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
   }
   if (status === 'scheduled') {
-    logLinkEvent(event, link.id, 'scheduled_block', meta);
+    logLinkEvent(event, workspace.id, link.id, 'scheduled_block', meta);
     throw createError({
       statusCode: 404,
       statusMessage: 'Link unavailable',
@@ -98,7 +103,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (link.passwordHash) {
-    const granted = hasValidPasswordGrant(event, segment, config.sessionPassword);
+    const granted = hasValidPasswordGrant(event, workspace.id, segment, config.sessionPassword);
     if (!granted) {
       setResponseHeader(event, 'Cache-Control', 'private, no-store');
       await sendRedirect(event, `/p/${segment}`, 302);
@@ -109,15 +114,15 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'private, no-store');
 
   if (meta.isBot) {
-    logLinkEvent(event, link.id, 'bot_request', meta);
+    logLinkEvent(event, workspace.id, link.id, 'bot_request', meta);
   }
   else {
     const consumed = await consumeVisit(link.id);
     if (!consumed) {
-      logLinkEvent(event, link.id, 'limit_reached', meta);
+      logLinkEvent(event, workspace.id, link.id, 'limit_reached', meta);
       throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
     }
-    logLinkEvent(event, link.id, 'redirect_success', meta);
+    logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
   }
 
   const destination = buildDestination(link.destinationUrl, utmParamsFor(link), inboundQuery);

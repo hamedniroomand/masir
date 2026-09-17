@@ -3,19 +3,21 @@ import { Buffer } from 'node:buffer';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getCookie, setCookie } from 'h3';
 
-// Use one cookie for each slug. A single shared cookie loses the grant
-// when the visitor unlocks a different link.
-function cookieName(slug: string) {
-  return `ly_pwd_${slug}`;
+// Use one cookie for each link. A single shared cookie loses the grant when the
+// visitor unlocks a different link. The name and the signature both carry the
+// workspace: two workspaces may hold the same slug, and a grant for one must
+// never unlock the other.
+function cookieName(workspaceId: string, slug: string) {
+  return `ly_pwd_${workspaceId}_${slug}`;
 }
 
-function sign(slug: string, exp: number, secret: string) {
-  return createHmac('sha256', secret).update(`${slug}:${exp}`).digest('base64url');
+function sign(workspaceId: string, slug: string, exp: number, secret: string) {
+  return createHmac('sha256', secret).update(`${workspaceId}:${slug}:${exp}`).digest('base64url');
 }
 
-export function setPasswordGrant(event: H3Event, slug: string, secret: string, ttlSec = 900) {
+export function setPasswordGrant(event: H3Event, workspaceId: string, slug: string, secret: string, ttlSec = 900) {
   const exp = Date.now() + ttlSec * 1000;
-  setCookie(event, cookieName(slug), `${exp}.${sign(slug, exp, secret)}`, {
+  setCookie(event, cookieName(workspaceId, slug), `${exp}.${sign(workspaceId, slug, exp, secret)}`, {
     httpOnly: true,
     sameSite: 'lax',
     maxAge: ttlSec,
@@ -23,8 +25,8 @@ export function setPasswordGrant(event: H3Event, slug: string, secret: string, t
   });
 }
 
-export function hasValidPasswordGrant(event: H3Event, slug: string, secret: string): boolean {
-  const raw = getCookie(event, cookieName(slug));
+export function hasValidPasswordGrant(event: H3Event, workspaceId: string, slug: string, secret: string): boolean {
+  const raw = getCookie(event, cookieName(workspaceId, slug));
   if (!raw)
     return false;
   const [expStr, sig] = raw.split('.');
@@ -34,7 +36,7 @@ export function hasValidPasswordGrant(event: H3Event, slug: string, secret: stri
   if (!Number.isFinite(exp) || Date.now() > exp)
     return false;
   try {
-    return timingSafeEqual(Buffer.from(sig), Buffer.from(sign(slug, exp, secret)));
+    return timingSafeEqual(Buffer.from(sig), Buffer.from(sign(workspaceId, slug, exp, secret)));
   }
   catch {
     return false;

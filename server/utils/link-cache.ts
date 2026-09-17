@@ -12,11 +12,17 @@ const MAX_ENTRIES = 5000;
 const store = new Map<string, CacheEntry>();
 const order: string[] = [];
 
-function touch(slug: string) {
-  const idx = order.indexOf(slug);
+// Two workspaces may hold the same slug. A key of only the slug would serve
+// one workspace's destination to another workspace's visitor.
+function cacheKey(workspaceId: string, slug: string) {
+  return `${workspaceId}:${slug}`;
+}
+
+function touch(key: string) {
+  const idx = order.indexOf(key);
   if (idx >= 0)
     order.splice(idx, 1);
-  order.push(slug);
+  order.push(key);
   while (order.length > MAX_ENTRIES) {
     const evict = order.shift();
     if (evict)
@@ -24,26 +30,28 @@ function touch(slug: string) {
   }
 }
 
-export function getCachedLink(slug: string): ResolvedLink | null | undefined {
-  const entry = store.get(slug);
+export function getCachedLink(workspaceId: string, slug: string): ResolvedLink | null | undefined {
+  const key = cacheKey(workspaceId, slug);
+  const entry = store.get(key);
   if (!entry)
     return undefined;
   if (Date.now() > entry.expiresAtMs) {
-    store.delete(slug);
+    store.delete(key);
     return undefined;
   }
-  touch(slug);
+  touch(key);
   return entry.link;
 }
 
-export function setCachedLink(slug: string, link: ResolvedLink | null) {
+export function setCachedLink(workspaceId: string, slug: string, link: ResolvedLink | null) {
+  const key = cacheKey(workspaceId, slug);
   const ttl = link ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS;
-  store.set(slug, { link, expiresAtMs: Date.now() + ttl });
-  touch(slug);
+  store.set(key, { link, expiresAtMs: Date.now() + ttl });
+  touch(key);
 }
 
-export function invalidateLink(slug: string) {
-  store.delete(slug);
+export function invalidateLink(workspaceId: string, slug: string) {
+  store.delete(cacheKey(workspaceId, slug));
 }
 
 export function invalidateAllLinks() {

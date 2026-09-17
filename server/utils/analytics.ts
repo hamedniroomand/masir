@@ -11,6 +11,7 @@ const countAll = sql<number>`count(*)::int`;
 const countDistinctVisitors = sql<number>`count(distinct ${clickEvents.visitorHash})::int`;
 
 export async function recordEvent(
+  workspaceId: string,
   linkId: string,
   meta: RequestMeta,
   outcome: ClickEventOutcome,
@@ -20,6 +21,7 @@ export async function recordEvent(
   await db.transaction(async (tx) => {
     await tx.insert(clickEvents).values({
       id: newId(),
+      workspaceId,
       linkId,
       createdAt: new Date(),
       referrerHost: meta.referrerHost,
@@ -34,7 +36,7 @@ export async function recordEvent(
     if (outcome === 'redirect_success') {
       await tx.update(links)
         .set({ clickCount: sql`${links.clickCount} + 1` })
-        .where(eq(links.id, linkId));
+        .where(and(eq(links.id, linkId), eq(links.workspaceId, workspaceId)));
     }
   });
 }
@@ -69,9 +71,9 @@ async function classificationBoundary(scope: SQL, inWindow: SQL) {
   };
 }
 
-export async function getLinkAnalytics(linkId: string, period: Period, traffic: TrafficClass = 'human') {
+export async function getLinkAnalytics(linkId: string, workspaceId: string, period: Period, traffic: TrafficClass = 'human') {
   const db = await getDb();
-  const linkRows = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+  const linkRows = await db.select().from(links).where(and(eq(links.id, linkId), eq(links.workspaceId, workspaceId))).limit(1);
   const link = linkRows[0];
   if (!link)
     return null;
@@ -113,9 +115,9 @@ export async function getLinkAnalytics(linkId: string, period: Period, traffic: 
   };
 }
 
-export async function getCampaignAnalytics(campaignId: string, period: Period) {
+export async function getCampaignAnalytics(campaignId: string, workspaceId: string, period: Period) {
   const db = await getDb();
-  const campaignRows = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+  const campaignRows = await db.select().from(campaigns).where(and(eq(campaigns.id, campaignId), eq(campaigns.workspaceId, workspaceId))).limit(1);
   const campaign = campaignRows[0];
   if (!campaign)
     return null;
@@ -127,7 +129,7 @@ export async function getCampaignAnalytics(campaignId: string, period: Period) {
     utmSource: links.utmSource,
     utmContent: links.utmContent,
     clickCount: links.clickCount,
-  }).from(links).where(eq(links.campaignId, campaignId));
+  }).from(links).where(and(eq(links.campaignId, campaignId), eq(links.workspaceId, workspaceId)));
 
   if (!linkRows.length) {
     return {
