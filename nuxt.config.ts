@@ -1,4 +1,11 @@
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+
+// vercel on Vercel, bun everywhere else. Never vercel-edge: the edge runtime
+// drops back to a restricted environment and Bun's own APIs stop working.
+function nitroPreset(): string {
+  return process.env.NITRO_PRESET ?? (process.env.VERCEL ? 'vercel' : 'bun');
+}
 
 export default defineNuxtConfig({
   alias: {
@@ -113,7 +120,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset: 'bun',
+    preset: nitroPreset(),
   },
 
   ui: {
