@@ -1,6 +1,8 @@
 import * as v from 'valibot';
 
 const ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz';
+// These guard link paths inside one workspace. RESERVED_WORKSPACE_SLUGS in
+// shared/workspace-slug.ts guards subdomains. Do not merge the two.
 export const RESERVED_SLUGS = new Set([
   'login',
   'logout',
