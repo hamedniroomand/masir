@@ -15,6 +15,18 @@ services:
       timeout: 3s
       retries: 5
 
+  # Development mail catcher. It accepts every message and holds it in memory.
+  # Read the mail at http://localhost:8025 . Nothing leaves the machine.
+  mail:
+    image: axllent/mailpit:v1.31
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: '1'
+      MP_SMTP_AUTH_ALLOW_INSECURE: '1'
+      MP_MAX_MESSAGES: '500'
+
   app:
     build: .
     ports:
@@ -22,9 +34,15 @@ services:
     env_file: .env
     environment:
       NUXT_DATABASE_URL: postgres://linkyard:linkyard@db:5432/linkyard
+      NUXT_MAIL_DRIVER: smtp
+      NUXT_MAIL_SMTP_HOST: mail
+      NUXT_MAIL_SMTP_PORT: '1025'
+      NUXT_MAIL_SMTP_SECURE: 'false'
     depends_on:
       db:
         condition: service_healthy
+      mail:
+        condition: service_started
     healthcheck:
       test: [CMD, curl, -f, 'http://localhost:3000/api/health']
       interval: 10s

@@ -1,5 +1,7 @@
+import type { MailConfig } from '#server/utils/mail';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createMemoryDriver, createResendDriver, sendMail, setMailDriver } from '#server/utils/mail';
+import { buildMailDriver, createMemoryDriver, sendMail, setMailDriver } from '#server/utils/mail';
+import { createResendDriver } from '#server/utils/mail-resend';
 
 const message = {
   to: 'sara@example.com',
@@ -8,9 +10,56 @@ const message = {
   text: 'token-123',
 };
 
+function mailConfig(overrides: Partial<MailConfig> = {}): MailConfig {
+  return {
+    driver: '',
+    from: 'Linkyard <no-reply@linkyard.dev>',
+    apiKey: '',
+    smtp: { host: '', port: 587, user: '', password: '', secure: false, poolMax: 5 },
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   setMailDriver(null);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('provider registry', () => {
+  it('picks smtp when a host is set', () => {
+    const config = mailConfig({ smtp: { ...mailConfig().smtp, host: 'mail' } });
+    expect(buildMailDriver(config).name).toBe('smtp');
+  });
+
+  it('falls back to resend when only an api key is set', () => {
+    expect(buildMailDriver(mailConfig({ apiKey: 're_test_key' })).name).toBe('resend');
+  });
+
+  it('prefers smtp over resend when both are set', () => {
+    const config = mailConfig({ apiKey: 're_test_key', smtp: { ...mailConfig().smtp, host: 'mail' } });
+    expect(buildMailDriver(config).name).toBe('smtp');
+  });
+
+  it('falls back to the log driver when nothing is set', () => {
+    expect(buildMailDriver(mailConfig()).name).toBe('log');
+  });
+
+  it('honours an explicit provider name', () => {
+    expect(buildMailDriver(mailConfig({ driver: 'outbox' })).name).toBe('outbox');
+  });
+
+  it('warns and logs when the named provider is unknown', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(buildMailDriver(mailConfig({ driver: 'sendmail' })).name).toBe('log');
+    expect(warn).toHaveBeenCalledOnce();
+  });
+
+  it('warns and logs when the named provider has no configuration', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(buildMailDriver(mailConfig({ driver: 'smtp' })).name).toBe('log');
+    expect(warn).toHaveBeenCalledOnce();
+  });
 });
 
 describe('memory driver', () => {

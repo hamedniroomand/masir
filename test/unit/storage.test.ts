@@ -1,43 +1,98 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import type { StorageConfig } from '#server/utils/storage';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { $ } from 'bun';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createLocalDriver } from '#server/utils/storage';
+import { assertStorageConfig, buildStorageDriver } from '#server/utils/storage';
+import { createFileDriver } from '#server/utils/storage-file';
+import { newId } from '#shared/id';
 
 let root = '';
 
 afterEach(async () => {
   if (root)
-    await rm(root, { recursive: true, force: true });
+    await $`rm -rf ${root}`.quiet();
   root = '';
 });
 
-async function driver() {
-  root = await mkdtemp(join(tmpdir(), 'linkyard-storage-'));
-  return createLocalDriver(root, 'http://localhost:3000/uploads');
+// Bun.write makes the directory, so the root only needs a fresh name.
+function driver() {
+  root = join(tmpdir(), `linkyard-storage-${newId()}`);
+  return createFileDriver(root, 'http://localhost:3000/uploads');
 }
 
-describe('local storage driver', () => {
+function storageConfig(overrides: Partial<StorageConfig> = {}): StorageConfig {
+  return {
+    driver: '',
+    localRoot: './data/uploads',
+    publicBaseUrl: 'http://localhost:3000/uploads',
+    accessKeyId: '',
+    secretAccessKey: '',
+    bucket: '',
+    endpoint: '',
+    ...overrides,
+  };
+}
+
+describe('provider registry', () => {
+  it('picks s3 when a bucket is set', () => {
+    expect(buildStorageDriver(storageConfig({ bucket: 'linkyard' })).name).toBe('s3');
+  });
+
+  it('falls back to the file provider', () => {
+    expect(buildStorageDriver(storageConfig()).name).toBe('file');
+  });
+
+  it('honours an explicit provider name', () => {
+    expect(buildStorageDriver(storageConfig({ driver: 'file' })).name).toBe('file');
+  });
+
+  it('throws for an unknown provider name', () => {
+    expect(() => buildStorageDriver(storageConfig({ driver: 'gcs' }))).toThrow(/unknown or not configured/);
+  });
+
+  it('throws when the named provider has no configuration', () => {
+    expect(() => buildStorageDriver(storageConfig({ driver: 's3' }))).toThrow(/unknown or not configured/);
+  });
+});
+
+describe('assertStorageConfig', () => {
+  it('refuses a disk provider in CLOUD mode', () => {
+    expect(() => assertStorageConfig(storageConfig(), 'CLOUD')).toThrow(/needs a disk/);
+  });
+
+  it('allows a disk provider in SELF_HOSTED mode', () => {
+    expect(() => assertStorageConfig(storageConfig(), 'SELF_HOSTED')).not.toThrow();
+  });
+
+  it('allows s3 in CLOUD mode', () => {
+    expect(() => assertStorageConfig(storageConfig({ bucket: 'linkyard' }), 'CLOUD')).not.toThrow();
+  });
+});
+
+describe('file storage driver', () => {
   it('writes and reads back the bytes', async () => {
-    const store = await driver();
+    const store = driver();
     await store.put('logos/acme.png', new Uint8Array([1, 2, 3]), 'image/png');
-    const written = await readFile(join(root, 'logos/acme.png'));
+    const written = await Bun.file(join(root, 'logos/acme.png')).bytes();
     expect([...written]).toEqual([1, 2, 3]);
   });
 
-  it('builds a public url', async () => {
-    const store = await driver();
-    expect(store.publicUrl('logos/acme.png')).toBe('http://localhost:3000/uploads/logos/acme.png');
+  it('builds a public url', () => {
+    expect(driver().publicUrl('logos/acme.png')).toBe('http://localhost:3000/uploads/logos/acme.png');
   });
 
   it('deletes a missing key without throwing', async () => {
-    const store = await driver();
-    await expect(store.delete('logos/absent.png')).resolves.toBeUndefined();
+    await expect(driver().delete('logos/absent.png')).resolves.toBeUndefined();
   });
 
-  it('refuses a key that escapes the root', async () => {
-    const store = await driver();
-    await expect(store.put('../escape.png', new Uint8Array([1]), 'image/png'))
+  it.each([
+    '../escape.png',
+    '/etc/passwd',
+    'logos/../../escape.png',
+    'logos\\..\\..\\escape.png',
+  ])('refuses the key %s', async (key) => {
+    await expect(driver().put(key, new Uint8Array([1]), 'image/png'))
       .rejects
       .toThrow(/key/i);
   });

@@ -28,6 +28,7 @@ export const RESERVED_SLUGS = new Set([
   'report',
   'p',
   'assets',
+  'uploads',
   'static',
   'well-known',
 ]);

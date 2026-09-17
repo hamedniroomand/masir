@@ -7,7 +7,7 @@ export function inviteMessage(to: string, workspaceName: string, link: string): 
     subject: `Join ${workspaceName} on Linkyard`,
     text: `You were invited to join ${workspaceName}. Open this link to accept. The link stops working after 7 days.\n\n${link}`,
     html: layout(
-      paragraph(`You were invited to join <strong>${workspaceName}</strong>.`)
+      paragraph(`You were invited to join <strong>${Bun.escapeHTML(workspaceName)}</strong>.`)
       + action(link, 'Accept the invitation')
       + paragraph('<span style="font-size:13px;color:#707589;">The link stops working after 7 days.</span>'),
     ),

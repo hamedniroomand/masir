@@ -1,4 +1,4 @@
-import type { MailDriver } from '#server/utils/mail';
+import type { MailDriver, MailProvider } from '#server/utils/mail';
 import { mailOutbox } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
@@ -19,3 +19,8 @@ export function createOutboxDriver(): MailDriver {
     },
   };
 }
+
+export const outboxProvider: MailProvider = {
+  name: 'outbox',
+  create: () => createOutboxDriver(),
+};
