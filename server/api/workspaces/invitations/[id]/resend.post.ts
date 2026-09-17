@@ -1,9 +1,9 @@
 import { inviteMessage } from '#server/emails/invite';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { findInvitationById, replaceInvitationToken } from '#server/utils/invitation-repo';
 import { sendMail } from '#server/utils/mail';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { workspaceUrl } from '#shared/deployment';
 
 export default defineEventHandler(async (event) => {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const raw = await replaceInvitationToken(id);
   const base = workspaceUrl(workspace.slug, config as never);
   await sendMail(inviteMessage(invitation.email, workspace.name, `${base}/invite?token=${raw}`));
-  await writeSecurityEvent('invitation_resent', { invitationId: id }, { workspaceId, actor: user.id });
+  await writeAuditEvent('invitation_resent', { invitationId: id }, { workspaceId, actor: user.id });
 
   return { ok: true };
 });

@@ -1,7 +1,7 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { updateWorkspace } from '#server/utils/workspace-repo';
 
 // The address is immutable. It is part of every published short link.
@@ -19,6 +19,6 @@ export default defineEventHandler(async (event) => {
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('workspace_updated', { fields: Object.keys(body) }, { workspaceId, actor: user.id });
+  await writeAuditEvent('workspace_updated', { fields: Object.keys(body) }, { workspaceId, actor: user.id });
   return { id: workspace.id, name: workspace.name, slug: workspace.slug, logoUrl: workspace.logoUrl };
 });

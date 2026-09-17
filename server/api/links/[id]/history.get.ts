@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
-import { securityEvents, users } from '#server/database/schema';
+import { auditEvents, users } from '#server/database/schema';
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
 import { findLinkById } from '#server/utils/link-repo';
@@ -17,16 +17,16 @@ export default defineEventHandler(async (event) => {
   const db = await getDb();
   const rows = await db
     .select({
-      id: securityEvents.id,
-      type: securityEvents.type,
-      createdAt: securityEvents.createdAt,
-      detail: securityEvents.detail,
+      id: auditEvents.id,
+      type: auditEvents.type,
+      createdAt: auditEvents.createdAt,
+      detail: auditEvents.detail,
       actorName: users.email,
     })
-    .from(securityEvents)
-    .leftJoin(users, eq(securityEvents.actorUserId, users.id))
-    .where(eq(securityEvents.linkId, id))
-    .orderBy(desc(securityEvents.createdAt))
+    .from(auditEvents)
+    .leftJoin(users, eq(auditEvents.actorId, users.id))
+    .where(eq(auditEvents.linkId, id))
+    .orderBy(desc(auditEvents.createdAt))
     .limit(50);
 
   return {
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       type: row.type,
       createdAt: row.createdAt,
       actorName: row.actorName,
-      fields: (row.detail ? JSON.parse(row.detail).fields : null) as string[] | null,
+      fields: (row.detail as { fields?: string[] } | null)?.fields ?? null,
     })),
   };
 });

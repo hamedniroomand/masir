@@ -1,9 +1,9 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { campaignToDto, findCampaignForWorkspace, updateCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
 
 const bodySchema = v.object({
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const updated = await updateCampaign(id, workspaceId, patch);
-    await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, { workspaceId, actor: user.id });
+    await writeAuditEvent('campaign_updated', { fields: Object.keys(patch) }, { workspaceId, actor: user.id });
     if (!updated)
       throw createError({ statusCode: 404, statusMessage: 'Campaign not found' });
     return campaignToDto(updated);

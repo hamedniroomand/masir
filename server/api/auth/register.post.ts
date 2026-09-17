@@ -1,10 +1,10 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { sendVerification } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
 import { createUserWithIdentity, findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { hashSecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   // The answer never says whether the address is already in use.
   const existing = await findUserByEmail(email);
   if (existing) {
-    await writeSecurityEvent('register_duplicate', { email });
+    await writeAuditEvent('register_duplicate', { email });
     return { ok: true };
   }
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     passwordHash: await hashSecret(body.password),
     emailVerified: false,
   });
-  await writeSecurityEvent('user_registered', { email }, { actor: user.id });
+  await writeAuditEvent('user_registered', { email }, { actor: user.id });
   await sendVerification(user.id, email);
 
   return { ok: true };

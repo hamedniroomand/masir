@@ -1,5 +1,5 @@
 import { and, desc, eq } from 'drizzle-orm';
-import { securityEvents } from '#server/database/schema';
+import { auditEvents } from '#server/database/schema';
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
 
@@ -11,21 +11,16 @@ export default defineEventHandler(async (event) => {
   // A row with no workspace belongs to no tenant: sign-in failures, OAuth
   // errors, abuse reports. eq() never matches null, so those stay operator-only
   // and never reach a workspace.
-  const filters = [eq(securityEvents.workspaceId, workspaceId)];
+  const filters = [eq(auditEvents.workspaceId, workspaceId)];
   if (typeof type === 'string' && type)
-    filters.push(eq(securityEvents.type, type));
+    filters.push(eq(auditEvents.type, type));
 
   const rows = await db
     .select()
-    .from(securityEvents)
+    .from(auditEvents)
     .where(and(...filters))
-    .orderBy(desc(securityEvents.createdAt))
+    .orderBy(desc(auditEvents.createdAt))
     .limit(200);
 
-  return {
-    items: rows.map(row => ({
-      ...row,
-      detail: row.detail ? JSON.parse(row.detail) : null,
-    })),
-  };
+  return { items: rows };
 });

@@ -1,6 +1,6 @@
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { deleteCampaign } from '#server/utils/campaign-repo';
-import { writeSecurityEvent } from '#server/utils/security-log';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!removed)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('campaign_deleted', { campaignId: id }, { workspaceId, actor: user.id });
+  await writeAuditEvent('campaign_deleted', { campaignId: id }, { workspaceId, actor: user.id });
   setResponseStatus(event, 204);
   return null;
 });

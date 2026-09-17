@@ -1,9 +1,9 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { normalizeEmail } from '#server/utils/identity-repo';
 import { acceptInvitation, findUsableInvitation } from '#server/utils/invitation-repo';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import { findWorkspaceById } from '#server/utils/workspace-repo';
 
 const bodySchema = v.object({
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (!joined)
     throw createError({ statusCode: 400, statusMessage: NOT_VALID, data: { reason: NOT_VALID } });
 
-  await writeSecurityEvent('invitation_accepted', {}, { workspaceId: invitation.workspaceId, actor: user.id });
+  await writeAuditEvent('invitation_accepted', {}, { workspaceId: invitation.workspaceId, actor: user.id });
 
   const workspace = await findWorkspaceById(invitation.workspaceId);
   return { ok: true, workspace: workspace ? { slug: workspace.slug, name: workspace.name } : null };

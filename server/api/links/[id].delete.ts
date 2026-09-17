@@ -1,6 +1,6 @@
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { deleteLink, findLinkById } from '#server/utils/link-repo';
-import { writeSecurityEvent } from '#server/utils/security-log';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   if (!ok)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('link_deleted', { linkId: id, slug: existing?.slug }, { workspaceId, actor: user.id });
+  await writeAuditEvent('link_deleted', { linkId: id, slug: existing?.slug }, { workspaceId, actor: user.id });
   return { ok: true };
 });

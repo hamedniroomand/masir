@@ -1,9 +1,9 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { readValidBody } from '#server/utils/body';
 import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
 import { matchAbsentSecret, verifySecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const fail = async () => {
-    await writeSecurityEvent('login_failed', { email });
+    await writeAuditEvent('login_failed', { email });
     setResponseStatus(event, 401);
     return { error: GENERIC };
   };

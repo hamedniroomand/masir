@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 useHead({ title: 'Security log · Masir' });
 
 const type = ref('');
-const { data, pending, error, refresh } = await useFetch('/api/admin/security-events', {
+const { data, pending, error, refresh } = await useFetch('/api/admin/audit-events', {
   query: computed(() => ({ type: type.value || undefined })),
   watch: [type],
 });
@@ -34,7 +34,7 @@ const { data, pending, error, refresh } = await useFetch('/api/admin/security-ev
       :columns="[
         { accessorKey: 'type', header: 'Event' },
         { accessorKey: 'createdAt', header: 'Time' },
-        { accessorKey: 'actorUserId', header: 'Actor' },
+        { accessorKey: 'actorId', header: 'Actor' },
       ]"
     >
       <template #type-cell="{ row }">
@@ -43,8 +43,8 @@ const { data, pending, error, refresh } = await useFetch('/api/admin/security-ev
       <template #createdAt-cell="{ row }">
         {{ new Date(row.original.createdAt).toLocaleString() }}
       </template>
-      <template #actorUserId-cell="{ row }">
-        <span class="text-muted">{{ row.original.actorUserId ?? 'System' }}</span>
+      <template #actorId-cell="{ row }">
+        <span class="text-muted">{{ row.original.actorId ?? 'System' }}</span>
       </template>
     </UTable>
   </div>
