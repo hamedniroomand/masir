@@ -72,7 +72,12 @@ export default defineEventHandler(async (event) => {
     successfulVisitCount: link.successfulVisitCount,
   });
 
+  // Set once above every branch rather than on each path that reaches a
+  // redirect. Nitro's error handler replaces Cache-Control with no-cache on a
+  // thrown 404, so a blocked link answers with that instead; no-cache still
+  // forces revalidation, and the body is a generic error page.
   setResponseHeader(event, 'X-Robots-Tag', 'noindex, nofollow');
+  setResponseHeader(event, 'Cache-Control', 'private, no-store');
   const meta = parseRequestMeta(event);
 
   if (status === 'disabled') {
@@ -81,7 +86,6 @@ export default defineEventHandler(async (event) => {
   }
   if (status === 'expired') {
     if (link.expirationDestination) {
-      setResponseHeader(event, 'Cache-Control', 'private, no-store');
       logLinkEvent(event, workspace.id, link.id, 'expired_redirect', meta);
       await sendRedirect(event, link.expirationDestination, 302);
       return;
@@ -105,13 +109,10 @@ export default defineEventHandler(async (event) => {
   if (link.passwordHash) {
     const granted = hasValidPasswordGrant(event, workspace.id, segment, config.sessionPassword);
     if (!granted) {
-      setResponseHeader(event, 'Cache-Control', 'private, no-store');
       await sendRedirect(event, `/p/${segment}`, 302);
       return;
     }
   }
-
-  setResponseHeader(event, 'Cache-Control', 'private, no-store');
 
   if (meta.isBot) {
     logLinkEvent(event, workspace.id, link.id, 'bot_request', meta);

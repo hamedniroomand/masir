@@ -89,9 +89,22 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/login': { headers: { 'X-Robots-Tag': 'noindex' } },
-    '/settings/**': { headers: { 'X-Robots-Tag': 'noindex' } },
-    '/links/**': { headers: { 'X-Robots-Tag': 'noindex' } },
+    // Every route here is the application itself. There are no marketing pages,
+    // so one blanket rule beats a list that drifts as pages are added.
+    // ponytail: no CSP yet. A useful one needs a report-only pass against a
+    // real endpoint first, because Nuxt UI and the chart both need inline
+    // styles. Tracked separately.
+    '/**': {
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        // Browsers ignore this over plain http, so it is safe to send always.
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      },
+    },
+    '/api/**': { headers: { 'Cache-Control': 'no-store' } },
   },
 
   compatibilityDate: '2026-06-30',
