@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     '#scripts': fileURLToPath(new URL('./scripts', import.meta.url)),
   },
 
+  ssr: false,
+
   modules: [
     '@nuxt/ui',
     '@vueuse/nuxt',
