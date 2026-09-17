@@ -2,7 +2,7 @@ import process from 'node:process';
 import { hashPassword } from '#scripts/hash-password';
 import { openDatabase } from '#server/database/client';
 import { runMigrations } from '#server/database/migrate';
-import { securityEvents, users } from '#server/database/schema';
+import { authIdentities, securityEvents, users } from '#server/database/schema';
 import { newId } from '#shared/id';
 
 const email = process.env.ADMIN_EMAIL;
@@ -24,15 +24,27 @@ if (existing.length > 0) {
 
 const id = newId();
 const normalizedEmail = email.toLowerCase();
+const now = new Date();
 await db.insert(users).values({
   id,
   email: normalizedEmail,
+  emailVerifiedAt: now,
+  firstName: 'Admin',
+  lastName: null,
+  avatarUrl: null,
+  createdAt: now,
+  updatedAt: now,
+  lastLoginAt: null,
+});
+
+await db.insert(authIdentities).values({
+  id: newId(),
+  userId: id,
+  provider: 'PASSWORD',
+  providerAccountId: id,
   passwordHash: await hashPassword(password),
-  name: 'Admin',
-  role: 'admin',
-  isActive: true,
-  isSuperAdmin: true,
-  createdAt: new Date(),
+  createdAt: now,
+  updatedAt: now,
 });
 
 await db.insert(securityEvents).values({

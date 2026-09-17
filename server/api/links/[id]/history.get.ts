@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
       type: securityEvents.type,
       createdAt: securityEvents.createdAt,
       detail: securityEvents.detail,
-      actorName: users.name,
+      actorName: users.email,
     })
     .from(securityEvents)
     .leftJoin(users, eq(securityEvents.actorUserId, users.id))

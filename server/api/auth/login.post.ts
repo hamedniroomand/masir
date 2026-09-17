@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
-import { users } from '#server/database/schema';
-import { getDb } from '#server/utils/db';
+import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
@@ -13,10 +11,7 @@ const GENERIC = 'Invalid email or password.';
 
 export default defineEventHandler(async (event) => {
   const body = v.parse(bodySchema, await readBody(event));
-  const email = body.email.trim().toLowerCase();
-  const db = await getDb();
-  const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  const user = rows[0];
+  const email = normalizeEmail(body.email);
 
   const fail = async () => {
     await writeSecurityEvent('login_failed', { email });
@@ -24,24 +19,18 @@ export default defineEventHandler(async (event) => {
     return { error: GENERIC };
   };
 
+  const user = await findUserByEmail(email);
   if (!user)
     return fail();
 
-  const ok = await verifyPassword(user.passwordHash, body.password);
+  const identity = await findIdentity('PASSWORD', user.id);
+  if (!identity?.passwordHash)
+    return fail();
+
+  const ok = await verifyPassword(identity.passwordHash, body.password);
   if (!ok)
     return fail();
 
-  if (!user.isActive)
-    return fail();
-
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-  });
-
+  await setSessionUser(event, user);
   return { ok: true };
 });

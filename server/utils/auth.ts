@@ -1,10 +1,11 @@
 import type { H3Event } from 'h3';
 
+// The session is sealed as JSON, so it holds a flag and not a date. A Date
+// would come back as a string and every comparison on it would be wrong.
 export interface SessionUser {
   id: string;
   email: string;
-  name: string;
-  role: 'admin' | 'member';
+  emailVerified: boolean;
 }
 
 export async function requireUser(event: H3Event): Promise<SessionUser> {
@@ -12,9 +13,10 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   return session.user as SessionUser;
 }
 
-export async function requireAdmin(event: H3Event): Promise<SessionUser> {
+// Verification gates every action that creates data.
+export async function requireVerifiedUser(event: H3Event): Promise<SessionUser> {
   const user = await requireUser(event);
-  if (user.role !== 'admin')
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
+  if (!user.emailVerified)
+    throw createError({ statusCode: 403, statusMessage: 'Verify your email first.' });
   return user;
 }

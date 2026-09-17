@@ -40,7 +40,7 @@ describe('link history API', async () => {
     );
 
     expect(history.items.map(i => i.type)).toEqual(['link_updated', 'link_created']);
-    expect(history.items.every(i => i.actorName === 'Test User')).toBe(true);
+    expect(history.items.every(i => i.actorName === TEST_EMAIL)).toBe(true);
     expect(history.items[0]!.fields).toEqual(expect.arrayContaining(['destinationUrl', 'title']));
   });
 

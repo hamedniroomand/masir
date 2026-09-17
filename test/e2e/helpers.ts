@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { hashPassword } from '#scripts/hash-password';
-import { campaigns, links, users } from '#server/database/schema';
+import { authIdentities, campaigns, links, users } from '#server/database/schema';
 import { newId } from '#shared/id';
 import { createTestDatabase, openTestDatabase, truncateTestDatabase } from './test-db';
 import { startTestServer } from './test-server';
@@ -28,14 +28,26 @@ export async function resetTestDb(databaseUrl: string) {
   await truncateTestDatabase(databaseUrl);
   const db = openTestDatabase(databaseUrl);
   const userId = newId();
+  const now = new Date();
   await db.insert(users).values({
     id: userId,
     email: TEST_EMAIL,
+    emailVerifiedAt: now,
+    firstName: 'Test',
+    lastName: 'User',
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: null,
+  });
+  await db.insert(authIdentities).values({
+    id: newId(),
+    userId,
+    provider: 'PASSWORD',
+    providerAccountId: userId,
     passwordHash: await hashPassword(TEST_PASSWORD),
-    name: 'Test User',
-    role: 'admin',
-    isActive: true,
-    createdAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   });
   return { db, userId };
 }

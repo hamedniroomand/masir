@@ -2,7 +2,7 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '#scripts/hash-password';
-import { links, linkTags, users } from '#server/database/schema';
+import { authIdentities, links, linkTags, users } from '#server/database/schema';
 import { newId } from '#shared/id';
 import { e2eSetupOptions, insertTestLink, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
@@ -31,14 +31,26 @@ describe('tags API', async () => {
     ({ userId } = await resetTestDb(TEST_DB));
     const db = openTestDatabase(TEST_DB);
     otherUserId = newId();
+    const now = new Date();
     await db.insert(users).values({
       id: otherUserId,
       email: 'other@example.com',
+      emailVerifiedAt: now,
+      firstName: 'Other',
+      lastName: null,
+      avatarUrl: null,
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: null,
+    });
+    await db.insert(authIdentities).values({
+      id: newId(),
+      userId: otherUserId,
+      provider: 'PASSWORD',
+      providerAccountId: otherUserId,
       passwordHash: await hashPassword(TEST_PASSWORD),
-      name: 'Other',
-      role: 'member',
-      isActive: true,
-      createdAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
   });
 

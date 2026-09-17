@@ -7,13 +7,31 @@ function timestampTz(name: string) {
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  name: text('name').notNull(),
-  role: text('role', { enum: ['admin', 'member'] }).notNull(),
-  isActive: boolean('is_active').notNull().default(true),
-  isSuperAdmin: boolean('is_super_admin').notNull().default(false),
+  emailVerifiedAt: timestampTz('email_verified_at'),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  avatarUrl: text('avatar_url'),
   createdAt: timestampTz('created_at').notNull(),
+  updatedAt: timestampTz('updated_at').notNull(),
+  lastLoginAt: timestampTz('last_login_at'),
 });
+
+export const authProviders = ['PASSWORD', 'GOOGLE', 'MICROSOFT'] as const;
+
+export type AuthProvider = typeof authProviders[number];
+
+export const authIdentities = pgTable('auth_identities', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider: text('provider', { enum: authProviders }).notNull(),
+  providerAccountId: text('provider_account_id').notNull(),
+  passwordHash: text('password_hash'),
+  createdAt: timestampTz('created_at').notNull(),
+  updatedAt: timestampTz('updated_at').notNull(),
+}, table => [
+  uniqueIndex('auth_identities_provider_account_unique_idx').on(table.provider, table.providerAccountId),
+  index('auth_identities_user_id_idx').on(table.userId),
+]);
 
 export const campaigns = pgTable('campaigns', {
   id: text('id').primaryKey(),
@@ -121,7 +139,40 @@ export const reservedSlugs = pgTable('reserved_slugs', {
   releasedAt: timestampTz('released_at'),
 });
 
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestampTz('expires_at').notNull(),
+  consumedAt: timestampTz('consumed_at'),
+  createdAt: timestampTz('created_at').notNull(),
+}, table => [
+  index('email_verification_tokens_user_id_idx').on(table.userId),
+]);
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestampTz('expires_at').notNull(),
+  consumedAt: timestampTz('consumed_at'),
+  createdAt: timestampTz('created_at').notNull(),
+}, table => [
+  index('password_reset_tokens_user_id_idx').on(table.userId),
+]);
+
+// Only a test configuration writes this. It lets a test read a message that
+// the server process sent, because the server runs in its own process.
+export const mailOutbox = pgTable('mail_outbox', {
+  id: text('id').primaryKey(),
+  to: text('to').notNull(),
+  subject: text('subject').notNull(),
+  text: text('text').notNull(),
+  createdAt: timestampTz('created_at').notNull(),
+});
+
 export type User = typeof users.$inferSelect;
+export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type Link = typeof links.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type ResolvedLink = Link & { utmMedium: string | null; utmCampaign: string | null };

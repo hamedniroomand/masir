@@ -10,12 +10,9 @@ const workspaceNav = computed(() => [
   { label: 'Campaigns', icon: 'i-lucide-megaphone', to: '/campaigns', active: route.path.startsWith('/campaigns') },
 ]);
 
-const adminNav = computed(() => user.value?.role === 'admin'
-  ? [
-      { label: 'Users', icon: 'i-lucide-users', to: '/settings/users', active: route.path === '/settings/users' },
-      { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
-    ]
-  : []);
+const adminNav = computed(() => [
+  { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
+]);
 
 const section = computed(() => [...workspaceNav.value, ...adminNav.value].find(item => item.active)?.label ?? 'All links');
 
@@ -78,11 +75,11 @@ async function signOut() {
           :content="{ align: 'start' }"
           class="w-full"
         >
-          <UButton color="neutral" variant="ghost" class="w-full border-t border-default pt-4 pb-2 px-2.5 rounded-none" trailing-icon="i-lucide-chevron-down" :aria-label="`Account menu for ${user.name}`">
-            <UAvatar :alt="user.name" size="xs" />
+          <UButton color="neutral" variant="ghost" class="w-full border-t border-default pt-4 pb-2 px-2.5 rounded-none" trailing-icon="i-lucide-chevron-down" :aria-label="`Account menu for ${user.email}`">
+            <UAvatar :alt="user.email" size="xs" />
             <span class="min-w-0 flex-1 text-left">
-              <span class="block truncate text-sm font-medium">{{ user.name }}</span>
-              <span class="block text-xs font-normal text-muted">{{ user.role === 'admin' ? 'Administrator' : 'Member' }}</span>
+              <span class="block truncate text-sm font-medium">{{ user.email }}</span>
+              <span v-if="!user.emailVerified" class="block text-xs font-normal text-warning">Email not verified</span>
             </span>
           </UButton>
         </UDropdownMenu>
