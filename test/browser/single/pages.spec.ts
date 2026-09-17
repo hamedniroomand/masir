@@ -34,15 +34,29 @@ test('renders the link detail with the tracking card', async ({ page, login }) =
   await expect(page.getByText('utm_source=newsletter')).toBeVisible();
 });
 
-// Without SSR the error page renders on the client, and the state the server
-// attaches to the 404 (linkState, startsAt) does not reach it. Every visitor
-// error reads "Link not found." until the server renders that page itself.
-test.fixme('tells a visitor when a scheduled link opens', async ({ page, db }) => {
-  const startsAt = new Date(Date.now() + 86_400_000).toISOString();
-  db.insertLink({ workspaceId, slug: 'schedule-page', startsAt });
+// Visitor pages are the one thing the server renders. A crawler or a link
+// preview must read the state without JavaScript, so the check also reads the
+// raw HTML.
+const DAY_MS = 86_400_000;
+
+test('tells a visitor when a scheduled link opens', async ({ page, db }) => {
+  db.insertLink({ workspaceId, slug: 'schedule-page', startsAt: new Date(Date.now() + DAY_MS).toISOString() });
 
   const response = await page.goto('/schedule-page');
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: 'This link is not available yet.' })).toBeVisible();
-  await expect(page.getByText(/^Opens /)).toBeVisible();
+  await expect(page.getByText(/Opens /)).toBeVisible();
+
+  const raw = await page.request.get('/schedule-page', { headers: { accept: 'text/html' } });
+  expect(await raw.text()).toContain('This link is not available yet.');
+});
+
+test('tells a visitor when a link has expired or is switched off', async ({ page, db }) => {
+  db.insertLink({ workspaceId, slug: 'expired-page', expiresAt: new Date(Date.now() - DAY_MS).toISOString() });
+  db.insertLink({ workspaceId, slug: 'paused-page', isEnabled: false });
+
+  await page.goto('/expired-page');
+  await expect(page.getByRole('heading', { name: 'This link has expired.' })).toBeVisible();
+  await page.goto('/paused-page');
+  await expect(page.getByRole('heading', { name: 'This link is currently unavailable.' })).toBeVisible();
 });

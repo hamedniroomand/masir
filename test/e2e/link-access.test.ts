@@ -74,9 +74,7 @@ describe('link access controls', async () => {
     expect(open.status).toBe(302);
   });
 
-  // The page text is a browser test (test/browser/single/pages.spec.ts); the
-  // app renders it on the client.
-  it('answers 404 with the scheduled state before the start time', async () => {
+  it('shows activation time on the visitor error page', async () => {
     await insertTestLink(TEST_DB, {
       workspaceId,
       slug: 'schedule-page',
@@ -86,6 +84,9 @@ describe('link access controls', async () => {
       headers: { accept: 'text/html', 'user-agent': CHROME_UA },
     });
     expect(pageRes.status).toBe(404);
+    const html = await pageRes.text();
+    expect(html).toContain('This link is not available yet');
+    expect(html).toContain('Opens');
   });
 
   it('enforces maximum visits including parallel requests', async () => {

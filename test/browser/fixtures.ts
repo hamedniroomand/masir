@@ -30,7 +30,7 @@ export type Db = {
   reset: () => { userId: string; workspaceId: string };
   insertUser: (input: { email: string; password: string; verified?: boolean }) => string;
   insertWorkspace: (input: { slug: string; ownerUserId: string; name?: string }) => string;
-  insertLink: (input: { workspaceId: string; slug: string; destinationUrl?: string; startsAt?: string }) => string;
+  insertLink: (input: { workspaceId: string; slug: string; destinationUrl?: string; startsAt?: string; expiresAt?: string; isEnabled?: boolean }) => string;
   lastToken: (to: string) => string | null;
 };
 

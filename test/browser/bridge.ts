@@ -19,12 +19,14 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     insertTestUser(url, { email: String(email), password: String(password), verified: verified !== false }),
   'insert-workspace': async ({ url, slug, ownerUserId, name }) =>
     insertTestWorkspace(url, { slug: String(slug), ownerUserId: String(ownerUserId), name: name ? String(name) : undefined }),
-  'insert-link': async ({ url, workspaceId, slug, destinationUrl, startsAt }) =>
+  'insert-link': async ({ url, workspaceId, slug, destinationUrl, startsAt, expiresAt, isEnabled }) =>
     insertTestLink(url, {
       workspaceId: String(workspaceId),
       slug: String(slug),
       destinationUrl: destinationUrl ? String(destinationUrl) : undefined,
       startsAt: startsAt ? new Date(String(startsAt)) : undefined,
+      expiresAt: expiresAt ? new Date(String(expiresAt)) : undefined,
+      isEnabled: isEnabled === undefined ? undefined : isEnabled !== false,
     }),
   'last-token': async ({ url, to }) => {
     const db = openTestDatabase(url);
