@@ -1,5 +1,6 @@
 <template>
-  <div class="relative flex min-h-dvh flex-col bg-[var(--workspace-bg)]">
+  <div class="relative isolate flex min-h-dvh flex-col bg-[var(--workspace-bg)]">
+    <BrandPattern variant="canvas" />
     <header class="flex items-center justify-between px-6 py-6 sm:px-10">
       <NuxtLink to="/" aria-label="Linkyard home">
         <AppLogo />

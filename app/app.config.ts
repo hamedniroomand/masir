@@ -13,7 +13,10 @@ export default defineAppConfig({
         },
       },
       compoundVariants: [
-        { color: 'primary', variant: 'solid', class: 'text-white dark:text-zinc-950 shadow-control ring-1 ring-inset ring-black/10 hover:bg-primary/90' },
+        { color: 'primary', variant: 'solid', class: 'brand-action text-white dark:text-zinc-950 shadow-control ring-1 ring-inset ring-black/10 hover:bg-primary/90' },
+        { color: 'primary', variant: 'solid', block: true, class: 'brand-action-form' },
+        { loading: true, leading: true, class: { leadingIcon: 'animate-none brand-loader' } },
+        { loading: true, leading: false, trailing: true, class: { trailingIcon: 'animate-none brand-loader' } },
         { color: 'neutral', variant: 'outline', class: 'bg-default shadow-control hover:bg-muted' },
       ],
     },

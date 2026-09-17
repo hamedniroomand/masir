@@ -48,13 +48,16 @@ async function copyQrImage() {
     <p v-if="showShortUrl && shortUrl" class="break-all text-center text-xs text-muted">
       {{ shortUrl }}
     </p>
-    <div class="mx-auto w-fit rounded-panel border border-default bg-white p-4 shadow-control">
-      <img
-        :src="qrPngPreviewUrl"
-        alt="QR code for short link"
-        :width="previewSize"
-        :height="previewSize"
-      >
+    <div class="relative isolate overflow-hidden rounded-panel border border-default bg-muted/40 px-5 py-8">
+      <BrandPattern />
+      <div class="mx-auto w-fit rounded-panel border border-default bg-white p-4 shadow-control">
+        <img
+          :src="qrPngPreviewUrl"
+          alt="QR code for short link"
+          :width="previewSize"
+          :height="previewSize"
+        >
+      </div>
     </div>
     <UAlert
       v-if="copyError"

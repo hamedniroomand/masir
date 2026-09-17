@@ -65,6 +65,9 @@ async function signOut() {
           <UNavigationMenu :items="adminNav" orientation="vertical" />
         </div>
       </nav>
+      <div class="relative isolate min-h-0 flex-1 overflow-hidden">
+        <BrandPattern />
+      </div>
       <div class="mt-auto">
         <p class="flex items-center gap-1.5 px-2.5 py-4 text-[11px] text-muted">
           <UIcon name="i-lucide-server" class="size-3.5" />Self-hosted workspace

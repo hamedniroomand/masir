@@ -90,7 +90,8 @@ function clearFilters() {
       <div v-else-if="error" class="p-5">
         <UAlert title="Could not load links" description="Try again to load your link library." color="error" variant="soft" icon="i-lucide-circle-alert" /><UButton label="Try again" variant="outline" size="sm" class="mt-4" @click="refresh()" />
       </div>
-      <div v-else-if="!data?.items?.length" class="px-5 py-20 text-center">
+      <div v-else-if="!data?.items?.length" class="relative isolate overflow-hidden px-5 py-20 text-center">
+        <BrandPattern v-if="!hasFilters" variant="edges" />
         <div v-if="!hasFilters" class="mx-auto mb-8 flex max-w-sm items-center justify-center gap-3" aria-hidden="true">
           <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-default bg-muted/50 text-muted">
             <UIcon name="i-lucide-globe" class="size-5" />

@@ -43,7 +43,8 @@ async function onCreated() {
       <div v-else-if="error" class="p-5">
         <UAlert title="Could not load campaigns" description="Try again to load your campaigns." color="error" variant="soft" icon="i-lucide-circle-alert" /><UButton label="Try again" variant="outline" size="sm" class="mt-4" @click="refresh()" />
       </div>
-      <div v-else-if="!data?.items.length" class="px-5 py-20 text-center">
+      <div v-else-if="!data?.items.length" class="relative isolate overflow-hidden px-5 py-20 text-center">
+        <BrandPattern variant="edges" />
         <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-xl border border-default bg-primary/5 text-primary shadow-control">
           <UIcon name="i-lucide-megaphone" class="size-6 text-primary" />
         </div>
