@@ -64,6 +64,7 @@ const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
 };
 
 const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const loading = ref(false);
 const created = ref<LinkItem | null>(null);
 

@@ -21,6 +21,7 @@ const state = reactive({
 });
 
 const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const loading = ref(false);
 const showError = useErrorToast();
 

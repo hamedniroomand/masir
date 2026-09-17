@@ -8,6 +8,8 @@ const schema = v.object({
 });
 
 const state = reactive({ email: '' });
+const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const message = ref('');
 const loading = ref(false);
 
@@ -30,7 +32,7 @@ async function onSubmit() {
     <p class="mt-2 text-sm text-muted">
       Enter your email address.
     </p>
-    <UForm :schema="schema" :state="state" :validate-on="[]" class="mt-6 space-y-5" @submit="onSubmit">
+    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="mt-6 space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
         <UInput v-model="state.email" type="email" icon="i-lucide-mail" autocomplete="username" />
       </UFormField>

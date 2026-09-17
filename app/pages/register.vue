@@ -14,6 +14,8 @@ const schema = v.object({
 type Schema = v.InferOutput<typeof schema>;
 
 const state = reactive({ email: '', password: '' });
+const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const error = ref('');
 const loading = ref(false);
 
@@ -67,7 +69,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       />
       <USeparator label="or" />
     </div>
-    <UForm :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
         <UInput v-model="state.email" type="email" icon="i-lucide-mail" autocomplete="username" />
       </UFormField>

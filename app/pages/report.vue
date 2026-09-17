@@ -16,6 +16,8 @@ const state = reactive({
   slug: '',
   reason: '',
 });
+const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 
 const done = ref(false);
 const loading = ref(false);
@@ -53,7 +55,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       </p>
     </div>
     <UAlert v-if="done" title="Report received" description="Thank you. The administrator will review it." color="success" variant="soft" icon="i-lucide-circle-check" />
-    <UForm v-else :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+    <UForm v-else ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Short link slug" name="slug" required>
         <UInput v-model="state.slug" placeholder="my-link" />
       </UFormField>

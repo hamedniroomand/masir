@@ -17,6 +17,7 @@ const { saving, saved, patch } = useLinkPatch(() => props.link.id);
 
 const state = reactive({ destinationUrl: '' });
 const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 
 watch(() => props.link, (link) => {
   state.destinationUrl = link.destinationUrl;

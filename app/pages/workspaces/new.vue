@@ -13,6 +13,8 @@ const schema = v.object({
 });
 
 const state = reactive({ name: '', slug: '' });
+const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const error = ref('');
 const loading = ref(false);
 const slugTouched = ref(false);
@@ -54,7 +56,7 @@ async function onSubmit() {
         Your links and your team live here.
       </p>
     </div>
-    <UForm :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Company or workspace name" name="name" required>
         <UInput v-model="state.name" icon="i-lucide-building-2" placeholder="Acme" />
       </UFormField>

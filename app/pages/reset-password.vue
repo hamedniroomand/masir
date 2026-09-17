@@ -11,6 +11,8 @@ const schema = v.object({
 });
 
 const state = reactive({ password: '' });
+const form = useTemplateRef('form');
+useFormRevalidation(form, state);
 const error = ref('');
 const loading = ref(false);
 
@@ -38,7 +40,7 @@ async function onSubmit() {
     <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
       Set a new password
     </h1>
-    <UForm :schema="schema" :state="state" :validate-on="[]" class="mt-6 space-y-5" @submit="onSubmit">
+    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="mt-6 space-y-5" @submit="onSubmit">
       <UFormField label="New password" name="password" required>
         <UInput v-model="state.password" type="password" icon="i-lucide-lock-keyhole" autocomplete="new-password" />
       </UFormField>
