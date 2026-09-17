@@ -6,6 +6,9 @@
   "workspaces": [
     "docs"
   ],
+  "engines": {
+    "bun": ">=1.4"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "bun --bun nuxt dev",
