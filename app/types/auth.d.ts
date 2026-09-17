@@ -3,6 +3,7 @@ declare module '#auth-utils' {
     id: string;
     email: string;
     emailVerified: boolean;
+    sessionVersion: number;
   }
 }
 

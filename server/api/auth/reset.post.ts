@@ -2,7 +2,7 @@ import * as v from 'valibot';
 import { passwordResetTokens } from '#server/database/schema';
 import { consumeAuthToken, revokeAuthTokens } from '#server/utils/auth-token';
 import { readValidBody } from '#server/utils/body';
-import { setPasswordHash } from '#server/utils/identity-repo';
+import { bumpSessionVersion, setPasswordHash } from '#server/utils/identity-repo';
 import { writeSecurityEvent } from '#server/utils/security-log';
 
 const bodySchema = v.object({
@@ -19,7 +19,9 @@ export default defineEventHandler(async (event) => {
   await setPasswordHash(result.userId, await hashPassword(body.password));
   // Every other outstanding link stops working.
   await revokeAuthTokens(passwordResetTokens, result.userId);
-  // The old session must not survive a password change.
+  // Every session anywhere stops working, not only the caller's. A stolen
+  // cookie must not survive the theft victim changing the password.
+  await bumpSessionVersion(result.userId);
   await clearUserSession(event);
   await writeSecurityEvent('password_reset', {}, result.userId);
 

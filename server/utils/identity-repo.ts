@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3';
 import type { AuthIdentity, AuthProvider, User } from '#server/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { authIdentities, users } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { newId } from '#shared/id';
@@ -122,6 +122,20 @@ export async function markVerified(userId: string) {
     .where(eq(users.id, userId));
 }
 
+export async function sessionVersionOf(userId: string): Promise<number | null> {
+  const db = await getDb();
+  const rows = await db.select({ v: users.sessionVersion }).from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0]?.v ?? null;
+}
+
+// Raising the number ends every session that carries an older one.
+export async function bumpSessionVersion(userId: string) {
+  const db = await getDb();
+  await db.update(users)
+    .set({ sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
 export async function markLogin(userId: string) {
   const db = await getDb();
   await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, userId));
@@ -133,6 +147,7 @@ export async function setSessionUser(event: H3Event, user: User) {
       id: user.id,
       email: user.email,
       emailVerified: user.emailVerifiedAt != null,
+      sessionVersion: user.sessionVersion,
     },
   });
   await markLogin(user.id);

@@ -11,6 +11,9 @@ export const users = pgTable('users', {
   firstName: text('first_name'),
   lastName: text('last_name'),
   avatarUrl: text('avatar_url'),
+  // Every sealed session carries this number. Raising it refuses every session
+  // that a password change or a sign-out-everywhere should end.
+  sessionVersion: integer('session_version').notNull().default(0),
   createdAt: timestampTz('created_at').notNull(),
   updatedAt: timestampTz('updated_at').notNull(),
   lastLoginAt: timestampTz('last_login_at'),

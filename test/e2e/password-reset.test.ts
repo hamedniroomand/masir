@@ -57,6 +57,28 @@ describe('password reset', async () => {
     expect(withOld.status).toBe(401);
   });
 
+  it('stops a session that was issued before the reset', async () => {
+    // A stolen cookie must not survive the theft victim changing the password.
+    const signedIn = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: TEST_EMAIL, password: NEW_PASSWORD }),
+    });
+    const cookie = signedIn.headers.get('set-cookie')!.split(';')[0]!;
+
+    const before = await fetch('/api/auth/identities', { headers: { cookie } });
+    expect(before.status).toBe(200);
+
+    await $fetch('/api/auth/forgot', { method: 'POST', body: { email: TEST_EMAIL } });
+    await $fetch('/api/auth/reset', {
+      method: 'POST',
+      body: { token: await lastToken(), password: 'a-third-long-password' },
+    });
+
+    const after = await fetch('/api/auth/identities', { headers: { cookie } });
+    expect(after.status).toBe(401);
+  });
+
   it('refuses the same reset token a second time', async () => {
     const token = await lastToken();
     await expect($fetch('/api/auth/reset', {
