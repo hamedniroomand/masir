@@ -42,6 +42,9 @@ export default defineNuxtConfig({
     session: {
       cookie: {
         domain: '',
+        // Declared so NUXT_SESSION_COOKIE_SECURE=false can bind, for an
+        // instance served over plain http on a private network.
+        secure: true,
       },
     },
     sessionPassword: '',

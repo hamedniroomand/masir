@@ -39,12 +39,17 @@ pooled connection string.
 | `NUXT_DEPLOYMENT_MODE` | `SELF_HOSTED` | Or `CLOUD` |
 | `NUXT_MULTI_WORKSPACE` | `false` | Subdomain per workspace |
 | `NUXT_SESSION_COOKIE_DOMAIN` | — | **Required** when multi-workspace is true |
+| `NUXT_SESSION_COOKIE_SECURE` | `true` | `false` only for plain http on a private network |
 | `NUXT_ALLOW_REGISTRATION` | `false` | Public sign-up |
 | `NUXT_TRIAL_DAYS` | `7` | Cloud mode only |
 
 `NUXT_SESSION_COOKIE_DOMAIN` needs the leading dot: `.example.com`. Without it
 the session does not cross subdomains and switching workspaces asks people to
 sign in again.
+
+A `Secure` cookie never travels over plain http, except to `localhost`. An
+instance reached as `http://intranet.example` signs nobody in until
+`NUXT_SESSION_COOKIE_SECURE=false`. Put TLS in front instead when you can.
 
 ## Mail
 
