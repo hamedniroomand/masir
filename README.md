@@ -1,6 +1,10 @@
 # Linkyard
 
-Self-hosted link manager for one team. Create short links, change destinations without changing the URL, and view click analytics.
+Link manager for teams. Create short links, change destinations without changing the URL, and view click analytics.
+
+One codebase serves two shapes. **Self-hosted** holds one workspace on your own
+host. **Cloud** holds many, each on its own subdomain. The schema is the same in
+both; a flag decides.
 
 ## Quick start
 
@@ -16,17 +20,114 @@ bun run db:seed:admin
 bun run dev
 ```
 
-Sign in at `/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+Sign in at `/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The seed makes the
+first workspace and its owner together, so the app works at once.
+
+## Workspaces
+
+A workspace owns every link, tag, campaign, and click event. People reach a
+workspace through a membership, never directly.
+
+```text
+User → Workspace member (role) → Workspace → Links, tags, analytics
+```
+
+| | Cloud | Self-hosted |
+|---|---|---|
+| Workspaces | Many | One, made by the seed |
+| Address | `acme.example.com` | Your own host, no subdomain |
+| Wildcard DNS | Required | Not needed |
+| Registration | Open | Closed by default |
+
+Set `NUXT_MULTI_WORKSPACE=true` for the cloud shape. Leave it false and the
+server ignores the hostname and serves its one workspace on any host.
+
+### Roles
+
+Two roles. A workspace holds exactly **one owner**, and a partial unique index
+in Postgres refuses a second one.
+
+- **Owner** — workspace settings, invitations, members, ownership transfer, deletion, and everything a member can do.
+- **Member** — links, tags, campaigns, analytics.
+
+Only ownership transfer changes who the owner is. Deactivating, removing, or
+demoting the owner is refused; transfer first.
+
+### Invitations
+
+The owner invites by email. Every invitation joins as a member and expires
+after 7 days. Only the invited address may accept, and the token is stored as a
+hash, so a stolen database row cannot be replayed.
+
+### Tenant isolation
+
+Every tenant query carries a workspace. A caller who is not a member gets
+**404, never 403**, so the answer never confirms that a workspace exists.
+`test/e2e/workspace-isolation.test.ts` holds the proof: workspace A cannot
+read, edit, or delete workspace B's link by id, and two workspaces can hold the
+same slug.
+
+## Authentication
+
+- Email and password, with verification before any workspace work.
+- Google and Microsoft, through `nuxt-auth-utils`. A provider button appears only when that provider has a client id.
+- One user may hold several sign-in methods. Linking needs the local email verified already, and the last method cannot be disconnected.
+- Password recovery ends **every** session, not only the caller's. A stolen cookie does not survive a password change.
+
+Tokens for verification, recovery, and invitations are all stored hashed,
+expire, and work once.
+
+## Subdomains and DNS
+
+Cloud mode needs one wildcard record and one wildcard certificate:
+
+```text
+example.com
+*.example.com
+```
+
+Creating a workspace is a database insert. It calls no DNS or certificate API.
+
+Cross-subdomain sessions need the cookie on the parent domain. Set
+`NUXT_SESSION_COOKIE_DOMAIN=.example.com`. Boot refuses to start without it
+when `NUXT_MULTI_WORKSPACE` is true, because the alternative is every workspace
+quietly asking people to sign in again.
+
+## Billing and limits
+
+Not built. The `workspaces` table already carries `plan`, `trial_started_at`,
+`trial_ends_at`, and `subscription_status`, so adding a trial, entitlements, or
+a billing provider needs no schema redesign. Billing belongs to the workspace,
+never to the user.
 
 ## Environment
 
-See `.env.example` for every variable. Boot fails with the variable name if a required value is missing or invalid.
+See `.env.example` for every variable. Boot fails with the variable name if a
+required value is missing or invalid.
+
+The ones that decide the shape of the deployment:
+
+| Variable | Meaning |
+|---|---|
+| `NUXT_DEPLOYMENT_MODE` | `CLOUD` or `SELF_HOSTED` |
+| `NUXT_MULTI_WORKSPACE` | `true` gives each workspace a subdomain and needs wildcard DNS |
+| `NUXT_ROOT_DOMAIN` | Origin of the root site, with protocol and port |
+| `NUXT_SESSION_COOKIE_DOMAIN` | Required when `NUXT_MULTI_WORKSPACE` is true |
+| `NUXT_ALLOW_REGISTRATION` | `true` lets anybody register |
+| `NUXT_DATABASE_POOL_MAX` | Connections for one instance. Lower it on serverless |
+| `NUXT_MAIL_API_KEY` | Resend key. Empty logs messages instead of sending them |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | Empty hides that provider's button |
+
+**Self-hosted with registration on** has no way for a new person to reach a
+workspace yet, because they can neither be the second owner nor make a second
+workspace. Invite them instead, and leave registration closed.
 
 ## Architecture
 
-- **Redirect path:** Nitro middleware resolves `/:slug` before the Vue app loads. One cached DB read, then `302` to the destination.
+- **Redirect path:** `00.workspace.ts` resolves the workspace from the hostname, then `01.redirect.ts` resolves `/:slug` inside it, before the Vue app loads. One cached read, then `302`.
 - **302 not 301:** Destinations stay editable; permanent redirects would be cached by browsers.
-- **Cache:** In-memory slug cache (60s TTL), invalidated on edit/delete. Single-node only; use a shared store for multiple nodes.
+- **Cache:** In-memory slug cache (60s TTL), keyed on workspace plus slug, invalidated on edit and delete. Single node only; use a shared store for more.
+- **Rate limits:** Counters sit behind a store interface. The built-in store is in memory and counts one process only. Add a shared driver before you run more than one instance.
 - **Query passthrough:** The redirect keeps the query a visitor adds to the short link and sends it to the destination.
 - **Analytics:** Events are recorded after the redirect decision via `waitUntil`. Read-time aggregation runs in Postgres.
 - **Privacy:** No raw IP storage. Country comes from a proxy header (`GEO_COUNTRY_HEADER`, `cf-ipcountry`, or `x-vercel-ip-country`). Default Docker deploy has no country data unless you add a proxy.
@@ -133,7 +234,9 @@ Campaign metrics group clicks by the link's current `utm_source`. Delete a campa
 - No raw IP addresses in the database.
 - Visitor identity uses a rotating daily hash.
 - Country uses a proxy header when present.
-- Password hashes use the same helper as user login passwords.
+- Link password hashes use the same helper as user login passwords.
+- Sign-in credentials live in `auth_identities`, never on the user row.
+- A deactivated member keeps their account; the flag sits on the membership, so their other workspaces are untouched.
 
 ## Backup
 
