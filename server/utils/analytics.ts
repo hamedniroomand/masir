@@ -81,6 +81,8 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
   if (!campaign)
     return null;
 
+  // Deleted links stay in this read. Their clicks belong to the campaign total
+  // and to the charts, and only the lists below drop them.
   const linkRows = await db.select({
     id: links.id,
     slug: links.slug,
@@ -88,7 +90,9 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
     utmSource: links.utmSource,
     utmContent: links.utmContent,
     clickCount: links.clickCount,
+    deletedAt: links.deletedAt,
   }).from(links).where(and(eq(links.campaignId, campaignId), eq(links.workspaceId, workspaceId)));
+  const liveRows = linkRows.filter(row => row.deletedAt == null);
 
   if (!linkRows.length) {
     return {
@@ -116,9 +120,9 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
 
   return {
     totalClicks: linkRows.reduce((sum, row) => sum + row.clickCount, 0),
-    linkCount: linkRows.length,
+    linkCount: liveRows.length,
     bySource: sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
-    topLinks: linkRows
+    topLinks: liveRows
       .map(row => ({
         id: row.id,
         slug: row.slug,

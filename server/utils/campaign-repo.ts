@@ -21,7 +21,9 @@ export async function listCampaigns(workspaceId: string) {
   const db = await getDb();
   const rows = await db.select({
     campaign: campaigns,
-    linkCount: sql<number>`count(${links.id})`,
+    // A deleted link keeps its clicks in the total, so the history of the
+    // campaign does not move. It is not a link any more, so it is not counted.
+    linkCount: sql<number>`count(${links.id}) filter (where ${links.deletedAt} is null)`,
     clickCount: sql<number>`coalesce(sum(${links.clickCount}), 0)`,
   })
     .from(campaigns)

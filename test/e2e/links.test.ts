@@ -105,6 +105,34 @@ describe('links API', async () => {
     expect(await readTotal()).toBe(7);
   });
 
+  // The clicks of a deleted link belong to the campaign history. The link does
+  // not belong to any list a user can act on.
+  it('drops a deleted link from the campaign lists but not from the total', async () => {
+    const cookie = await loginCookie();
+    const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'autumn' });
+    await insertTestLink(TEST_DB, { workspaceId, slug: 'live-one', campaignId, clickCount: 2 });
+    const doomed = await insertTestLink(TEST_DB, { workspaceId, slug: 'gone-one', campaignId, clickCount: 5 });
+
+    await $fetch(`/api/links/${doomed}`, { method: 'DELETE', headers: { cookie } });
+
+    const list = await $fetch<{ items: { id: string; linkCount: number; clickCount: number }[] }>(
+      '/api/campaigns',
+      { headers: { cookie } },
+    );
+    const listed = list.items.find(item => item.id === campaignId)!;
+    expect(listed.clickCount).toBe(7);
+    expect(listed.linkCount).toBe(1);
+
+    const analytics = await $fetch<{
+      totalClicks: number;
+      linkCount: number;
+      topLinks: { id: string; slug: string }[];
+    }>(`/api/campaigns/${campaignId}/analytics`, { headers: { cookie } });
+    expect(analytics.totalClicks).toBe(7);
+    expect(analytics.linkCount).toBe(1);
+    expect(analytics.topLinks.map(row => row.slug)).toEqual(['live-one']);
+  });
+
   it('reads the click counter back as a number', async () => {
     const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'counted', clickCount: 2 });
     const row = await readTestLink(TEST_DB, linkId);
