@@ -5,17 +5,17 @@ const props = defineProps<{ link: LinkItem }>();
 const emit = defineEmits<{ updated: [] }>();
 
 const showError = useErrorToast();
-const { pending, setLinkEnabled } = useLinkEnabledMutation();
+const { saving, patch } = useLinkPatch(() => props.link.id);
 
 async function onEnabledChange(isEnabled: boolean) {
   if (isEnabled === props.link.isEnabled)
     return;
   try {
-    await setLinkEnabled(props.link.id, isEnabled);
+    await patch({ isEnabled });
     emit('updated');
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
 }
 </script>
@@ -32,7 +32,7 @@ async function onEnabledChange(isEnabled: boolean) {
     </div>
     <USwitch
       :model-value="link.isEnabled"
-      :loading="pending"
+      :loading="saving"
       :aria-label="link.isEnabled ? 'Disable link' : 'Enable link'"
       @update:model-value="onEnabledChange"
     />

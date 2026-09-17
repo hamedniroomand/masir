@@ -6,7 +6,7 @@ const props = defineProps<{ link: LinkItem }>();
 const emit = defineEmits<{ updated: [] }>();
 
 const showError = useErrorToast();
-const saving = ref(false);
+const { saving, patch } = useLinkPatch(() => props.link.id);
 
 const state = reactive({
   startsAt: null as number | null,
@@ -25,25 +25,18 @@ watch(() => props.link, (link) => {
 }, { immediate: true });
 
 async function save() {
-  saving.value = true;
   try {
-    await $fetch(`/api/links/${props.link.id}`, {
-      method: 'PATCH',
-      body: {
-        startsAt: state.startsAt,
-        expiresAt: state.expiresAt,
-        maximumVisits: toVisitLimit(state.maximumVisits),
-        expirationDestination: state.expirationDestination.trim() || null,
-        tags: state.tags,
-      },
+    await patch({
+      startsAt: state.startsAt,
+      expiresAt: state.expiresAt,
+      maximumVisits: toVisitLimit(state.maximumVisits),
+      expirationDestination: state.expirationDestination.trim() || null,
+      tags: state.tags,
     });
     emit('updated');
   }
-  catch (e) {
-    showError(e);
-  }
-  finally {
-    saving.value = false;
+  catch (error) {
+    showError(error);
   }
 }
 

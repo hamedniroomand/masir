@@ -6,7 +6,7 @@ const emit = defineEmits<{ refresh: [] }>();
 
 const { copy, copied } = useClipboard();
 const showError = useErrorToast();
-const { pending: togglingEnabled, setLinkEnabled } = useLinkEnabledMutation();
+const { saving: togglingEnabled, patch } = useLinkPatch(() => props.link.id);
 const deleting = ref(false);
 const modal = ref(false);
 const qrOpen = ref(false);
@@ -15,11 +15,11 @@ const name = computed(() => props.link.title || props.link.slug);
 
 async function toggleEnabled() {
   try {
-    await setLinkEnabled(props.link.id, !props.link.isEnabled);
+    await patch({ isEnabled: !props.link.isEnabled });
     emit('refresh');
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
 }
 
@@ -30,8 +30,8 @@ async function remove() {
     modal.value = false;
     emit('refresh');
   }
-  catch (e) {
-    showError(e);
+  catch (error) {
+    showError(error);
   }
   finally {
     deleting.value = false;

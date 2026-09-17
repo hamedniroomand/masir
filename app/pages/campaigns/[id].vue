@@ -33,8 +33,8 @@ async function removeCampaign() {
     await $fetch(`/api/campaigns/${id.value}`, { method: 'DELETE' });
     await navigateTo('/campaigns');
   }
-  catch (e: unknown) {
-    showError(e);
+  catch (error: unknown) {
+    showError(error);
   }
   finally {
     deleting.value = false;
@@ -89,38 +89,12 @@ async function removeCampaign() {
 
     <template v-if="analytics">
       <div class="metric-grid">
-        <div class="p-5">
-          <p class="text-xs text-muted">
-            Clicks in this period
-          </p>
-          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
-            {{ analytics.periodClicks.toLocaleString() }}
-          </p>
-        </div>
-        <div class="border-l border-default p-5">
-          <p class="text-xs text-muted">
-            All-time clicks
-          </p>
-          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
-            {{ analytics.totalClicks.toLocaleString() }}
-          </p>
-        </div>
-        <div class="border-t border-default p-5 lg:border-l lg:border-t-0">
-          <p class="text-xs text-muted">
-            Links
-          </p>
-          <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-highlighted">
-            {{ analytics.linkCount }}
-          </p>
-        </div>
-        <div class="border-l border-t border-default p-5 lg:border-t-0">
-          <p class="text-xs text-muted">
-            Top source
-          </p>
-          <p class="mt-2 truncate text-2xl font-semibold tracking-tight text-highlighted" :title="topSource?.label">
-            {{ topSource?.label ?? '—' }}
-          </p>
-        </div>
+        <MetricStat size="md" class="p-5" label="Clicks in this period" :value="analytics.periodClicks.toLocaleString()" />
+        <MetricStat size="md" class="border-l border-default p-5" label="All-time clicks" :value="analytics.totalClicks.toLocaleString()" />
+        <MetricStat size="md" class="border-t border-default p-5 lg:border-l lg:border-t-0" label="Links" :value="String(analytics.linkCount)" />
+        <MetricStat size="md" class="border-l border-t border-default p-5 lg:border-t-0" label="Top source">
+          <span class="block truncate" :title="topSource?.label">{{ topSource?.label ?? '—' }}</span>
+        </MetricStat>
       </div>
 
       <section class="space-y-5 rounded-panel border border-default bg-default p-4 sm:p-5">
