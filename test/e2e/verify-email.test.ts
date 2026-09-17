@@ -22,7 +22,7 @@ describe('email verification', async () => {
     await resetTestDb(TEST_DB);
     await $fetch('/api/auth/register', {
       method: 'POST',
-      body: { email: EMAIL, password: 'a-long-enough-password' },
+      body: { email: EMAIL, password: 'a-long-enough-pass1!' },
     });
   });
 

@@ -6,7 +6,7 @@ import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUr
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('password-reset');
-const NEW_PASSWORD = 'a-brand-new-password';
+const NEW_PASSWORD = 'a-brand-new-pass5!';
 
 async function lastToken() {
   const db = openTestDatabase(TEST_DB);
@@ -72,7 +72,7 @@ describe('password reset', async () => {
     await $fetch('/api/auth/forgot', { method: 'POST', body: { email: TEST_EMAIL } });
     await $fetch('/api/auth/reset', {
       method: 'POST',
-      body: { token: await lastToken(), password: 'a-third-long-password' },
+      body: { token: await lastToken(), password: 'a-third-long-pass3!' },
     });
 
     const after = await fetch('/api/auth/identities', { headers: { cookie } });
@@ -83,7 +83,7 @@ describe('password reset', async () => {
     const token = await lastToken();
     await expect($fetch('/api/auth/reset', {
       method: 'POST',
-      body: { token, password: 'yet-another-password' },
+      body: { token, password: 'yet-another-pass4!' },
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 });

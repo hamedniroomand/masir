@@ -10,7 +10,8 @@ test.beforeAll(({ db }) => {
 test('registers, verifies the email, creates a workspace, and reaches its subdomain', async ({ page, db, server }) => {
   await page.goto('/register');
   await page.getByLabel('Email').fill(EMAIL);
-  await page.getByLabel('Password').fill(PASSWORD);
+  // The register field shares its label prefix with the show/hide button.
+  await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/verify-email\?email=/);
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();

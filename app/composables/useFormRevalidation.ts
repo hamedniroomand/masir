@@ -3,14 +3,14 @@ import type { Ref } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import { ref, watch } from 'vue';
 
-type RevalidatingForm = {
+export type RevalidatingForm = {
   errors: FormErrorWithId[];
   validate: (opts: { silent: true }) => Promise<unknown>;
 };
 
 // Forms validate on submit only. Once an error has shown, re-validate as the
 // user edits so a field leaves the error state as soon as its input is valid.
-export function useFormRevalidation(form: Readonly<Ref<RevalidatingForm | null | undefined>>, state: object) {
+export function useFormRevalidation(form: Readonly<Ref<RevalidatingForm | null | undefined>>, state: object | (() => unknown)) {
   const armed = ref(false);
 
   watch(() => form.value?.errors.length, (count) => {
