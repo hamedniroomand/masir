@@ -5,6 +5,8 @@ import * as v from 'valibot';
 definePageMeta({ layout: 'auth' });
 
 const { data: providers } = await useFetch('/api/auth/providers');
+const hasProviders = computed(() => Boolean(providers.value?.google || providers.value?.microsoft));
+const showEmailForm = ref(!hasProviders.value);
 
 const schema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
@@ -45,31 +47,17 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         Create your account
       </h1>
       <p class="mt-2 text-sm text-muted">
-        Start with your email address.
+        {{ hasProviders ? 'Choose how you want to sign up.' : 'Start with your email address.' }}
       </p>
     </div>
-    <div v-if="providers?.google || providers?.microsoft" class="mb-5 space-y-3">
-      <UButton
-        v-if="providers?.google"
-        to="/api/auth/google"
-        external
-        label="Continue with Google"
-        icon="i-simple-icons-google"
-        variant="subtle"
-        block
-      />
-      <UButton
-        v-if="providers?.microsoft"
-        to="/api/auth/microsoft"
-        external
-        label="Continue with Microsoft"
-        icon="i-simple-icons-microsoft"
-        variant="subtle"
-        block
-      />
-      <USeparator label="or" />
+    <div v-if="hasProviders && providers" class="mb-5">
+      <AuthProviders :providers="providers" />
+      <USeparator v-if="showEmailForm" label="or" class="mt-5" />
+      <p v-else class="mt-5 text-center text-sm text-muted">
+        <UButton variant="link" class="p-0" label="Sign up with email instead" @click="showEmailForm = true" />
+      </p>
     </div>
-    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+    <UForm v-if="showEmailForm" ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
         <UInput v-model="state.email" type="email" icon="i-lucide-mail" autocomplete="username" />
       </UFormField>

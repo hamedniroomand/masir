@@ -15,6 +15,7 @@ block. Read them for every version between yours and the one you install.
 - Campaigns with UTM defaults
 - Workspaces, members, roles, and invitations
 - Password, Google, and Microsoft sign-in with email verification
+- Login and register pages show only the configured sign-in providers first; a link reveals the email and password form
 - Click analytics without IP storage
 - Self-hosted and multi-workspace deployment modes
 - Compatibility rules, this changelog, and the upgrade guide

@@ -66,6 +66,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   login: async ({ page }, use) => {
     await use(async (email = OWNER_EMAIL, password = OWNER_PASSWORD) => {
       await page.goto('/login');
+      // With a sign-in provider configured the password form hides behind a link.
+      const emailLink = page.getByRole('button', { name: 'Sign in with email instead' });
+      if (await emailLink.isVisible())
+        await emailLink.click();
       await page.getByLabel('Email').fill(email);
       await page.getByLabel('Password').fill(password);
       await page.getByRole('button', { name: 'Sign in' }).click();
