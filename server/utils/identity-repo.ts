@@ -170,9 +170,10 @@ export type OAuthProfile = {
 export function oauthEmailOf(provider: AuthProvider, profile: OAuthProfile): string | null {
   if (provider === 'GOOGLE')
     return profile.email ? normalizeEmail(profile.email) : null;
-  // Microsoft Graph gives mail for a licensed mailbox and falls back to the
-  // principal name.
-  const address = profile.mail ?? profile.userPrincipalName ?? null;
+  // userPrincipalName first. Its suffix is a domain the tenant proved it owns,
+  // while mail is a directory field a tenant admin can set. The identity is
+  // linked onto an existing account, so the weaker field must not decide it.
+  const address = profile.userPrincipalName ?? profile.mail ?? null;
   return address ? normalizeEmail(address) : null;
 }
 
@@ -180,10 +181,13 @@ export function oauthAccountIdOf(profile: OAuthProfile): string | null {
   return profile.sub ?? profile.id ?? null;
 }
 
-// Google states whether it verified the address. Microsoft does not, and its
-// tenant owns the mailbox, so a Microsoft address counts as verified.
+// Google states whether it verified the address. Microsoft does not, so the
+// claim rests on the userPrincipalName suffix being a domain the tenant owns.
+// A mail-only profile carries no such proof and is not treated as verified.
 export function oauthEmailVerified(provider: AuthProvider, profile: OAuthProfile) {
-  return provider === 'GOOGLE' ? profile.email_verified === true : true;
+  if (provider === 'GOOGLE')
+    return profile.email_verified === true;
+  return Boolean(profile.userPrincipalName);
 }
 
 export async function resolveOAuthUser(provider: AuthProvider, profile: OAuthProfile): Promise<
