@@ -33,6 +33,13 @@ describe('email verification', async () => {
     expect(rows[0]!.subject).toBe('Verify your email');
   });
 
+  it('puts only the token in the link', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const rows = await db.select().from(mailOutbox).where(eq(mailOutbox.to, EMAIL));
+    expect(rows[0]!.text).toMatch(/verify-email\?token=[\w-]+(\s|$)/);
+    expect(rows[0]!.text).not.toContain('email=');
+  });
+
   it('verifies once and refuses the second use', async () => {
     const token = await lastToken();
 

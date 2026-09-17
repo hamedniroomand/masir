@@ -31,13 +31,14 @@ useFormRevalidation(computed(() => auth.value?.formRef), () => auth.value?.state
 
 const error = ref('');
 const loading = ref(false);
+const sentTo = ref('');
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   error.value = '';
   loading.value = true;
   try {
     await $fetch('/api/auth/register', { method: 'POST', body: event.data });
-    await navigateTo(`/verify-email?email=${encodeURIComponent(event.data.email)}`);
+    sentTo.value = event.data.email;
   }
   catch {
     error.value = 'We could not complete the registration. Try again.';
@@ -49,7 +50,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div>
+  <VerifyEmailNotice v-if="sentTo" :email="sentTo">
+    <UButton to="/login" label="Back to sign in" variant="ghost" block />
+  </VerifyEmailNotice>
+  <div v-else>
     <div class="mb-7">
       <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
         Create your account

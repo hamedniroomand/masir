@@ -4,6 +4,8 @@ import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-s
 
 definePageMeta({ layout: 'auth' });
 
+const { user } = useUserSession();
+const signOut = useSignOut();
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
@@ -65,7 +67,10 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div>
+  <VerifyEmailNotice v-if="user && !user.emailVerified" :email="user.email">
+    <UButton label="Sign out" variant="ghost" block @click="signOut" />
+  </VerifyEmailNotice>
+  <div v-else>
     <div class="mb-7">
       <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
         Create your workspace

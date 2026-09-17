@@ -15,8 +15,9 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
   // The register field shares its label prefix with the show/hide button.
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/\/verify-email\?email=/);
+  await expect(page).toHaveURL(/\/register$/);
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
+  await expect(page.getByText(`We sent a verification link to ${EMAIL}.`)).toBeVisible();
 
   const token = db.lastToken(EMAIL);
   expect(token).toBeTruthy();
@@ -43,6 +44,23 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
 
   await page.goto(`${server.hostUrl('zeta-corp')}/settings/workspace`);
   await expect(page.getByRole('img', { name: 'Zeta Corp logo' })).toHaveAttribute('src', /\/uploads\/logos\//);
+});
+
+test('shows the inbox notice to an unverified sign-in and resends the link', async ({ page, db, login }) => {
+  const email = 'pending@example.com';
+  await page.goto('/register');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel(/^Password/).fill(PASSWORD);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
+  expect(db.mailCount(email)).toBe(1);
+
+  await login(email, PASSWORD);
+  await expect(page).toHaveURL(/\/workspaces\/new$/);
+  await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
+  await page.getByRole('button', { name: 'Resend email' }).click();
+  await expect(page.getByRole('status')).toContainText('We sent another link');
+  expect(db.mailCount(email)).toBe(2);
 });
 
 test('sends the root host straight to the only workspace', async ({ page, login, server }) => {

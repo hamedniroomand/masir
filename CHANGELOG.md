@@ -16,7 +16,8 @@ block. Read them for every version between yours and the one you install.
 - Workspaces, members, roles, and invitations
 - Password, Google, and Microsoft sign-in with email verification; an account password needs at least 8 characters with at least 1 number and 1 sign, and the register and reset forms show the rules as you type
 - Login and register pages show only the configured sign-in providers first; a link reveals the email and password form
-- The verify email page shows a loader while it checks the link and an alert when the link fails; the emailed link carries the address so Resend works from it
+- The verify email page shows a loader while it checks the link and an alert when the link fails; a visit without a token goes to the login page
+- The register page and the new-workspace page show the check-your-inbox notice with Resend, so the emailed link and the URL carry only the token
 - Click analytics without IP storage
 - Self-hosted and multi-workspace deployment modes
 - Compatibility rules, this changelog, and the upgrade guide
