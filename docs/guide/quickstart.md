@@ -1,14 +1,14 @@
 # Your first link
 
 This walks through the flow once, end to end. It assumes you have
-[installed](/guide/installation) Linkyard and can sign in.
+[installed](/guide/installation) Masir and can sign in.
 
 ## Create a link
 
 Sign in and press **New link**. The only field you must fill is the
 destination.
 
-Leave the slug blank and Linkyard generates a seven-character one from an
+Leave the slug blank and Masir generates a seven-character one from an
 alphabet that avoids `0`, `1`, `l`, and `o`, so nobody mistypes it reading off a
 slide. Type your own slug if you want something memorable.
 
@@ -28,7 +28,7 @@ and now lands somewhere new. This is the reason to use a shortener at all, and
 it is worth trying once to convince yourself it works.
 
 ::: info Why 302 and not 301
-Linkyard answers with a temporary redirect. A permanent redirect gets cached by
+Masir answers with a temporary redirect. A permanent redirect gets cached by
 browsers for a long time, and you would lose the ability to edit the
 destination for anyone who had already clicked.
 :::

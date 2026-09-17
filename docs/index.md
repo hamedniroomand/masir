@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Linkyard
+  name: Masir
   text: Short links your team actually owns.
   tagline: >-
     Self-hosted link management with workspaces, real access control, and
@@ -13,7 +13,7 @@ hero:
       text: Get started
       link: /guide/installation
     - theme: alt
-      text: Why Linkyard
+      text: Why Masir
       link: /guide/
 ---
 
@@ -61,7 +61,7 @@ is a cap of one. Expired links can redirect somewhere else instead of dying.
 
 ## Run it your way
 
-Linkyard ships one codebase in two shapes.
+Masir ships one codebase in two shapes.
 
 **Self-hosted** holds a single workspace on your own domain. No wildcard DNS, no
 certificates beyond the one you already have, no subdomain to think about.

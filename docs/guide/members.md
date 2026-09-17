@@ -1,6 +1,6 @@
 # Members and roles
 
-Linkyard has two roles. That is a deliberate choice, not an unfinished one.
+Masir has two roles. That is a deliberate choice, not an unfinished one.
 
 | | Owner | Member |
 |---|---|---|

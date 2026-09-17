@@ -4,7 +4,7 @@ The default shape. One workspace, your own domain, no subdomain machinery.
 
 ## What you need
 
-Postgres 17 or newer, and somewhere to run a container. Linkyard is a single
+Postgres 17 or newer, and somewhere to run a container. Masir is a single
 Nitro process; it holds no state of its own beyond an in-memory cache.
 
 ## Configuration
@@ -19,7 +19,7 @@ NUXT_SESSION_PASSWORD=
 NUXT_ROOT_DOMAIN=https://go.example.com
 NUXT_PUBLIC_SHORT_DOMAIN=https://go.example.com
 
-NUXT_DATABASE_URL=postgres://user:pass@host:5432/linkyard
+NUXT_DATABASE_URL=postgres://user:pass@host:5432/masir
 ```
 
 Leave `NUXT_MULTI_WORKSPACE` at `false`. In this mode the server ignores the
@@ -30,7 +30,7 @@ request arrived on.
 
 ## Behind a proxy
 
-Linkyard reads the client IP from `x-forwarded-for` for rate limiting, and the
+Masir reads the client IP from `x-forwarded-for` for rate limiting, and the
 visitor's country from a header your proxy sets.
 
 ```sh [.env]
@@ -39,7 +39,7 @@ NUXT_GEO_COUNTRY_HEADER=cf-ipcountry
 
 Cloudflare sets `cf-ipcountry` and Vercel sets `x-vercel-ip-country`; both are
 recognised without configuration. Without a proxy that adds one of these, the
-country breakdown stays empty — Linkyard does no IP geolocation itself, because
+country breakdown stays empty — Masir does no IP geolocation itself, because
 that would mean handling IP addresses it has decided not to store.
 
 ## Registration
@@ -55,7 +55,7 @@ Invite people instead. It is the path that works.
 
 ## Running more than one instance
 
-Two parts of Linkyard keep state in the process:
+Two parts of Masir keep state in the process:
 
 **The link cache** holds resolved links for 60 seconds. Running several
 instances means each keeps its own, so an edit can take up to a minute to show
@@ -88,7 +88,7 @@ Each instance opens up to this many connections. Postgres defaults to 100 total.
 One database holds everything:
 
 ```sh
-pg_dump "$NUXT_DATABASE_URL" > linkyard.sql
+pg_dump "$NUXT_DATABASE_URL" > masir.sql
 ```
 
 Losing it loses the links and the analytics. Uploaded logos live wherever

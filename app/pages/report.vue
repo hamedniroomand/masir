@@ -3,7 +3,7 @@ import type { FormSubmitEvent } from '@nuxt/ui';
 import * as v from 'valibot';
 
 definePageMeta({ layout: 'auth' });
-useHead({ title: 'Report a link · Linkyard' });
+useHead({ title: 'Report a link · Masir' });
 
 const schema = v.object({
   slug: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter the short link slug.')),

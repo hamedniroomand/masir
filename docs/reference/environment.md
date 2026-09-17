@@ -1,6 +1,6 @@
 # Environment variables
 
-Linkyard validates these at boot and refuses to start on a bad one, naming the
+Masir validates these at boot and refuses to start on a bad one, naming the
 variable in the first line of the log.
 
 ## Required
@@ -8,7 +8,7 @@ variable in the first line of the log.
 | Variable | Notes |
 |---|---|
 | `NUXT_SESSION_PASSWORD` | 32 characters or more. `openssl rand -base64 32` |
-| `NUXT_DATABASE_URL` | `postgres://user:pass@host:5432/linkyard` |
+| `NUXT_DATABASE_URL` | `postgres://user:pass@host:5432/masir` |
 | `NUXT_ROOT_DOMAIN` | Origin of the root site, with protocol |
 | `NUXT_PUBLIC_SHORT_DOMAIN` | Origin printed with short links, no trailing slash |
 
@@ -19,7 +19,7 @@ way to sign everybody out.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `NUXT_DATABASE_URL` | `postgres://linkyard:linkyard@127.0.0.1:5432/linkyard` | |
+| `NUXT_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir` | |
 | `NUXT_DATABASE_POOL_MAX` | `10` | Connections per instance |
 | `NUXT_MIGRATE_ON_BOOT` | `true` | Apply migrations when the server starts |
 
@@ -54,7 +54,7 @@ process.
 | Variable | Default | Notes |
 |---|---|---|
 | `NUXT_MAIL_DRIVER` | — | `smtp`, `resend`, `outbox`, or `log` |
-| `NUXT_MAIL_FROM` | `Linkyard <no-reply@localhost>` | |
+| `NUXT_MAIL_FROM` | `Masir <no-reply@localhost>` | |
 | `NUXT_MAIL_SMTP_HOST` | — | Enables the SMTP provider |
 | `NUXT_MAIL_SMTP_PORT` | `587` | |
 | `NUXT_MAIL_SMTP_USER` | — | Omit for an unauthenticated relay |

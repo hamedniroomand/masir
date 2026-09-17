@@ -21,7 +21,7 @@ function maintenanceUrl() {
 
 export function testDatabaseUrl(name: string) {
   const url = new URL(maintenanceUrl());
-  url.pathname = `/linkyard_test_${name.replace(/-/g, '_')}`;
+  url.pathname = `/masir_test_${name.replace(/-/g, '_')}`;
   return url.toString();
 }
 

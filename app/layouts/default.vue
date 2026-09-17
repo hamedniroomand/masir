@@ -53,7 +53,7 @@ async function signOut() {
   <div class="min-h-screen lg:py-2 lg:pr-2 lg:pl-60">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-default focus:p-3">Skip to content</a>
     <aside class="fixed inset-y-0 left-0 hidden w-60 flex-col bg-[var(--workspace-bg)] px-4 py-6 lg:flex">
-      <NuxtLink to="/" aria-label="Linkyard home" class="px-2.5">
+      <NuxtLink to="/" aria-label="Masir home" class="px-2.5">
         <AppLogo />
       </NuxtLink>
       <UDropdownMenu :items="switcher" :content="{ align: 'start' }" class="mx-1 mb-7 mt-7 w-[calc(100%-0.5rem)]">

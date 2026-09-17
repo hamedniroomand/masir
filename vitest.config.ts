@@ -22,7 +22,7 @@ export default defineVitestConfig({
     env: {
       VITEST: 'true',
       NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
-      NUXT_DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/linkyard_test',
+      NUXT_DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/masir_test',
       NUXT_PUBLIC_SHORT_DOMAIN: 'http://localhost:3000',
     },
   },

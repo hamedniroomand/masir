@@ -1,6 +1,6 @@
 # Installation
 
-Linkyard needs Postgres 17 or newer and, if you are building from source,
+Masir needs Postgres 17 or newer and, if you are building from source,
 [Bun](https://bun.com) 1.4 or newer.
 
 ## With Docker Compose
@@ -8,8 +8,8 @@ Linkyard needs Postgres 17 or newer and, if you are building from source,
 The fastest path. Compose brings up Postgres and the app together.
 
 ```sh
-git clone https://github.com/hamedniroomand/linkyard
-cd linkyard
+git clone https://github.com/hamedniroomand/masir
+cd masir
 cp .env.example .env
 ```
 
@@ -43,8 +43,8 @@ hand after an upgrade.
 ## From source
 
 ```sh
-git clone https://github.com/hamedniroomand/linkyard
-cd linkyard
+git clone https://github.com/hamedniroomand/masir
+cd masir
 cp .env.example .env
 bun install
 ```
@@ -78,7 +78,7 @@ A `503` here means the app started but cannot reach Postgres. Check
 
 ## Boot-time validation
 
-Linkyard refuses to start on a bad configuration rather than failing later in a
+Masir refuses to start on a bad configuration rather than failing later in a
 confusing way. Every message names the variable:
 
 ```text

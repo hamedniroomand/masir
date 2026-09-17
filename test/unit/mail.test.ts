@@ -13,7 +13,7 @@ const message = {
 function mailConfig(overrides: Partial<MailConfig> = {}): MailConfig {
   return {
     driver: '',
-    from: 'Linkyard <no-reply@linkyard.dev>',
+    from: 'Masir <no-reply@masir.dev>',
     apiKey: '',
     smtp: { host: '', port: 587, user: '', password: '', secure: false, poolMax: 5 },
     ...overrides,
@@ -80,7 +80,7 @@ describe('resend driver', () => {
       new Response(JSON.stringify({ id: 'x' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await createResendDriver('re_test_key', 'Linkyard <no-reply@linkyard.dev>').send(message);
+    await createResendDriver('re_test_key', 'Masir <no-reply@masir.dev>').send(message);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0]!;
@@ -88,7 +88,7 @@ describe('resend driver', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer re_test_key');
     const body = JSON.parse(init.body as string);
     expect(body.to).toEqual(['sara@example.com']);
-    expect(body.from).toBe('Linkyard <no-reply@linkyard.dev>');
+    expect(body.from).toBe('Masir <no-reply@masir.dev>');
     expect(body.subject).toBe('Verify your email');
   });
 

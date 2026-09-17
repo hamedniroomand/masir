@@ -1,12 +1,12 @@
 {
-  "name": "linkyard-docs",
+  "name": "masir-docs",
   "type": "module",
   "private": true,
-  "description": "Documentation site for Linkyard.",
-  "homepage": "https://github.com/hamedniroomand/linkyard",
+  "description": "Documentation site for Masir.",
+  "homepage": "https://github.com/hamedniroomand/masir",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hamedniroomand/linkyard.git",
+    "url": "git+https://github.com/hamedniroomand/masir.git",
     "directory": "docs"
   },
   "scripts": {

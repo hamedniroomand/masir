@@ -85,7 +85,7 @@ name the header:
 NUXT_GEO_COUNTRY_HEADER=x-geo-country
 ```
 
-With no proxy in front, the country breakdown stays empty. Linkyard does not
+With no proxy in front, the country breakdown stays empty. Masir does not
 geolocate an IP itself, because that would mean handling the address it has
 chosen not to store.
 

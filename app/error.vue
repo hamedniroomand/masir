@@ -42,7 +42,7 @@ const activationText = computed(() => {
       Check the address, or ask the person who shared it for a new link.
     </p>
     <div class="mt-7 flex flex-wrap gap-2">
-      <UButton to="/" label="Go to Linkyard" color="neutral" variant="outline" size="sm" /><UButton to="/report" label="Report a problem" variant="ghost" size="sm" />
+      <UButton to="/" label="Go to Masir" color="neutral" variant="outline" size="sm" /><UButton to="/report" label="Report a problem" variant="ghost" size="sm" />
     </div>
   </NuxtLayout>
 </template>

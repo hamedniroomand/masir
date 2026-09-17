@@ -4,7 +4,7 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const config = useRuntimeConfig();
 const shortDomain = computed(() => new URL(config.public.shortDomain).host);
-useHead({ title: 'All links · Linkyard' });
+useHead({ title: 'All links · Masir' });
 const createOpen = ref(false);
 const { data, pending, refresh, error, status, page, sort, selectedTags, tagList, toggleTag } = useLinksList();
 const searchInput = ref((route.query.q as string) ?? '');

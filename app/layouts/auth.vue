@@ -2,7 +2,7 @@
   <div class="relative isolate flex min-h-dvh flex-col bg-[var(--workspace-bg)]">
     <BrandPattern variant="canvas" />
     <header class="flex items-center justify-between px-6 py-6 sm:px-10">
-      <NuxtLink to="/" aria-label="Linkyard home">
+      <NuxtLink to="/" aria-label="Masir home">
         <AppLogo />
       </NuxtLink>
       <UColorModeButton size="sm" />
@@ -13,7 +13,7 @@
       </div>
     </main>
     <footer class="flex items-center justify-center gap-2 px-6 py-6 text-xs text-muted">
-      <UIcon name="i-lucide-link-2" class="size-3.5" />Linkyard<span class="mx-1 text-dimmed">/</span>Your links. Your infrastructure.
+      <UIcon name="i-lucide-link-2" class="size-3.5" />Masir<span class="mx-1 text-dimmed">/</span>Your links. Your infrastructure.
     </footer>
   </div>
 </template>

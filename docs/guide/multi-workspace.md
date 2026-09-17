@@ -1,7 +1,7 @@
 # Multi-workspace mode
 
 Give every workspace its own subdomain behind a single wildcard record. This is
-the shape you want if you are running Linkyard for more than one team.
+the shape you want if you are running Masir for more than one team.
 
 ```text
 acme.example.com/pricing     →  Acme's link
@@ -19,7 +19,7 @@ NUXT_ROOT_DOMAIN=https://example.com
 NUXT_SESSION_COOKIE_DOMAIN=.example.com
 ```
 
-The third one is not optional, and Linkyard refuses to boot without it:
+The third one is not optional, and Masir refuses to boot without it:
 
 ```text
 Error: NUXT_MULTI_WORKSPACE is true, so NUXT_SESSION_COOKIE_DOMAIN must be set
@@ -58,7 +58,7 @@ flowchart LR
   F -->|missing| H[404 Workspace not found]
 ```
 
-Unknown subdomains return a workspace-not-found page. Linkyard never creates a
+Unknown subdomains return a workspace-not-found page. Masir never creates a
 workspace from a hostname somebody typed.
 
 Reserved subdomains — `www`, `api`, `app`, `admin`, `auth`, `docs`, `mail`,
@@ -89,7 +89,7 @@ Safari does not resolve `*.localhost` reliably. Use Chrome or Firefox for
 multi-workspace development, or add explicit hosts entries.
 :::
 
-An IP address cannot hold a wildcard subdomain, and Linkyard refuses to boot if
+An IP address cannot hold a wildcard subdomain, and Masir refuses to boot if
 you combine `NUXT_MULTI_WORKSPACE=true` with an IP in `NUXT_ROOT_DOMAIN`.
 
 ## Switching workspaces

@@ -9,7 +9,7 @@ const loading = ref(false);
 
 const { data: meta, error } = await useFetch(() => `/api/links/public/${slug.value}`);
 
-useHead({ title: () => `${meta.value?.title || slug.value} · Password · Linkyard` });
+useHead({ title: () => `${meta.value?.title || slug.value} · Password · Masir` });
 
 async function submit() {
   errorMessage.value = '';

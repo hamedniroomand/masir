@@ -1,6 +1,6 @@
 # Project
 
-How Linkyard is put together, and how to work on it.
+How Masir is put together, and how to work on it.
 
 <CardGroup :cols="3">
 

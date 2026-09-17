@@ -44,7 +44,7 @@ export default defineNuxtConfig({
     },
     sessionPassword: '',
     visitorHashSecret: '',
-    databaseUrl: 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard',
+    databaseUrl: 'postgres://masir:masir@127.0.0.1:5432/masir',
     databasePoolMax: 10,
     deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
@@ -53,7 +53,7 @@ export default defineNuxtConfig({
     allowRegistration: false,
     mail: {
       driver: '',
-      from: 'Linkyard <no-reply@localhost>',
+      from: 'Masir <no-reply@localhost>',
       apiKey: '',
       smtp: {
         host: '',

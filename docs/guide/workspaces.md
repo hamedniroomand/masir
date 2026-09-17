@@ -18,7 +18,7 @@ person; the links stay exactly where they were.
 
 ## One workspace or many
 
-Linkyard runs in two shapes, decided by a single variable.
+Masir runs in two shapes, decided by a single variable.
 
 | | Self-hosted | Multi-workspace |
 |---|---|---|

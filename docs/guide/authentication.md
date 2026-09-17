@@ -1,6 +1,6 @@
 # Signing in
 
-Linkyard supports email and password, Google, and Microsoft. One person can use
+Masir supports email and password, Google, and Microsoft. One person can use
 all three for the same account.
 
 ## Email and password
@@ -62,7 +62,7 @@ to sign in with your password first. Linking on an unproven email would be a
 takeover path — claim an address with a provider, inherit somebody else's
 workspace.
 
-Google reports whether it verified an address. Microsoft does not, and Linkyard
+Google reports whether it verified an address. Microsoft does not, and Masir
 treats a Microsoft identity as verified because the tenant owns the mailbox.
 
 ## Connected methods
@@ -75,7 +75,7 @@ alternative is an account nobody can ever sign into again.
 
 ## Sending email
 
-Linkyard needs an email provider for verification, recovery, and invitations.
+Masir needs an email provider for verification, recovery, and invitations.
 Two are built in.
 
 **SMTP**, for a relay you already run or a transactional service that offers
@@ -84,16 +84,16 @@ one:
 ```sh [.env]
 NUXT_MAIL_SMTP_HOST=smtp.example.com
 NUXT_MAIL_SMTP_PORT=587
-NUXT_MAIL_SMTP_USER=linkyard
+NUXT_MAIL_SMTP_USER=masir
 NUXT_MAIL_SMTP_PASSWORD=...
-NUXT_MAIL_FROM=Linkyard <no-reply@example.com>
+NUXT_MAIL_FROM=Masir <no-reply@example.com>
 ```
 
 **[Resend](https://resend.com)**, which needs one key and no relay:
 
 ```sh [.env]
 NUXT_MAIL_API_KEY=re_...
-NUXT_MAIL_FROM=Linkyard <no-reply@example.com>
+NUXT_MAIL_FROM=Masir <no-reply@example.com>
 ```
 
 Configure one. With `NUXT_MAIL_DRIVER` empty, SMTP wins if a host is set, then

@@ -17,7 +17,7 @@ afterEach(async () => {
 
 // Bun.write makes the directory, so the root only needs a fresh name.
 function driver() {
-  root = join(tmpdir(), `linkyard-storage-${newId()}`);
+  root = join(tmpdir(), `masir-storage-${newId()}`);
   return createFileDriver(root, 'http://localhost:3000/uploads');
 }
 
@@ -36,7 +36,7 @@ function storageConfig(overrides: Partial<StorageConfig> = {}): StorageConfig {
 
 describe('provider registry', () => {
   it('picks s3 when a bucket is set', () => {
-    expect(buildStorageDriver(storageConfig({ bucket: 'linkyard' })).name).toBe('s3');
+    expect(buildStorageDriver(storageConfig({ bucket: 'masir' })).name).toBe('s3');
   });
 
   it('falls back to the file provider', () => {
@@ -66,7 +66,7 @@ describe('assertStorageConfig', () => {
   });
 
   it('allows s3 in CLOUD mode', () => {
-    expect(() => assertStorageConfig(storageConfig({ bucket: 'linkyard' }), 'CLOUD')).not.toThrow();
+    expect(() => assertStorageConfig(storageConfig({ bucket: 'masir' }), 'CLOUD')).not.toThrow();
   });
 });
 

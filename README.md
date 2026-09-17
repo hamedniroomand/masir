@@ -1,4 +1,4 @@
-# Linkyard
+# Masir
 
 Link manager for teams. Create short links, change destinations without changing the URL, and view click analytics.
 
@@ -10,7 +10,7 @@ both; a flag decides.
 
 ```sh
 git clone <repo>
-cd linkyard
+cd masir
 cp .env.example .env
 # Edit .env — set NUXT_SESSION_PASSWORD (32+ chars), NUXT_PUBLIC_SHORT_DOMAIN and NUXT_DATABASE_URL
 docker compose up -d db   # or point NUXT_DATABASE_URL at your own Postgres
@@ -190,7 +190,7 @@ The server classifies the user agent as a bot or a human. Bots can still receive
 
 ## Unique visitors
 
-Linkyard estimates unique visitors with a daily hash:
+Masir estimates unique visitors with a daily hash:
 
 `sha256(serverSecret + dayNumber + linkId + clientIp + userAgent)` (truncated).
 
@@ -207,7 +207,7 @@ The salt joins `NUXT_SESSION_PASSWORD` with the day number. The server secret is
 
 Event **outcomes** include: `redirect_success`, `bot_request`, `password_failed`, `scheduled_block`, `disabled_block`, `expired_block`, `expired_redirect`, `limit_reached`.
 
-Older click rows have a null outcome. They are legacy data. The old redirect path wrote a row only after a successful redirect, so Linkyard counts a legacy row as a click. It does not claim the row was human, a bot, or unique. The UI shows a note when the selected period includes legacy rows. The boundary date comes from the first classified row, not from a fixed date.
+Older click rows have a null outcome. They are legacy data. The old redirect path wrote a row only after a successful redirect, so Masir counts a legacy row as a click. It does not claim the row was human, a bot, or unique. The UI shows a note when the selected period includes legacy rows. The boundary date comes from the first classified row, not from a fixed date.
 
 ## Campaigns and UTM
 
@@ -243,7 +243,7 @@ Campaign metrics group clicks by the link's current `utm_source`. Delete a campa
 Dump the Postgres database named in `NUXT_DATABASE_URL`:
 
 ```sh
-pg_dump "$NUXT_DATABASE_URL" > linkyard.sql
+pg_dump "$NUXT_DATABASE_URL" > masir.sql
 ```
 
 Losing the database loses all links and analytics.
@@ -256,7 +256,7 @@ docker compose up --build
 docker compose exec app bun run db:seed:admin
 ```
 
-Compose starts a `db` service (Postgres 17). Its data lives on the `linkyard-data` volume. The app waits for the database health check, then migrates on boot.
+Compose starts a `db` service (Postgres 17). Its data lives on the `masir-data` volume. The app waits for the database health check, then migrates on boot.
 
 ## Tests
 
@@ -264,10 +264,10 @@ The e2e tests build the app once into `.output`, then each test file starts a bu
 
 ```sh
 docker compose up -d db
-TEST_DATABASE_URL=postgres://linkyard:linkyard@127.0.0.1:5432/postgres bun run test
+TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/postgres bun run test
 ```
 
-`TEST_DATABASE_URL` points at a database the test user can connect to. The tests create `linkyard_test_<file>` beside it and keep it between runs. Drop these databases by hand if you rewrite an existing migration file.
+`TEST_DATABASE_URL` points at a database the test user can connect to. The tests create `masir_test_<file>` beside it and keep it between runs. Drop these databases by hand if you rewrite an existing migration file.
 
 ## Scripts
 

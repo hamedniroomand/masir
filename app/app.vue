@@ -9,7 +9,7 @@ useHead({
 });
 
 useSeoMeta({
-  title: 'Linkyard',
+  title: 'Masir',
   description: 'Self-hosted link manager',
 });
 </script>

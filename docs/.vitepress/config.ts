@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 import { icon } from './icons.ts';
 
 const DESCRIPTION
-  = 'Linkyard is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
+  = 'Masir is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
 
 // Sidebar links carry the icon the page used to declare in its frontmatter.
 function link(name: string, text: string, path: string) {
@@ -11,11 +11,11 @@ function link(name: string, text: string, path: string) {
 }
 
 export default defineConfig({
-  title: 'Linkyard',
+  title: 'Masir',
   description: DESCRIPTION,
   lang: 'en-US',
 
-  base: '/linkyard/',
+  base: '/masir/',
 
   cleanUrls: true,
   lastUpdated: true,
@@ -23,13 +23,13 @@ export default defineConfig({
   // Working notes live beside the site and are not pages.
   srcExclude: ['plans/**', 'superpowers/**'],
 
-  sitemap: { hostname: 'https://hamedniroomand.github.io/linkyard/' },
+  sitemap: { hostname: 'https://hamedniroomand.github.io/masir/' },
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/linkyard/icon.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/masir/icon.svg' }],
     ['meta', { name: 'theme-color', content: '#2566f0' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Linkyard' }],
+    ['meta', { property: 'og:title', content: 'Masir' }],
     ['meta', { property: 'og:description', content: DESCRIPTION }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
@@ -55,7 +55,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    siteTitle: 'Linkyard',
+    siteTitle: 'Masir',
 
     nav: [
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
@@ -130,10 +130,10 @@ export default defineConfig({
 
     outline: { level: [2, 3], label: 'On this page' },
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/hamedniroomand/linkyard' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/hamedniroomand/masir' }],
 
     editLink: {
-      pattern: 'https://github.com/hamedniroomand/linkyard/edit/main/docs/:path',
+      pattern: 'https://github.com/hamedniroomand/masir/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
 

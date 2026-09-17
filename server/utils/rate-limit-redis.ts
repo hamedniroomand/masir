@@ -10,7 +10,7 @@ export function createRedisStore(url: string): RateLimitStore {
 
   return {
     async hit(key, windowMs) {
-      const namespaced = `linkyard:rl:${key}`;
+      const namespaced = `masir:rl:${key}`;
       const count = await client.incr(namespaced);
       await client.send('EXPIRE', [namespaced, String(Math.ceil(windowMs / 1000)), 'NX']);
       // A full window, so Retry-After can only overstate the wait.

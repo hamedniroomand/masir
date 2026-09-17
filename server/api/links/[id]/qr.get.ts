@@ -25,12 +25,12 @@ export default defineEventHandler(async (event) => {
   if (format === 'png') {
     const buffer = qrResultToPng(qr, pixelSize);
     setResponseHeader(event, 'Content-Type', 'image/png');
-    setResponseHeader(event, 'Content-Disposition', `attachment; filename="linkyard-${link.slug}.png"`);
+    setResponseHeader(event, 'Content-Disposition', `attachment; filename="masir-${link.slug}.png"`);
     return buffer;
   }
 
   const svg = renderSVG(payload, { ...qrOptions, pixelSize });
   setResponseHeader(event, 'Content-Type', 'image/svg+xml');
-  setResponseHeader(event, 'Content-Disposition', `attachment; filename="linkyard-${link.slug}.svg"`);
+  setResponseHeader(event, 'Content-Disposition', `attachment; filename="masir-${link.slug}.svg"`);
   return svg;
 });

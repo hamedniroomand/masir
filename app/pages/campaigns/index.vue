@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
-useHead({ title: 'Campaigns · Linkyard' });
+useHead({ title: 'Campaigns · Masir' });
 
 const { data, pending, error, refresh } = useCampaignsList();
 const createOpen = ref(false);

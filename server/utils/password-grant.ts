@@ -8,7 +8,7 @@ import { getCookie, getRequestProtocol, setCookie } from 'h3';
 // workspace: two workspaces may hold the same slug, and a grant for one must
 // never unlock the other.
 function cookieName(workspaceId: string, slug: string) {
-  return `ly_pwd_${workspaceId}_${slug}`;
+  return `ms_pwd_${workspaceId}_${slug}`;
 }
 
 function sign(workspaceId: string, slug: string, exp: number, secret: string) {

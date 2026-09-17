@@ -5,11 +5,11 @@ import { assertDeploymentConfig, isCloud, workspaceUrl } from '#shared/deploymen
 function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }> = {}) {
   return {
     deploymentMode: 'CLOUD',
-    rootDomain: 'https://linkyard.dev',
+    rootDomain: 'https://masir.dev',
     multiWorkspace: true,
     trialDays: 7,
     allowRegistration: true,
-    sessionCookieDomain: '.linkyard.dev',
+    sessionCookieDomain: '.masir.dev',
     ...over,
   };
 }
@@ -23,7 +23,7 @@ describe('isCloud', () => {
 
 describe('workspaceUrl', () => {
   it('adds the slug as a subdomain in multi mode', () => {
-    expect(workspaceUrl('acme', config())).toBe('https://acme.linkyard.dev');
+    expect(workspaceUrl('acme', config())).toBe('https://acme.masir.dev');
   });
 
   it('keeps the port and protocol', () => {
@@ -33,12 +33,12 @@ describe('workspaceUrl', () => {
 
   it('returns the root origin in single mode', () => {
     const c = config({ multiWorkspace: false });
-    expect(workspaceUrl('acme', c)).toBe('https://linkyard.dev');
+    expect(workspaceUrl('acme', c)).toBe('https://masir.dev');
   });
 
   it('drops a trailing slash', () => {
-    const c = config({ rootDomain: 'https://linkyard.dev/' });
-    expect(workspaceUrl('acme', c)).toBe('https://acme.linkyard.dev');
+    const c = config({ rootDomain: 'https://masir.dev/' });
+    expect(workspaceUrl('acme', c)).toBe('https://acme.masir.dev');
   });
 });
 
@@ -53,7 +53,7 @@ describe('assertDeploymentConfig', () => {
   });
 
   it('rejects a root domain that is not an http url', () => {
-    expect(() => assertDeploymentConfig(config({ rootDomain: 'linkyard.dev' })))
+    expect(() => assertDeploymentConfig(config({ rootDomain: 'masir.dev' })))
       .toThrow(/NUXT_ROOT_DOMAIN/);
   });
 
@@ -75,7 +75,7 @@ describe('assertDeploymentConfig', () => {
   it('demands a session cookie domain in multi mode', () => {
     expect(() => assertDeploymentConfig({ ...config(), sessionCookieDomain: '' }))
       .toThrow(/NUXT_SESSION_COOKIE_DOMAIN/);
-    expect(() => assertDeploymentConfig({ ...config(), sessionCookieDomain: '.linkyard.dev' }))
+    expect(() => assertDeploymentConfig({ ...config(), sessionCookieDomain: '.masir.dev' }))
       .not
       .toThrow();
   });

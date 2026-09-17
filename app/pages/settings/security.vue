@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
-useHead({ title: 'Security log · Linkyard' });
+useHead({ title: 'Security log · Masir' });
 
 const type = ref('');
 const { data, pending, error, refresh } = await useFetch('/api/admin/security-events', {

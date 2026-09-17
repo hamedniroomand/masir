@@ -2,7 +2,7 @@
 
 ## Slugs
 
-Leave the slug empty and Linkyard generates a seven-character one from an
+Leave the slug empty and Masir generates a seven-character one from an
 alphabet of 31 characters that omits `0`, `1`, `i`, `l`, and `o`. Those are the
 ones people misread from a slide or mistype from a printed page.
 
@@ -18,7 +18,7 @@ a page without reserving its path.
 This is the feature that justifies a shortener. Change where a link points and
 every copy you already shared follows.
 
-Linkyard answers with a **302**, not a 301. A permanent redirect is cached hard
+Masir answers with a **302**, not a 301. A permanent redirect is cached hard
 by browsers, and you would lose the ability to move anyone who had already
 clicked.
 

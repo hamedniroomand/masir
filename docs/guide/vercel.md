@@ -1,6 +1,6 @@
 # Vercel
 
-Linkyard runs on Vercel Functions using **Bun**, not Node. That matters: the
+Masir runs on Vercel Functions using **Bun**, not Node. That matters: the
 application uses Bun's own APIs for password hashing, digests, Postgres and
 object storage, and none of them exist on Node.
 
@@ -38,7 +38,7 @@ NUXT_DEPLOYMENT_MODE=CLOUD
 NUXT_MIGRATE_ON_BOOT=false
 NUXT_DATABASE_POOL_MAX=2
 NUXT_TRUSTED_PROXY_DEPTH=1
-NUXT_STORAGE_BUCKET=linkyard
+NUXT_STORAGE_BUCKET=masir
 NUXT_REDIS_URL=rediss://user:pass@host.upstash.io:6379
 ```
 
@@ -59,7 +59,7 @@ Fluid keeps an instance alive long enough to close idle connections, which is
 what makes the pool worth having. Keep it small.
 
 **The proxy depth.** Vercel sets the client address itself and strips any
-client copy, so Linkyard reads it directly on Vercel. Setting `1` keeps the
+client copy, so Masir reads it directly on Vercel. Setting `1` keeps the
 behaviour correct if you later move behind another proxy.
 
 ## Regions
@@ -72,7 +72,7 @@ period. Disable autosuspend, or accept it.
 
 ## Geolocation
 
-Nothing to configure. Linkyard already reads `x-vercel-ip-country`.
+Nothing to configure. Masir already reads `x-vercel-ip-country`.
 
 ## What you still owe
 

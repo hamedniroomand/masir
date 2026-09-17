@@ -3,8 +3,8 @@
 ## Setup
 
 ```sh
-git clone https://github.com/hamedniroomand/linkyard.git
-cd linkyard
+git clone https://github.com/hamedniroomand/masir.git
+cd masir
 bun install
 cp .env.example .env
 ```
@@ -115,5 +115,5 @@ needs a sidebar entry, and the build fails on a dead link, so the two cannot
 drift apart.
 
 `docs/` is a workspace package with its own `package.json`. One `bun install` at
-the root covers both, and the Docker build passes `--filter linkyard` so the
+the root covers both, and the Docker build passes `--filter masir` so the
 application image never carries VitePress.

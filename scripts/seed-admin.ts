@@ -8,7 +8,7 @@ import { normalizeWorkspaceSlug } from '#shared/workspace-slug';
 
 const email = process.env.ADMIN_EMAIL;
 const password = process.env.ADMIN_PASSWORD;
-const databaseUrl = process.env.NUXT_DATABASE_URL ?? 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard';
+const databaseUrl = process.env.NUXT_DATABASE_URL ?? 'postgres://masir:masir@127.0.0.1:5432/masir';
 const workspaceName = process.env.WORKSPACE_NAME ?? 'My workspace';
 
 if (!email || !password) {

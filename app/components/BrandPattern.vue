@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ variant?: 'canvas' | 'edges' | 'surface' }>(), { variant: 'surface' });
 
-const patternId = `linkyard-routes-${useId()}`;
+const patternId = `masir-routes-${useId()}`;
 </script>
 
 <template>

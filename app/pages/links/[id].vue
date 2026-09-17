@@ -17,7 +17,7 @@ const tabItems = LINK_TABS.map(value => ({ value, label: value.charAt(0).toUpper
 
 const { data: link, error, refresh: refreshLink } = await useFetch<LinkItem>(() => `/api/links/${id.value}`);
 
-useHead({ title: () => `${link.value?.title || link.value?.slug || 'Link'} · Linkyard` });
+useHead({ title: () => `${link.value?.title || link.value?.slug || 'Link'} · Masir` });
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);

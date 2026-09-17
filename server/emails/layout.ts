@@ -25,9 +25,9 @@ export function layout(body: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLOR.page};">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;">
-<tr><td style="padding-bottom:20px;font-family:${FONT};font-size:17px;font-weight:600;color:${COLOR.heading};">Linkyard</td></tr>
+<tr><td style="padding-bottom:20px;font-family:${FONT};font-size:17px;font-weight:600;color:${COLOR.heading};">Masir</td></tr>
 <tr><td style="background-color:${COLOR.card};border:1px solid ${COLOR.border};border-radius:10px;padding:32px;font-family:${FONT};font-size:15px;line-height:24px;color:${COLOR.text};">${body}</td></tr>
-<tr><td style="padding-top:20px;font-family:${FONT};font-size:12px;line-height:18px;color:${COLOR.muted};">Linkyard sent this message automatically. Do not reply to it.</td></tr>
+<tr><td style="padding-top:20px;font-family:${FONT};font-size:12px;line-height:18px;color:${COLOR.muted};">Masir sent this message automatically. Do not reply to it.</td></tr>
 </table>
 </td></tr>
 </table>

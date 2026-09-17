@@ -13,7 +13,7 @@ An unlock is remembered for **15 minutes** in a cookie that is scoped to one
 link in one workspace:
 
 ```text
-ly_pwd_<workspaceId>_<slug>
+ms_pwd_<workspaceId>_<slug>
 ```
 
 The cookie is `httpOnly`, carries an expiry, and is signed with HMAC-SHA256 over

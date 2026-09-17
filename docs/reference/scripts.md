@@ -53,7 +53,7 @@ Both need a reachable Postgres. Tests reset their schema between files, so point
 `NUXT_DATABASE_URL` at a database you are willing to lose.
 
 ```sh [.env.test]
-NUXT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/linkyard_test
+NUXT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/masir_test
 NUXT_DATABASE_POOL_MAX=2
 ```
 

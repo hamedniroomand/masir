@@ -1,6 +1,6 @@
 # Features
 
-What Linkyard does, in one page.
+What Masir does, in one page.
 
 <CardGroup :cols="2">
 

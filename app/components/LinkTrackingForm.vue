@@ -50,7 +50,7 @@ async function save() {
       <h2 class="text-sm font-semibold text-highlighted">
         Campaign and tracking
       </h2><p class="mt-0.5 text-xs text-muted">
-        Linkyard adds these utm values to the destination on every click.
+        Masir adds these utm values to the destination on every click.
       </p>
     </template>
     <LinkUtmFields

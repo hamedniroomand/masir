@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: linkyard
-      POSTGRES_PASSWORD: linkyard
-      POSTGRES_DB: linkyard
+      POSTGRES_USER: masir
+      POSTGRES_PASSWORD: masir
+      POSTGRES_DB: masir
     ports:
       - '5432:5432'
     volumes:
-      - linkyard-data:/var/lib/postgresql/data
+      - masir-data:/var/lib/postgresql/data
     healthcheck:
-      test: [CMD-SHELL, pg_isready -U linkyard -d linkyard]
+      test: [CMD-SHELL, pg_isready -U masir -d masir]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -33,7 +33,7 @@ services:
       - '3000:3000'
     env_file: .env
     environment:
-      NUXT_DATABASE_URL: postgres://linkyard:linkyard@db:5432/linkyard
+      NUXT_DATABASE_URL: postgres://masir:masir@db:5432/masir
       NUXT_MAIL_DRIVER: smtp
       NUXT_MAIL_SMTP_HOST: mail
       NUXT_MAIL_SMTP_PORT: '1025'
@@ -50,4 +50,4 @@ services:
       retries: 5
 
 volumes:
-  linkyard-data:
+  masir-data:

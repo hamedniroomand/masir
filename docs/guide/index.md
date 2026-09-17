@@ -1,6 +1,6 @@
 # Introduction
 
-Linkyard turns long URLs into short ones you control, and keeps control after
+Masir turns long URLs into short ones you control, and keeps control after
 you have shared them.
 
 That last part is the whole point. A short link is a layer of indirection: the
@@ -18,14 +18,14 @@ you ever shared. Your click data lives in someone else's database, usually with
 IP addresses attached. And your pricing scales with the one thing you cannot
 control, which is how many people click.
 
-Linkyard runs on your own infrastructure. The links are on your domain, the
+Masir runs on your own infrastructure. The links are on your domain, the
 analytics are in your Postgres, and the cost is whatever your server costs.
 
 ## What it is not
 
 It is not an analytics suite. You get clicks, unique visitors, referrers,
 countries, devices, and browsers, with bot traffic separated out. If you need
-funnels or session replay, keep your existing tool — Linkyard passes UTM
+funnels or session replay, keep your existing tool — Masir passes UTM
 parameters straight through to it.
 
 It is not a marketing automation platform. Campaigns here are a way to group

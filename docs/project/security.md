@@ -1,6 +1,6 @@
 # Security
 
-What Linkyard defends against, how, and what it does not cover.
+What Masir defends against, how, and what it does not cover.
 
 ## Tenancy
 

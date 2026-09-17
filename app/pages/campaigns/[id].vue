@@ -18,7 +18,7 @@ const { data: analytics, refresh: refreshAnalytics } = useFetch(() => `/api/camp
   watch: [period],
 });
 
-useHead({ title: () => `${campaign.value?.name ?? 'Campaign'} · Linkyard` });
+useHead({ title: () => `${campaign.value?.name ?? 'Campaign'} · Masir` });
 
 const topSource = computed(() => analytics.value?.bySource[0]);
 
