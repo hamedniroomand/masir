@@ -24,7 +24,7 @@ function reservedSegmentsFromPages(dir: string): Set<string> {
   return segments;
 }
 
-describe('rESERVED_SLUGS', () => {
+describe('reserved slugs', () => {
   it.each([['app/pages', pagesDir], ['server/routes', routesDir]])('covers every top-level segment in %s', (_name, dir) => {
     for (const segment of reservedSegmentsFromPages(dir)) {
       expect(RESERVED_SLUGS.has(segment), `add "${segment}" to RESERVED_SLUGS in shared/slug.ts`).toBe(true);
