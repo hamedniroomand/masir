@@ -16,7 +16,7 @@ const DATABASE_EXISTS = '42P04';
 const clients = new Map<string, SQL>();
 
 function maintenanceUrl() {
-  return process.env.TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:5432/postgres';
+  return process.env.TEST_DATABASE_URL ?? 'postgres://masir:masir@127.0.0.1:5432/masir_test';
 }
 
 export function testDatabaseUrl(name: string) {

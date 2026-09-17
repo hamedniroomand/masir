@@ -1,7 +1,12 @@
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { defineVitestConfig } from '@nuxt/test-utils/config';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
+
+// The compose stack makes this database beside the application one. Each test
+// file then creates masir_test_<file> from this connection.
+const testDatabaseUrl = process.env.TEST_DATABASE_URL ?? 'postgres://masir:masir@127.0.0.1:5432/masir_test';
 
 export default defineVitestConfig({
   resolve: {
@@ -22,7 +27,8 @@ export default defineVitestConfig({
     env: {
       VITEST: 'true',
       NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
-      NUXT_DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5432/masir_test',
+      TEST_DATABASE_URL: testDatabaseUrl,
+      NUXT_DATABASE_URL: testDatabaseUrl,
       NUXT_PUBLIC_SHORT_DOMAIN: 'http://localhost:3000',
     },
   },
