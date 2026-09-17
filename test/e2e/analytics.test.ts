@@ -32,31 +32,31 @@ async function loginCookie() {
 describe('link analytics', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
-  let userId = '';
+  let workspaceId = '';
 
   beforeAll(async () => {
-    ({ userId } = await resetTestDb(TEST_DB));
+    ({ workspaceId } = await resetTestDb(TEST_DB));
   });
 
   it('records outcomes for blocked paths and bot traffic', async () => {
-    const disabledId = await insertTestLink(TEST_DB, { userId, slug: 'an-disabled', isEnabled: false });
+    const disabledId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-disabled', isEnabled: false });
     await fetch('/an-disabled', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
 
     const scheduledId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'an-scheduled',
       startsAt: new Date(Date.now() + 86400_000),
     });
     await fetch('/an-scheduled', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
 
     const expiredId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'an-expired',
       expiresAt: new Date(Date.now() - 1000),
     });
     await fetch('/an-expired', { headers: { 'accept': 'application/json', 'user-agent': CHROME_UA } });
 
-    const botId = await insertTestLink(TEST_DB, { userId, slug: 'an-bot' });
+    const botId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-bot' });
     await fetch('/an-bot', { redirect: 'manual', headers: { 'user-agent': 'Googlebot/2.1' } });
 
     const db = openTestDatabase(TEST_DB);
@@ -78,7 +78,7 @@ describe('link analytics', async () => {
   });
 
   it('counts unique visitors without storing raw IP', async () => {
-    const linkId = await insertTestLink(TEST_DB, { userId, slug: 'an-unique' });
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-unique' });
     for (let i = 0; i < 5; i++) {
       await fetch('/an-unique', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
     }
@@ -105,7 +105,7 @@ describe('link analytics', async () => {
   });
 
   it('filters chart traffic by classification', async () => {
-    const linkId = await insertTestLink(TEST_DB, { userId, slug: 'an-traffic' });
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-traffic' });
     await fetch('/an-traffic', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
     await fetch('/an-traffic', { redirect: 'manual', headers: { 'user-agent': 'Googlebot/2.1' } });
 
@@ -123,11 +123,12 @@ describe('link analytics', async () => {
   });
 
   it('keeps legacy clicks visible and flags the boundary', async () => {
-    const linkId = await insertTestLink(TEST_DB, { userId, slug: 'an-legacy' });
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-legacy' });
     const db = openTestDatabase(TEST_DB);
     await db.insert(clickEvents).values({
       id: newId(),
       linkId,
+      workspaceId,
       createdAt: new Date(Date.now() - 3600_000),
       referrerHost: 'direct',
       country: null,

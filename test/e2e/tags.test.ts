@@ -24,11 +24,11 @@ async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
 describe('tags API', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
-  let userId = '';
+  let workspaceId = '';
   let otherUserId = '';
 
   beforeAll(async () => {
-    ({ userId } = await resetTestDb(TEST_DB));
+    ({ workspaceId } = await resetTestDb(TEST_DB));
     const db = openTestDatabase(TEST_DB);
     otherUserId = newId();
     const now = new Date();
@@ -91,7 +91,7 @@ describe('tags API', async () => {
       body: { name: 'temp-tag' },
       headers: { cookie },
     });
-    const linkId = await insertTestLink(TEST_DB, { userId, slug: 'tagged-link' });
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'tagged-link' });
     const db = openTestDatabase(TEST_DB);
     await db.insert(linkTags).values({ linkId, tagId: tag.id });
     await $fetch(`/api/tags/${tag.id}`, { method: 'DELETE', headers: { cookie } });
@@ -164,22 +164,18 @@ describe('tags API', async () => {
     expect(result.items.map(i => i.slug)).not.toContain('tag-disabled-link');
   });
 
-  it('blocks access to another user tag', async () => {
+  it('refuses a user who belongs to no workspace', async () => {
+    // Tags belong to the workspace, so two members share them. The boundary is
+    // membership, and a stranger gets the same answer as for a missing
+    // workspace.
     const otherCookie = await loginCookie('other@example.com', TEST_PASSWORD);
-    const otherTag = await $fetch<{ id: string }>('/api/tags', {
+    await expect($fetch('/api/tags', { headers: { cookie: otherCookie } }))
+      .rejects
+      .toMatchObject({ statusCode: 404 });
+    await expect($fetch('/api/tags', {
       method: 'POST',
       body: { name: 'private' },
       headers: { cookie: otherCookie },
-    });
-
-    const cookie = await loginCookie();
-    await expect($fetch(`/api/tags/${otherTag.id}`, { headers: { cookie } }))
-      .rejects
-      .toMatchObject({ statusCode: 404 });
-    await expect($fetch(`/api/tags/${otherTag.id}`, {
-      method: 'PATCH',
-      headers: { cookie },
-      body: { name: 'stolen' },
     })).rejects.toMatchObject({ statusCode: 404 });
   });
 

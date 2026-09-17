@@ -1,8 +1,9 @@
-import { requireUser } from '#server/utils/auth';
+import { requireWorkspaceMember } from '#server/utils/auth';
 import { linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
+  const workspace = event.context.workspace as { slug: string };
   const query = getQuery(event);
   const page = Math.max(1, Number(query.page ?? 1) || 1);
   let perPage = Number(query.perPage ?? 20) || 20;
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
       ? [rawTags]
       : [];
 
-  const { items, total } = await listLinks(user.id, {
+  const { items, total } = await listLinks(workspaceId, {
     q: typeof query.q === 'string' ? query.q : undefined,
     status: statusFilter,
     tags: tagFilters.length ? tagFilters : undefined,
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const tagMap = await tagNamesByLinkIds(items.map(i => i.id));
 
   return {
-    items: items.map(link => linkToDto(link, tagMap.get(link.id) ?? [])),
+    items: items.map(link => linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [])),
     total,
     page,
     perPage,

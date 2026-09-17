@@ -48,6 +48,7 @@ export default defineNuxtConfig({
     rateLimitRedirectPerMinute: 120,
     rateLimitPasswordPerMinute: 10,
     rateLimitUpdatePerMinute: 60,
+    rateLimitSlugCheckPerMinute: 30,
     oauth: {
       google: { clientId: '', clientSecret: '' },
       microsoft: { clientId: '', clientSecret: '', tenant: 'common' },

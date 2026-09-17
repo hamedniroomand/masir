@@ -1,16 +1,17 @@
-import { requireUser } from '#server/utils/auth';
-import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { requireWorkspaceMember } from '#server/utils/auth';
+import { findLinkById, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
+  const workspace = event.context.workspace as { slug: string };
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const link = await findLinkByIdForUser(id, user.id);
+  const link = await findLinkById(id, workspaceId);
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const tagMap = await tagNamesByLinkIds([link.id]);
-  return linkToDto(link, tagMap.get(link.id) ?? []);
+  return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
 });

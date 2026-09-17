@@ -1,16 +1,16 @@
 import { desc, eq } from 'drizzle-orm';
 import { securityEvents, users } from '#server/database/schema';
-import { requireUser } from '#server/utils/auth';
+import { requireWorkspaceMember } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
-import { findLinkByIdForUser } from '#server/utils/link-repo';
+import { findLinkById } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const link = await findLinkByIdForUser(id, user.id);
+  const link = await findLinkById(id, workspaceId);
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 

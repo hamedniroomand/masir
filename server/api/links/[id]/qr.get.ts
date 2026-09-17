@@ -1,22 +1,23 @@
 import { encode, renderSVG } from 'uqr';
-import { requireUser } from '#server/utils/auth';
-import { findLinkByIdForUser, shortUrlFor } from '#server/utils/link-repo';
+import { requireWorkspaceMember } from '#server/utils/auth';
+import { findLinkById, shortUrlFor } from '#server/utils/link-repo';
 import { qrResultToPng } from '#server/utils/qr-png';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const link = await findLinkByIdForUser(id, user.id);
+  const link = await findLinkById(id, workspaceId);
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const query = getQuery(event);
   const format = query.format === 'png' ? 'png' : 'svg';
   const size = Math.min(512, Math.max(64, Number(query.size ?? 256) || 256));
-  const payload = shortUrlFor(link.slug);
+  const workspace = event.context.workspace as { slug: string };
+  const payload = shortUrlFor(workspace.slug, link.slug);
   const qrOptions = { ecc: 'M' as const, border: 2 };
   const qr = encode(payload, qrOptions);
   const pixelSize = Math.max(1, Math.floor(size / qr.size));

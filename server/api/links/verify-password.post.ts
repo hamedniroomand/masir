@@ -13,19 +13,24 @@ const bodySchema = v.object({
 });
 
 export default defineEventHandler(async (event) => {
+  // This route is public. The workspace comes from the hostname, never from
+  // the caller, or a password for one workspace could unlock another.
+  const workspace = event.context.workspace as { id: string } | undefined;
+  if (!workspace)
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
   const body = v.parse(bodySchema, await readBody(event));
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
-  // ponytail: in-memory limiter, one node only; upgrade path is a shared store
-  const rl = await rateLimitCheck(`pwd:${body.slug}:${clientKey}`, limit, 60_000);
+  const rl = await rateLimitCheck(`pwd:${workspace.id}:${body.slug}:${clientKey}`, limit, 60_000);
   if (!rl.ok) {
     await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
 
-  const link = await findLinkBySlug(body.slug);
+  const link = await findLinkBySlug(workspace.id, body.slug);
   if (!link?.passwordHash) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
@@ -44,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const ok = await verifyPassword(link.passwordHash, body.password);
   if (!ok) {
     const meta = parseRequestMeta(event);
-    await recordEvent(link.id, meta, 'password_failed').catch(() => {});
+    await recordEvent(workspace.id, link.id, meta, 'password_failed').catch(() => {});
     throw createError({
       statusCode: 401,
       statusMessage: 'Incorrect password.',
@@ -52,6 +57,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  setPasswordGrant(event, link.slug, config.sessionPassword);
+  setPasswordGrant(event, workspace.id, link.slug, config.sessionPassword);
   return { ok: true, redirectTo: `/${link.slug}` };
 });

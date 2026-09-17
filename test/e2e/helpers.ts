@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { hashPassword } from '#scripts/hash-password';
-import { authIdentities, campaigns, links, users } from '#server/database/schema';
+import { authIdentities, campaigns, links, users, workspaceMembers, workspaces } from '#server/database/schema';
 import { newId } from '#shared/id';
 import { createTestDatabase, openTestDatabase, truncateTestDatabase } from './test-db';
 import { startTestServer } from './test-server';
@@ -39,11 +39,13 @@ export async function waitFor<T>(read: () => Promise<T>, ready: (value: T) => bo
 
 export const TEST_EMAIL = 'test@example.com';
 export const TEST_PASSWORD = 'test-password-12345';
+export const TEST_WORKSPACE_SLUG = 'acme';
 
 export async function resetTestDb(databaseUrl: string) {
   await truncateTestDatabase(databaseUrl);
   const db = openTestDatabase(databaseUrl);
   const userId = newId();
+  const workspaceId = newId();
   const now = new Date();
   await db.insert(users).values({
     id: userId,
@@ -65,11 +67,55 @@ export async function resetTestDb(databaseUrl: string) {
     createdAt: now,
     updatedAt: now,
   });
-  return { db, userId };
+  await db.insert(workspaces).values({
+    id: workspaceId,
+    name: 'Acme',
+    slug: TEST_WORKSPACE_SLUG,
+    plan: 'TRIAL',
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(workspaceMembers).values({
+    id: newId(),
+    workspaceId,
+    userId,
+    role: 'OWNER',
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { db, userId, workspaceId };
+}
+
+export async function insertTestWorkspace(databaseUrl: string, input: {
+  slug: string;
+  name?: string;
+  ownerUserId: string;
+}) {
+  const db = openTestDatabase(databaseUrl);
+  const now = new Date();
+  const workspaceId = newId();
+  await db.insert(workspaces).values({
+    id: workspaceId,
+    name: input.name ?? input.slug,
+    slug: input.slug,
+    plan: 'TRIAL',
+    createdAt: now,
+    updatedAt: now,
+  });
+  await db.insert(workspaceMembers).values({
+    id: newId(),
+    workspaceId,
+    userId: input.ownerUserId,
+    role: 'OWNER',
+    createdAt: now,
+    updatedAt: now,
+  });
+  return workspaceId;
 }
 
 export async function insertTestCampaign(databaseUrl: string, input: {
-  userId: string;
+  workspaceId: string;
+  createdByUserId?: string;
   name?: string;
   utmCampaign: string;
   utmMedium?: string | null;
@@ -79,7 +125,8 @@ export async function insertTestCampaign(databaseUrl: string, input: {
   const now = new Date();
   await db.insert(campaigns).values({
     id,
-    userId: input.userId,
+    workspaceId: input.workspaceId,
+    createdByUserId: input.createdByUserId ?? null,
     name: input.name ?? input.utmCampaign,
     utmCampaign: input.utmCampaign,
     utmMedium: input.utmMedium ?? null,
@@ -90,7 +137,8 @@ export async function insertTestCampaign(databaseUrl: string, input: {
 }
 
 export async function insertTestLink(databaseUrl: string, input: {
-  userId: string;
+  workspaceId: string;
+  createdByUserId?: string;
   slug: string;
   destinationUrl?: string;
   isEnabled?: boolean;
@@ -109,7 +157,8 @@ export async function insertTestLink(databaseUrl: string, input: {
   const now = new Date();
   await db.insert(links).values({
     id,
-    userId: input.userId,
+    workspaceId: input.workspaceId,
+    createdByUserId: input.createdByUserId ?? null,
     slug: input.slug,
     title: null,
     destinationUrl: input.destinationUrl ?? 'https://example.com/target',

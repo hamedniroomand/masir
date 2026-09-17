@@ -7,31 +7,31 @@ const TEST_DB = testDatabaseUrl('redirect');
 describe('redirect middleware', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
-  let userId: string;
+  let workspaceId: string;
 
   beforeAll(async () => {
-    const { userId: id } = await resetTestDb(TEST_DB);
-    userId = id;
+    const seeded = await resetTestDb(TEST_DB);
+    workspaceId = seeded.workspaceId;
   });
 
   it('redirects an active slug with 302', async () => {
-    await insertTestLink(TEST_DB, { userId, slug: 'active-test', destinationUrl: 'https://example.com/here' });
+    await insertTestLink(TEST_DB, { workspaceId, slug: 'active-test', destinationUrl: 'https://example.com/here' });
     const res = await fetch('/active-test', { redirect: 'manual' });
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('https://example.com/here');
   });
 
   it('keeps an inbound query and passes it to the destination', async () => {
-    await insertTestLink(TEST_DB, { userId, slug: 'query-test', destinationUrl: 'https://example.com/here?a=1' });
+    await insertTestLink(TEST_DB, { workspaceId, slug: 'query-test', destinationUrl: 'https://example.com/here?a=1' });
     const res = await fetch('/query-test?utm_source=newsletter', { redirect: 'manual' });
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('https://example.com/here?a=1&utm_source=newsletter');
   });
 
   it('applies the link and campaign utm params', async () => {
-    const campaignId = await insertTestCampaign(TEST_DB, { userId, utmCampaign: 'launch', utmMedium: 'social' });
+    const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'launch', utmMedium: 'social' });
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'utm-test',
       destinationUrl: 'https://example.com/here',
       campaignId,
@@ -47,7 +47,7 @@ describe('redirect middleware', async () => {
 
   it('lets an inbound utm param override the stored one', async () => {
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'override-test',
       destinationUrl: 'https://example.com/here',
       utmSource: 'twitter',
@@ -58,7 +58,7 @@ describe('redirect middleware', async () => {
   });
 
   it('returns 404 with disabled linkState', async () => {
-    await insertTestLink(TEST_DB, { userId, slug: 'off-test', isEnabled: false });
+    await insertTestLink(TEST_DB, { workspaceId, slug: 'off-test', isEnabled: false });
     const res = await fetch('/off-test', { headers: { accept: 'application/json' } });
     expect(res.status).toBe(404);
     const body = await res.json() as { data?: { linkState?: string } };
@@ -67,7 +67,7 @@ describe('redirect middleware', async () => {
 
   it('returns 404 with expired linkState', async () => {
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'old-test',
       expiresAt: new Date(Date.now() - 60_000),
     });

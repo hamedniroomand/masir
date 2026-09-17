@@ -1,8 +1,8 @@
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
-import { requireUser } from '#server/utils/auth';
+import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { findCampaignForUser } from '#server/utils/campaign-repo';
+import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
 import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
 import { createLink, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
@@ -32,10 +32,12 @@ const bodySchema = v.object({
 });
 
 export default defineEventHandler(async (event) => {
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
+  const workspace = event.context.workspace as { slug: string };
   const config = useRuntimeConfig();
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
-  const rl = await rateLimitCheck(`create:${user.id}`, createLimit, 3_600_000);
+  const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
   if (!rl.ok) {
     await writeSecurityEvent('rate_limit_exceeded', { scope: 'create' }, user.id);
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
@@ -65,7 +67,7 @@ export default defineEventHandler(async (event) => {
   const maximumVisits = body.maximumVisits ?? null;
 
   const campaignId = emptyToNull(body.campaignId);
-  if (campaignId && !await findCampaignForUser(campaignId, user.id)) {
+  if (campaignId && !await findCampaignForWorkspace(campaignId, workspaceId)) {
     throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
   }
 
@@ -97,7 +99,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const link = await createLink({
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       destinationUrl: dest.url,
       title: body.title,
       slug,
@@ -113,11 +116,11 @@ export default defineEventHandler(async (event) => {
       utmContent: emptyToNull(body.utmContent),
     });
     if (body.tags?.length)
-      await setLinkTags(link.id, user.id, body.tags);
+      await setLinkTags(link.id, workspaceId, body.tags);
     await writeSecurityEvent('link_created', { slug: link.slug }, user.id, link.id);
     setResponseStatus(event, 201);
     const tagMap = await tagNamesByLinkIds([link.id]);
-    return linkToDto(link, tagMap.get(link.id) ?? []);
+    return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
   }
   catch (e) {
     if (e instanceof SlugTakenError) {

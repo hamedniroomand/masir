@@ -1,6 +1,6 @@
 import * as v from 'valibot';
-import { requireUser } from '#server/utils/auth';
-import { campaignToDto, findCampaignForUser, updateCampaign } from '#server/utils/campaign-repo';
+import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
+import { campaignToDto, findCampaignForWorkspace, updateCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
 import { writeSecurityEvent } from '#server/utils/security-log';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
@@ -12,12 +12,13 @@ const bodySchema = v.object({
 });
 
 export default defineEventHandler(async (event) => {
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const existing = await findCampaignForUser(id, user.id);
+  const existing = await findCampaignForWorkspace(id, workspaceId);
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
     patch.utmMedium = emptyToNull(body.utmMedium);
 
   try {
-    const updated = await updateCampaign(id, user.id, patch);
+    const updated = await updateCampaign(id, workspaceId, patch);
     await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, user.id);
     return campaignToDto(updated!);
   }

@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { requireUser } from '#server/utils/auth';
+import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { campaignToDto, createCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
 import { writeSecurityEvent } from '#server/utils/security-log';
@@ -12,12 +12,14 @@ const bodySchema = v.object({
 });
 
 export default defineEventHandler(async (event) => {
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
   const body = v.parse(bodySchema, await readBody(event));
 
   try {
     const campaign = await createCampaign({
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       name: body.name,
       utmCampaign: body.utmCampaign,
       utmMedium: emptyToNull(body.utmMedium),

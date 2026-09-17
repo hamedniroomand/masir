@@ -1,14 +1,14 @@
 import { getLinkAnalytics } from '#server/utils/analytics';
-import { requireUser } from '#server/utils/auth';
-import { findLinkByIdForUser } from '#server/utils/link-repo';
+import { requireWorkspaceMember } from '#server/utils/auth';
+import { findLinkById } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const link = await findLinkByIdForUser(id, user.id);
+  const link = await findLinkById(id, workspaceId);
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -20,6 +20,6 @@ export default defineEventHandler(async (event) => {
   const trafficRaw = getQuery(event).traffic;
   const traffic = trafficRaw === 'bot' || trafficRaw === 'all' ? trafficRaw : 'human';
 
-  const data = await getLinkAnalytics(link.id, period, traffic);
+  const data = await getLinkAnalytics(link.id, workspaceId, period, traffic);
   return data;
 });

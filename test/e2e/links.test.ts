@@ -19,10 +19,10 @@ async function loginCookie() {
 describe('links API', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
-  let userId = '';
+  let workspaceId = '';
 
   beforeAll(async () => {
-    ({ userId } = await resetTestDb(TEST_DB));
+    ({ workspaceId } = await resetTestDb(TEST_DB));
   });
 
   it('creates a link with only destinationUrl', async () => {
@@ -70,7 +70,7 @@ describe('links API', async () => {
   it('does not expose passwordHash in API responses', async () => {
     const cookie = await loginCookie();
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'protected-link',
       passwordHash: 'hashed-secret',
     });

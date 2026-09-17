@@ -1,14 +1,14 @@
 import { getCampaignAnalytics } from '#server/utils/analytics';
-import { requireUser } from '#server/utils/auth';
-import { campaignToDto, findCampaignForUser } from '#server/utils/campaign-repo';
+import { requireWorkspaceMember } from '#server/utils/auth';
+import { campaignToDto, findCampaignForWorkspace } from '#server/utils/campaign-repo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const campaign = await findCampaignForUser(id, user.id);
+  const campaign = await findCampaignForWorkspace(id, workspaceId);
   if (!campaign)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     ? periodRaw
     : '7d';
 
-  const data = await getCampaignAnalytics(campaign.id, period);
+  const data = await getCampaignAnalytics(campaign.id, workspaceId, period);
   if (!data)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 

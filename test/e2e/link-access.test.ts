@@ -38,16 +38,16 @@ async function loginCookie() {
 describe('link access controls', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
-  let userId = '';
+  let workspaceId = '';
 
   beforeAll(async () => {
-    ({ userId } = await resetTestDb(TEST_DB));
+    ({ workspaceId } = await resetTestDb(TEST_DB));
   });
 
   it('blocks a link before start and allows it at start', async () => {
     const start = new Date(Date.now() + 60_000);
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'schedule-window',
       startsAt: start,
       expiresAt: new Date(Date.now() + 3600_000),
@@ -65,7 +65,7 @@ describe('link access controls', async () => {
     expect(rowBefore.clickCount).toBe(0);
 
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'schedule-open',
       startsAt: new Date(Date.now() - 1000),
       expiresAt: new Date(Date.now() + 3600_000),
@@ -76,7 +76,7 @@ describe('link access controls', async () => {
 
   it('shows activation time on the visitor error page', async () => {
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'schedule-page',
       startsAt: new Date(Date.now() + 86400_000),
     });
@@ -90,7 +90,7 @@ describe('link access controls', async () => {
 
   it('enforces maximum visits including parallel requests', async () => {
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'visit-cap',
       maximumVisits: 10,
     });
@@ -101,7 +101,7 @@ describe('link access controls', async () => {
     expect(results.filter(r => r.status === 404).length).toBe(10);
 
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'one-time',
       maximumVisits: 1,
     });
@@ -113,7 +113,7 @@ describe('link access controls', async () => {
 
   it('does not consume a visit for a bot', async () => {
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'bot-skip',
       maximumVisits: 1,
     });
@@ -127,7 +127,7 @@ describe('link access controls', async () => {
 
   it('redirects expired links to a custom destination without counting a click', async () => {
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'expired-fallback',
       expiresAt: new Date(Date.now() - 1000),
       expirationDestination: 'https://example.com/expired-landing',
@@ -143,7 +143,7 @@ describe('link access controls', async () => {
 
   it('shows the default expired page when no fallback is set', async () => {
     await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'expired-default',
       expiresAt: new Date(Date.now() - 1000),
     });
@@ -175,7 +175,7 @@ describe('link access controls', async () => {
   it('rejects maximum visits below the used count', async () => {
     const cookie = await loginCookie();
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'patch-cap',
       maximumVisits: 10,
       successfulVisitCount: 3,
@@ -201,7 +201,7 @@ describe('link access controls', async () => {
   it('removes a visit limit when the value is null', async () => {
     const cookie = await loginCookie();
     const linkId = await insertTestLink(TEST_DB, {
-      userId,
+      workspaceId,
       slug: 'clear-cap',
       maximumVisits: 5,
       successfulVisitCount: 5,

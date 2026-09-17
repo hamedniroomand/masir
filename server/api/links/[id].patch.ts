@@ -1,9 +1,9 @@
 import * as v from 'valibot';
-import { requireUser } from '#server/utils/auth';
+import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { findCampaignForUser } from '#server/utils/campaign-repo';
+import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
 import { VisitLimitBelowUsageError } from '#server/utils/errors';
-import { findLinkByIdForUser, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
+import { findLinkById, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { writeSecurityEvent } from '#server/utils/security-log';
@@ -36,10 +36,12 @@ function visitLimitBelowUsage() {
 }
 
 export default defineEventHandler(async (event) => {
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
+  const workspace = event.context.workspace as { slug: string };
   const config = useRuntimeConfig();
   const updateLimit = Number(config.rateLimitUpdatePerMinute) || 60;
-  const rl = await rateLimitCheck(`update:${user.id}`, updateLimit, 60_000);
+  const rl = await rateLimitCheck(`update:${workspaceId}`, updateLimit, 60_000);
   if (!rl.ok) {
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
@@ -49,7 +51,7 @@ export default defineEventHandler(async (event) => {
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const existing = await findLinkByIdForUser(id, user.id);
+  const existing = await findLinkById(id, workspaceId);
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -106,7 +108,7 @@ export default defineEventHandler(async (event) => {
     patch.utmContent = emptyToNull(body.utmContent);
   if (body.campaignId !== undefined) {
     const campaignId = emptyToNull(body.campaignId);
-    if (campaignId && !await findCampaignForUser(campaignId, user.id)) {
+    if (campaignId && !await findCampaignForWorkspace(campaignId, workspaceId)) {
       throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
     }
     patch.campaignId = campaignId;
@@ -125,7 +127,7 @@ export default defineEventHandler(async (event) => {
 
   let updated: Awaited<ReturnType<typeof updateLink>>;
   try {
-    updated = await updateLink(id, user.id, patch);
+    updated = await updateLink(id, workspaceId, patch);
   }
   catch (e) {
     if (e instanceof VisitLimitBelowUsageError)
@@ -136,7 +138,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   if (body.tags !== undefined)
-    await setLinkTags(id, user.id, body.tags);
+    await setLinkTags(id, workspaceId, body.tags);
   if (body.password !== undefined) {
     await writeSecurityEvent(
       body.password == null ? 'link_password_removed' : 'link_password_set',
@@ -147,5 +149,5 @@ export default defineEventHandler(async (event) => {
   }
   await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, user.id, id);
   const tagMap = await tagNamesByLinkIds([updated.id]);
-  return linkToDto(updated, tagMap.get(updated.id) ?? []);
+  return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? []);
 });
