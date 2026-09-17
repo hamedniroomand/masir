@@ -1,10 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { desc, eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { authIdentities, mailOutbox, users, workspaceMembers } from '#server/database/schema';
-import { hashSecret } from '#server/utils/password';
-import { newId } from '#shared/id';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { mailOutbox, workspaceMembers } from '#server/database/schema';
+import { e2eSetupOptions, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('invitations');
@@ -25,33 +23,6 @@ async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
   return cookie.split(';')[0]!;
 }
 
-async function makeUser(email: string) {
-  const db = openTestDatabase(TEST_DB);
-  const id = newId();
-  const now = new Date();
-  await db.insert(users).values({
-    id,
-    email,
-    emailVerifiedAt: now,
-    firstName: null,
-    lastName: null,
-    avatarUrl: null,
-    createdAt: now,
-    updatedAt: now,
-    lastLoginAt: null,
-  });
-  await db.insert(authIdentities).values({
-    id: newId(),
-    userId: id,
-    provider: 'PASSWORD',
-    providerAccountId: id,
-    passwordHash: await hashSecret(TEST_PASSWORD),
-    createdAt: now,
-    updatedAt: now,
-  });
-  return id;
-}
-
 async function lastInviteToken() {
   const db = openTestDatabase(TEST_DB);
   const rows = await db.select().from(mailOutbox).orderBy(desc(mailOutbox.createdAt)).limit(1);
@@ -63,8 +34,8 @@ describe('workspace invitations', async () => {
 
   beforeAll(async () => {
     ({ workspaceId } = await resetTestDb(TEST_DB));
-    await makeUser(INVITEE);
-    await makeUser(OUTSIDER);
+    await insertTestUser(TEST_DB, { email: INVITEE, password: TEST_PASSWORD });
+    await insertTestUser(TEST_DB, { email: OUTSIDER, password: TEST_PASSWORD });
   });
 
   it('sends an invitation and lists it as pending', async () => {
@@ -114,7 +85,7 @@ describe('workspace invitations', async () => {
     const db = openTestDatabase(TEST_DB);
     const rows = await db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId));
     expect(rows).toHaveLength(2);
-    expect(rows.filter(r => r.role === 'OWNER')).toHaveLength(1);
+    expect(rows.filter(r => r.role === 'owner')).toHaveLength(1);
 
     await expect($fetch('/api/workspaces/invitations/accept', {
       method: 'POST',
@@ -149,5 +120,31 @@ describe('workspace invitations', async () => {
       body: { email: 'someone-else@example.com' },
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  // The partial unique index holds one open invitation for each address.
+  it('refuses a second open invitation and allows one after a revoke', async () => {
+    const cookie = await loginCookie();
+    const email = 'twice@example.com';
+    const first = await $fetch<{ id: string }>('/api/workspaces/invitations', {
+      method: 'POST',
+      body: { email },
+      headers: { cookie },
+    });
+
+    await expect($fetch('/api/workspaces/invitations', {
+      method: 'POST',
+      body: { email },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 409 });
+
+    await $fetch(`/api/workspaces/invitations/${first.id}`, { method: 'DELETE', headers: { cookie } });
+
+    const second = await $fetch<{ id: string }>('/api/workspaces/invitations', {
+      method: 'POST',
+      body: { email },
+      headers: { cookie },
+    });
+    expect(second.id).not.toBe(first.id);
   });
 });

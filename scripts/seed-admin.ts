@@ -1,9 +1,8 @@
 import process from 'node:process';
 import { openDatabase } from '#server/database/client';
 import { runMigrations } from '#server/database/migrate';
-import { authIdentities, securityEvents, users, workspaceMembers, workspaces } from '#server/database/schema';
+import { auditEvents, authIdentities, users, workspaceMembers, workspaces } from '#server/database/schema';
 import { hashSecret } from '#server/utils/password';
-import { newId } from '#shared/id';
 import { normalizeWorkspaceSlug } from '#shared/workspace-slug';
 
 const email = process.env.ADMIN_EMAIL;
@@ -24,59 +23,42 @@ if (existing.length > 0) {
   process.exit(1);
 }
 
-const id = newId();
 const normalizedEmail = email.toLowerCase();
-const now = new Date();
-await db.insert(users).values({
-  id,
+const [user] = await db.insert(users).values({
   email: normalizedEmail,
-  emailVerifiedAt: now,
+  emailVerifiedAt: new Date(),
   firstName: 'Admin',
-  lastName: null,
-  avatarUrl: null,
-  createdAt: now,
-  updatedAt: now,
-  lastLoginAt: null,
-});
+}).returning();
+if (!user)
+  throw new Error('insert failed');
 
 await db.insert(authIdentities).values({
-  id: newId(),
-  userId: id,
-  provider: 'PASSWORD',
-  providerAccountId: id,
+  userId: user.id,
+  provider: 'password',
+  providerAccountId: user.id,
   passwordHash: await hashSecret(password),
-  createdAt: now,
-  updatedAt: now,
 });
 
-await db.insert(securityEvents).values({
-  id: newId(),
-  createdAt: new Date(),
+await db.insert(auditEvents).values({
   type: 'admin_seeded',
-  actorUserId: id,
-  detail: JSON.stringify({ email: normalizedEmail }),
+  actorId: user.id,
+  detail: { email: normalizedEmail },
 });
 
 // A user without a workspace can sign in and reach nothing, so the first
 // workspace and its owner membership are seeded together.
-const workspaceId = newId();
 const workspaceSlug = normalizeWorkspaceSlug(workspaceName) || 'workspace';
-await db.insert(workspaces).values({
-  id: workspaceId,
+const [workspace] = await db.insert(workspaces).values({
   name: workspaceName,
   slug: workspaceSlug,
-  plan: 'TRIAL',
-  createdAt: now,
-  updatedAt: now,
-});
+}).returning();
+if (!workspace)
+  throw new Error('insert failed');
 
 await db.insert(workspaceMembers).values({
-  id: newId(),
-  workspaceId,
-  userId: id,
-  role: 'OWNER',
-  createdAt: now,
-  updatedAt: now,
+  workspaceId: workspace.id,
+  userId: user.id,
+  role: 'owner',
 });
 
 console.log('Admin created:', normalizedEmail);

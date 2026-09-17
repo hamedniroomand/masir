@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type Member = { id: string; email: string; role: string; isActive: boolean };
+type Member = { userId: string; email: string; role: string; isActive: boolean };
 type Invitation = { id: string; email: string; expiresAt: string };
 
 const { data: members, refresh: refreshMembers } = await useFetch<{ items: Member[] }>('/api/workspaces/members');
@@ -49,23 +49,23 @@ function resend(id: string) {
   );
 }
 
-function setActive(id: string, isActive: boolean) {
+function setActive(userId: string, isActive: boolean) {
   return run(
-    () => $fetch(`/api/workspaces/members/${id}`, { method: 'PATCH', body: { isActive } }),
+    () => $fetch(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { isActive } }),
     'We could not change this member.',
   );
 }
 
-function removeMember(id: string) {
+function removeMember(userId: string) {
   return run(
-    () => $fetch(`/api/workspaces/members/${id}`, { method: 'DELETE' }),
+    () => $fetch(`/api/workspaces/members/${userId}`, { method: 'DELETE' }),
     'We could not remove this member.',
   );
 }
 
-function transfer(id: string) {
+function transfer(userId: string) {
   return run(
-    () => $fetch('/api/workspaces/transfer-ownership', { method: 'POST', body: { memberId: id } }),
+    () => $fetch('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } }),
     'We could not transfer ownership.',
   );
 }
@@ -92,7 +92,7 @@ function transfer(id: string) {
     </div>
 
     <ul class="divide-y divide-default rounded-lg border border-default">
-      <li v-for="m in members?.items ?? []" :key="m.id" class="flex items-center justify-between gap-3 p-4">
+      <li v-for="m in members?.items ?? []" :key="m.userId" class="flex items-center justify-between gap-3 p-4">
         <div class="min-w-0">
           <p class="truncate text-sm text-highlighted">
             {{ m.email }}
@@ -102,9 +102,9 @@ function transfer(id: string) {
           </p>
         </div>
         <div v-if="m.role !== 'OWNER'" class="flex shrink-0 gap-1">
-          <UButton :label="m.isActive ? 'Deactivate' : 'Reactivate'" size="xs" variant="ghost" @click="setActive(m.id, !m.isActive)" />
-          <UButton label="Make owner" size="xs" variant="ghost" @click="transfer(m.id)" />
-          <UButton label="Remove" size="xs" variant="ghost" color="error" @click="removeMember(m.id)" />
+          <UButton :label="m.isActive ? 'Deactivate' : 'Reactivate'" size="xs" variant="ghost" @click="setActive(m.userId, !m.isActive)" />
+          <UButton label="Make owner" size="xs" variant="ghost" @click="transfer(m.userId)" />
+          <UButton label="Remove" size="xs" variant="ghost" color="error" @click="removeMember(m.userId)" />
         </div>
       </li>
     </ul>

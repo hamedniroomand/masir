@@ -1,14 +1,15 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { isUniqueViolation } from '#server/utils/db';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { writeSecurityEvent } from '#server/utils/security-log';
 import {
   countWorkspaces,
   createWorkspaceWithOwner,
   isWorkspaceSlugTaken,
 } from '#server/utils/workspace-repo';
+import { planName } from '#shared/permissions';
 import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-slug';
 
 const bodySchema = v.object({
@@ -69,14 +70,14 @@ export default defineEventHandler(async (event) => {
       ownerUserId: user.id,
       trialDays: config.deploymentMode === 'CLOUD' ? Number(config.trialDays) : null,
     });
-    await writeSecurityEvent('workspace_created', { slug: workspace.slug }, { workspaceId: workspace.id, actor: user.id });
+    await writeAuditEvent('workspace_created', { slug: workspace.slug }, { workspaceId: workspace.id, actor: user.id });
     setResponseStatus(event, 201);
     return {
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug,
       logoUrl: workspace.logoUrl,
-      plan: workspace.plan,
+      plan: planName(workspace.plan),
       trialEndsAt: workspace.trialEndsAt,
     };
   }

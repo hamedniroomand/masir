@@ -1,9 +1,8 @@
 import type { Workspace } from '#server/database/schema';
-import type { WorkspaceRole } from '#shared/permissions';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { users, workspaceMembers, workspaces } from '#server/database/schema';
-import { getDb } from '#server/utils/db';
-import { newId } from '#shared/id';
+import { getDb, isUuid } from '#server/utils/db';
+import { roleName } from '#shared/permissions';
 
 export async function findWorkspaceBySlug(slug: string) {
   const db = await getDb();
@@ -12,6 +11,8 @@ export async function findWorkspaceBySlug(slug: string) {
 }
 
 export async function findWorkspaceById(id: string) {
+  if (!isUuid(id))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(workspaces).where(and(eq(workspaces.id, id), isNull(workspaces.deletedAt))).limit(1);
   return rows[0] ?? null;
@@ -29,19 +30,24 @@ export async function findSingleWorkspace() {
 }
 
 export async function findMembership(workspaceId: string, userId: string) {
+  if (!isUuid(workspaceId) || !isUuid(userId))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(workspaceMembers).where(and(
     eq(workspaceMembers.workspaceId, workspaceId),
     eq(workspaceMembers.userId, userId),
     isNull(workspaceMembers.deactivatedAt),
   )).limit(1);
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, role: roleName(row.role) } : null;
 }
 
 // One query for the two things every workspace request must check: the session
 // is still current, and the caller still belongs here. Two separate reads would
 // double the round trips on every authenticated request.
 export async function findMemberAccess(workspaceId: string, userId: string) {
+  if (!isUuid(workspaceId) || !isUuid(userId))
+    return null;
   const db = await getDb();
   const rows = await db.select({
     role: workspaceMembers.role,
@@ -55,12 +61,13 @@ export async function findMemberAccess(workspaceId: string, userId: string) {
       isNull(workspaceMembers.deactivatedAt),
     ))
     .limit(1);
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, role: roleName(row.role) } : null;
 }
 
 export async function listMembershipsForUser(userId: string) {
   const db = await getDb();
-  return db.select({ workspace: workspaces, role: workspaceMembers.role })
+  const rows = await db.select({ workspace: workspaces, role: workspaceMembers.role })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
     .where(and(
@@ -68,6 +75,7 @@ export async function listMembershipsForUser(userId: string) {
       isNull(workspaceMembers.deactivatedAt),
       isNull(workspaces.deletedAt),
     ));
+  return rows.map(row => ({ ...row, role: roleName(row.role) }));
 }
 
 export async function countWorkspaces() {
@@ -89,44 +97,34 @@ export async function createWorkspaceWithOwner(input: {
 }): Promise<Workspace> {
   const db = await getDb();
   const now = new Date();
-  const id = newId();
   const trialEndsAt = input.trialDays == null
     ? null
     : new Date(now.getTime() + input.trialDays * 86_400_000);
 
   // One transaction. A workspace must never exist without its owner.
-  await db.transaction(async (tx) => {
-    await tx.insert(workspaces).values({
-      id,
+  return db.transaction(async (tx) => {
+    const [created] = await tx.insert(workspaces).values({
       name: input.name,
       slug: input.slug,
       logoUrl: input.logoUrl,
-      plan: 'TRIAL',
       trialStartedAt: input.trialDays == null ? null : now,
       trialEndsAt,
-      createdAt: now,
-      updatedAt: now,
-    });
-    await tx.insert(workspaceMembers).values({
-      id: newId(),
-      workspaceId: id,
-      userId: input.ownerUserId,
-      role: 'OWNER' satisfies WorkspaceRole,
-      createdAt: now,
-      updatedAt: now,
-    });
-  });
+    }).returning();
+    if (!created)
+      throw new Error('The workspace vanished between its insert and its read.');
 
-  const [row] = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
-  if (!row)
-    throw new Error('The workspace vanished between its insert and its read.');
-  return row;
+    await tx.insert(workspaceMembers).values({
+      workspaceId: created.id,
+      userId: input.ownerUserId,
+      role: 'owner',
+    });
+    return created;
+  });
 }
 
 export async function listMembers(workspaceId: string) {
   const db = await getDb();
-  return db.select({
-    id: workspaceMembers.id,
+  const rows = await db.select({
     userId: workspaceMembers.userId,
     role: workspaceMembers.role,
     deactivatedAt: workspaceMembers.deactivatedAt,
@@ -138,43 +136,50 @@ export async function listMembers(workspaceId: string) {
     .from(workspaceMembers)
     .innerJoin(users, eq(workspaceMembers.userId, users.id))
     .where(eq(workspaceMembers.workspaceId, workspaceId));
+  return rows.map(row => ({ ...row, role: roleName(row.role) }));
 }
 
-export async function findMemberById(id: string, workspaceId: string) {
+export async function findMember(workspaceId: string, userId: string) {
+  if (!isUuid(workspaceId) || !isUuid(userId))
+    return null;
   const db = await getDb();
-  const rows = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId))).limit(1);
-  return rows[0] ?? null;
+  const rows = await db.select().from(workspaceMembers).where(and(
+    eq(workspaceMembers.workspaceId, workspaceId),
+    eq(workspaceMembers.userId, userId),
+  )).limit(1);
+  const row = rows[0];
+  return row ? { ...row, role: roleName(row.role) } : null;
 }
 
-export async function setMemberDeactivated(id: string, workspaceId: string, deactivated: boolean) {
+export async function setMemberDeactivated(workspaceId: string, userId: string, deactivated: boolean) {
   const db = await getDb();
   // The flag lives on the membership. The same person may work in another
   // workspace, and that one must not change.
   await db.update(workspaceMembers)
     .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
-    .where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId)));
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
 }
 
-export async function removeMember(id: string, workspaceId: string) {
+export async function removeMember(workspaceId: string, userId: string) {
   const db = await getDb();
   const changed = await db.delete(workspaceMembers)
-    .where(and(eq(workspaceMembers.id, id), eq(workspaceMembers.workspaceId, workspaceId)))
-    .returning({ id: workspaceMembers.id });
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+    .returning({ userId: workspaceMembers.userId });
   return changed.length > 0;
 }
 
-// The old owner drops to MEMBER first. The partial unique index refuses two
+// The old owner drops to member first. The partial unique index refuses two
 // owners, so raising the new one before lowering the old one would fail.
-export async function transferOwnership(workspaceId: string, fromMemberId: string, toMemberId: string) {
+export async function transferOwnership(workspaceId: string, fromUserId: string, toUserId: string) {
   const db = await getDb();
   const now = new Date();
   await db.transaction(async (tx) => {
     await tx.update(workspaceMembers)
-      .set({ role: 'MEMBER', updatedAt: now })
-      .where(and(eq(workspaceMembers.id, fromMemberId), eq(workspaceMembers.workspaceId, workspaceId)));
+      .set({ role: 'member', updatedAt: now })
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, fromUserId)));
     await tx.update(workspaceMembers)
-      .set({ role: 'OWNER', deactivatedAt: null, updatedAt: now })
-      .where(and(eq(workspaceMembers.id, toMemberId), eq(workspaceMembers.workspaceId, workspaceId)));
+      .set({ role: 'owner', deactivatedAt: null, updatedAt: now })
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, toUserId)));
   });
 }
 

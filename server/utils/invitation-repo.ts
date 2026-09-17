@@ -1,9 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { users, workspaceInvitations, workspaceMembers } from '#server/database/schema';
 import { hashAuthToken, newAuthToken } from '#server/utils/auth-token';
-import { getDb } from '#server/utils/db';
+import { getDb, isUuid } from '#server/utils/db';
 import { normalizeEmail } from '#server/utils/identity-repo';
-import { newId } from '#shared/id';
 
 export const INVITE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -17,6 +16,8 @@ export async function listPendingInvitations(workspaceId: string) {
 }
 
 export async function findInvitationById(id: string, workspaceId: string) {
+  if (!isUuid(id))
+    return null;
   const db = await getDb();
   const rows = await db.select().from(workspaceInvitations).where(and(eq(workspaceInvitations.id, id), eq(workspaceInvitations.workspaceId, workspaceId))).limit(1);
   return rows[0] ?? null;
@@ -24,7 +25,7 @@ export async function findInvitationById(id: string, workspaceId: string) {
 
 export async function isAlreadyMember(workspaceId: string, email: string) {
   const db = await getDb();
-  const rows = await db.select({ id: workspaceMembers.id })
+  const rows = await db.select({ userId: workspaceMembers.userId })
     .from(workspaceMembers)
     .innerJoin(users, eq(workspaceMembers.userId, users.id))
     .where(and(
@@ -37,35 +38,32 @@ export async function isAlreadyMember(workspaceId: string, email: string) {
 
 // The raw token leaves in the email. The row keeps only its hash, so a stolen
 // database row cannot be replayed as an invitation link.
+// A second open invitation for the same address raises a unique violation. The
+// route turns that into a 409.
 export async function createInvitation(input: {
   workspaceId: string;
   email: string;
-  invitedByUserId: string;
+  invitedBy: string;
 }) {
   const db = await getDb();
   const raw = newAuthToken();
-  const now = new Date();
-  const id = newId();
-  await db.insert(workspaceInvitations).values({
-    id,
+  const [created] = await db.insert(workspaceInvitations).values({
     workspaceId: input.workspaceId,
     email: normalizeEmail(input.email),
     tokenHash: hashAuthToken(raw),
-    invitedByUserId: input.invitedByUserId,
-    createdAt: now,
-    expiresAt: new Date(now.getTime() + INVITE_LIFETIME_MS),
-    acceptedAt: null,
-    revokedAt: null,
-  });
-  return { id, raw };
+    invitedBy: input.invitedBy,
+    expiresAt: new Date(Date.now() + INVITE_LIFETIME_MS),
+  }).returning();
+  if (!created)
+    throw new Error('insert failed');
+  return { id: created.id, raw };
 }
 
 export async function replaceInvitationToken(id: string) {
   const db = await getDb();
   const raw = newAuthToken();
-  const now = new Date();
   await db.update(workspaceInvitations)
-    .set({ tokenHash: hashAuthToken(raw), expiresAt: new Date(now.getTime() + INVITE_LIFETIME_MS) })
+    .set({ tokenHash: hashAuthToken(raw), expiresAt: new Date(Date.now() + INVITE_LIFETIME_MS) })
     .where(eq(workspaceInvitations.id, id));
   return raw;
 }
@@ -102,25 +100,21 @@ export async function findUsableInvitation(rawToken: string) {
 // carries its own guard, so two requests with the same token cannot both win.
 export async function acceptInvitation(invitationId: string, workspaceId: string, userId: string) {
   const db = await getDb();
-  const now = new Date();
   const claimed = await db.update(workspaceInvitations)
-    .set({ acceptedAt: now })
+    .set({ acceptedAt: new Date() })
     .where(and(eq(workspaceInvitations.id, invitationId), isNull(workspaceInvitations.acceptedAt)))
     .returning({ id: workspaceInvitations.id });
   if (!claimed.length)
     return false;
 
-  const existing = await db.select({ id: workspaceMembers.id }).from(workspaceMembers).where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId))).limit(1);
+  const existing = await db.select({ userId: workspaceMembers.userId }).from(workspaceMembers).where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId))).limit(1);
   if (existing.length)
     return true;
 
   await db.insert(workspaceMembers).values({
-    id: newId(),
     workspaceId,
     userId,
-    role: 'MEMBER',
-    createdAt: now,
-    updatedAt: now,
+    role: 'member',
   });
   return true;
 }

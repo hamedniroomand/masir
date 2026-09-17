@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const rows = await listMembers(workspaceId);
   return {
     items: rows.map(row => ({
-      id: row.id,
+      userId: row.userId,
       email: row.email,
       firstName: row.firstName,
       lastName: row.lastName,

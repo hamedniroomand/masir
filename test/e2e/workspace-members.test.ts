@@ -1,18 +1,16 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { authIdentities, users, workspaceMembers, workspaces } from '#server/database/schema';
-import { hashSecret } from '#server/utils/password';
-import { newId } from '#shared/id';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { users, workspaceMembers, workspaces } from '#server/database/schema';
+import { e2eSetupOptions, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('workspace-members');
 const MEMBER_EMAIL = 'member@example.com';
 
 let workspaceId = '';
-let ownerMemberId = '';
-let memberMemberId = '';
+let ownerUserId = '';
+let memberUserId = '';
 
 async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
   const res = await fetch('/api/auth/login', {
@@ -32,51 +30,25 @@ describe('workspace members and owner protection', async () => {
   beforeAll(async () => {
     const seeded = await resetTestDb(TEST_DB);
     workspaceId = seeded.workspaceId;
-    const db = openTestDatabase(TEST_DB);
-    const now = new Date();
-    const memberUserId = newId();
+    ownerUserId = seeded.userId;
 
-    await db.insert(users).values({
-      id: memberUserId,
-      email: MEMBER_EMAIL,
-      emailVerifiedAt: now,
-      firstName: null,
-      lastName: null,
-      avatarUrl: null,
-      createdAt: now,
-      updatedAt: now,
-      lastLoginAt: null,
-    });
-    await db.insert(authIdentities).values({
-      id: newId(),
-      userId: memberUserId,
-      provider: 'PASSWORD',
-      providerAccountId: memberUserId,
-      passwordHash: await hashSecret(TEST_PASSWORD),
-      createdAt: now,
-      updatedAt: now,
-    });
-    memberMemberId = newId();
+    const db = openTestDatabase(TEST_DB);
+    memberUserId = await insertTestUser(TEST_DB, { email: MEMBER_EMAIL, password: TEST_PASSWORD });
     await db.insert(workspaceMembers).values({
-      id: memberMemberId,
       workspaceId,
       userId: memberUserId,
-      role: 'MEMBER',
-      createdAt: now,
-      updatedAt: now,
+      role: 'member',
     });
-
-    const rows = await db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId));
-    ownerMemberId = rows.find(r => r.role === 'OWNER')!.id;
   });
 
   it('lists both members to the owner', async () => {
     const cookie = await loginCookie();
-    const res = await $fetch<{ items: { email: string; role: string }[] }>('/api/workspaces/members', {
+    const res = await $fetch<{ items: { userId: string; email: string; role: string }[] }>('/api/workspaces/members', {
       headers: { cookie },
     });
     expect(res.items).toHaveLength(2);
     expect(res.items.filter(i => i.role === 'OWNER')).toHaveLength(1);
+    expect(res.items.map(i => i.userId).sort()).toEqual([memberUserId, ownerUserId].sort());
   });
 
   it('refuses a member the member list', async () => {
@@ -88,7 +60,7 @@ describe('workspace members and owner protection', async () => {
 
   it('refuses to deactivate the owner', async () => {
     const cookie = await loginCookie();
-    await expect($fetch(`/api/workspaces/members/${ownerMemberId}`, {
+    await expect($fetch(`/api/workspaces/members/${ownerUserId}`, {
       method: 'PATCH',
       body: { isActive: false },
       headers: { cookie },
@@ -97,7 +69,7 @@ describe('workspace members and owner protection', async () => {
 
   it('refuses to remove the owner', async () => {
     const cookie = await loginCookie();
-    await expect($fetch(`/api/workspaces/members/${ownerMemberId}`, {
+    await expect($fetch(`/api/workspaces/members/${ownerUserId}`, {
       method: 'DELETE',
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 422 });
@@ -105,7 +77,7 @@ describe('workspace members and owner protection', async () => {
 
   it('deactivates a member and locks them out without touching the user', async () => {
     const cookie = await loginCookie();
-    await $fetch(`/api/workspaces/members/${memberMemberId}`, {
+    await $fetch(`/api/workspaces/members/${memberUserId}`, {
       method: 'PATCH',
       body: { isActive: false },
       headers: { cookie },
@@ -121,7 +93,7 @@ describe('workspace members and owner protection', async () => {
     const rows = await db.select().from(users).where(eq(users.email, MEMBER_EMAIL));
     expect(rows).toHaveLength(1);
 
-    await $fetch(`/api/workspaces/members/${memberMemberId}`, {
+    await $fetch(`/api/workspaces/members/${memberUserId}`, {
       method: 'PATCH',
       body: { isActive: true },
       headers: { cookie },
@@ -132,15 +104,15 @@ describe('workspace members and owner protection', async () => {
     const cookie = await loginCookie();
     await $fetch('/api/workspaces/transfer-ownership', {
       method: 'POST',
-      body: { memberId: memberMemberId },
+      body: { userId: memberUserId },
       headers: { cookie },
     });
 
     const db = openTestDatabase(TEST_DB);
     const rows = await db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId));
-    expect(rows.filter(r => r.role === 'OWNER')).toHaveLength(1);
-    expect(rows.find(r => r.id === memberMemberId)!.role).toBe('OWNER');
-    expect(rows.find(r => r.id === ownerMemberId)!.role).toBe('MEMBER');
+    expect(rows.filter(r => r.role === 'owner')).toHaveLength(1);
+    expect(rows.find(r => r.userId === memberUserId)!.role).toBe('owner');
+    expect(rows.find(r => r.userId === ownerUserId)!.role).toBe('member');
   });
 
   it('refuses the former owner the member controls', async () => {

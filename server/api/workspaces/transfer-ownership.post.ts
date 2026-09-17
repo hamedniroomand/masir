@@ -1,11 +1,11 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { writeSecurityEvent } from '#server/utils/security-log';
-import { findMemberById, listMembers, transferOwnership } from '#server/utils/workspace-repo';
+import { findMember, listMembers, transferOwnership } from '#server/utils/workspace-repo';
 
 const bodySchema = v.object({
-  memberId: v.pipe(v.string(), v.minLength(1)),
+  userId: v.pipe(v.string(), v.minLength(1)),
 });
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
   const body = await readValidBody(event, bodySchema);
 
-  const target = await findMemberById(body.memberId, workspaceId);
+  const target = await findMember(workspaceId, body.userId);
   if (!target)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   if (!current)
     throw createError({ statusCode: 409, statusMessage: 'This workspace has no owner.' });
 
-  await transferOwnership(workspaceId, current.id, body.memberId);
-  await writeSecurityEvent('ownership_transferred', { to: body.memberId }, { workspaceId, actor: user.id });
+  await transferOwnership(workspaceId, current.userId, body.userId);
+  await writeAuditEvent('ownership_transferred', { to: body.userId }, { workspaceId, actor: user.id });
   return { ok: true };
 });

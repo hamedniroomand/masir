@@ -1,8 +1,8 @@
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { writeSecurityEvent } from '#server/utils/security-log';
-import { findMemberById, setMemberDeactivated } from '#server/utils/workspace-repo';
+import { findMember, setMemberDeactivated } from '#server/utils/workspace-repo';
 
 const bodySchema = v.object({
   isActive: v.boolean(),
@@ -11,11 +11,11 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'members.manage');
   const user = await requireUser(event);
-  const id = getRouterParam(event, 'id');
-  if (!id)
+  const userId = getRouterParam(event, 'id');
+  if (!userId)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const member = await findMemberById(id, workspaceId);
+  const member = await findMember(workspaceId, userId);
   if (!member)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readValidBody(event, bodySchema);
-  await setMemberDeactivated(id, workspaceId, !body.isActive);
-  await writeSecurityEvent('member_activity_changed', { memberId: id, isActive: body.isActive }, { workspaceId, actor: user.id });
+  await setMemberDeactivated(workspaceId, userId, !body.isActive);
+  await writeAuditEvent('member_activity_changed', { userId, isActive: body.isActive }, { workspaceId, actor: user.id });
   return { ok: true };
 });
