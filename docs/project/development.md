@@ -17,12 +17,31 @@ bun run db:seed:admin
 bun run dev
 ```
 
-The compose file starts Postgres and Mailpit if you would rather not run either
-yourself:
+## With Docker
+
+The development stack runs the app, Postgres, and Mailpit together. The app
+reloads when you edit a file on the host.
 
 ```sh
-docker compose up -d db mail
+docker compose -f compose.dev.yaml up
+docker compose -f compose.dev.yaml exec app bun run db:seed:admin
 ```
+
+The app answers on `http://localhost:3000` and the mail inbox on
+`http://localhost:8025`. VS Code users open the same stack with
+**Reopen in Container**.
+
+Set `MASIR_APP_PORT`, `MASIR_DB_PORT`, `MASIR_MAIL_SMTP_PORT`, or
+`MASIR_MAIL_UI_PORT` in `.env` to publish a different host port.
+
+To run the app on the host and only the services in Docker:
+
+```sh
+docker compose -f compose.dev.yaml up -d db mail
+```
+
+`compose.yaml` is the production stack. It builds the image, requires
+`POSTGRES_PASSWORD`, publishes only the app port, and starts no mail catcher.
 
 ## Layout
 

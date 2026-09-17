@@ -1,0 +1,64 @@
+# Development stack: the app with hot reload, Postgres, and a mail catcher.
+#   docker compose -f compose.dev.yaml up
+# Host ports come from MASIR_*_PORT in .env. The ports inside the containers
+# never change. Production uses compose.yaml.
+name: masir-dev
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: masir
+      POSTGRES_DB: masir
+      POSTGRES_PASSWORD: masir
+    # Loopback only. A laptop on a shared network must not offer a database
+    # with a known password.
+    ports:
+      - '127.0.0.1:${MASIR_DB_PORT:-5432}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U masir -d masir]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Mailpit accepts every message and holds it in memory. Read the mail at
+  # http://localhost:8025 . Nothing leaves the machine.
+  mail:
+    image: axllent/mailpit:v1.31
+    ports:
+      - '127.0.0.1:${MASIR_MAIL_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MASIR_MAIL_UI_PORT:-8025}:8025'
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: '1'
+      MP_SMTP_AUTH_ALLOW_INSECURE: '1'
+      MP_MAX_MESSAGES: '500'
+
+  app:
+    image: oven/bun:1
+    working_dir: /app
+    command: sh -c "bun install --frozen-lockfile --filter masir && bun run dev --host 0.0.0.0"
+    ports:
+      - '${MASIR_APP_PORT:-3000}:3000'
+    env_file: .env
+    environment:
+      NUXT_DATABASE_URL: postgres://masir:masir@db:5432/masir
+      NUXT_MAIL_DRIVER: smtp
+      NUXT_MAIL_SMTP_HOST: mail
+      NUXT_MAIL_SMTP_PORT: '1025'
+      NUXT_MAIL_SMTP_SECURE: 'false'
+    volumes:
+      - .:/app
+      # Native binaries in node_modules are built for Linux. A named volume
+      # keeps them out of the host copy that the host bun uses.
+      - node-modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+
+volumes:
+  db-data:
+  node-modules:

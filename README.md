@@ -15,7 +15,7 @@ git clone <repo>
 cd masir
 cp .env.example .env
 # Edit .env — set NUXT_SESSION_PASSWORD (32+ chars), NUXT_PUBLIC_SHORT_DOMAIN and NUXT_DATABASE_URL
-docker compose up -d db   # or point NUXT_DATABASE_URL at your own Postgres
+docker compose -f compose.dev.yaml up -d db   # or point NUXT_DATABASE_URL at your own Postgres
 bun install
 bun run db:migrate
 bun run db:seed:admin
@@ -252,20 +252,31 @@ Losing the database loses all links and analytics.
 
 ## Docker
 
+Production. `compose.yaml` builds the image and starts it with Postgres.
+
 ```sh
-cp .env.example .env
-docker compose up --build
+cp .env.example .env    # set POSTGRES_PASSWORD and NUXT_SESSION_PASSWORD
+docker compose up -d --build
 docker compose exec app bun run db:seed:admin
 ```
 
-Compose starts a `db` service (Postgres 17). Its data lives on the `masir-data` volume. The app waits for the database health check, then migrates on boot.
+Postgres is not published to the host; the app reaches it over the compose network. Data lives on the `masir_db-data` volume and uploads on `masir_uploads`. The app waits for the database health check, then migrates on boot.
+
+Development. `compose.dev.yaml` adds Mailpit and runs the app with hot reload, so an edit on the host reloads the page.
+
+```sh
+docker compose -f compose.dev.yaml up
+docker compose -f compose.dev.yaml exec app bun run db:seed:admin
+```
+
+Read the caught mail at `http://localhost:8025`. Set `MASIR_APP_PORT`, `MASIR_DB_PORT`, `MASIR_MAIL_SMTP_PORT`, or `MASIR_MAIL_UI_PORT` in `.env` to publish a different host port. VS Code opens the same stack with **Reopen in Container**.
 
 ## Tests
 
 The e2e tests build the app once into `.output`, then each test file starts a bun server from that build against its own database. This is the same artifact and runtime that Docker runs.
 
 ```sh
-docker compose up -d db
+docker compose -f compose.dev.yaml up -d db
 TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/postgres bun run test
 ```
 

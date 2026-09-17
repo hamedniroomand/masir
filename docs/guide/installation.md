@@ -49,10 +49,11 @@ cp .env.example .env
 bun install
 ```
 
-Point `NUXT_DATABASE_URL` at a Postgres you already run, or start one:
+Point `NUXT_DATABASE_URL` at a Postgres you already run, or start the
+development one, which publishes its port on localhost:
 
 ```sh
-docker compose up -d db
+docker compose -f compose.dev.yaml up -d db
 ```
 
 Then migrate, seed, and start:

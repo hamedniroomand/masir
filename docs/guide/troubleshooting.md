@@ -32,8 +32,8 @@ Masir was not published when that change landed, so there is no backfill. If
 the data is disposable, recreate the database:
 
 ```sh
-docker compose exec db psql -U postgres -c 'drop database masir with (force)'
-docker compose exec db psql -U postgres -c 'create database masir'
+docker compose exec db psql -U masir -d postgres -c 'drop database masir with (force)'
+docker compose exec db psql -U masir -d postgres -c 'create database masir'
 docker compose exec app bun run db:migrate
 docker compose exec app bun run db:seed:admin
 ```

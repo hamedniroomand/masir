@@ -174,3 +174,26 @@ Read by `bun run db:seed:admin` only, never by the server.
 |---|---|
 | `ADMIN_EMAIL` | `admin@example.com` |
 | `ADMIN_PASSWORD` | — |
+
+## Compose
+
+Read by Docker Compose from `.env`, never by the server.
+
+| Variable | Default | Stack |
+|---|---|---|
+| `POSTGRES_PASSWORD` | — | production, **required** |
+| `MASIR_APP_PORT` | `3000` | both |
+| `MASIR_DB_PORT` | `5432` | development |
+| `MASIR_MAIL_SMTP_PORT` | `1025` | development |
+| `MASIR_MAIL_UI_PORT` | `8025` | development |
+
+`POSTGRES_PASSWORD` goes into a connection string unescaped, so use letters
+and digits only: `openssl rand -hex 24`. Changing it after the first start does
+not change the password inside the existing volume.
+
+The port variables set the host port of a published service. The port inside
+the container never changes. The production stack publishes only the app; the
+development stack publishes Postgres and Mailpit on `127.0.0.1` as well.
+
+Change `NUXT_ROOT_DOMAIN` and `NUXT_PUBLIC_SHORT_DOMAIN` as well when you move
+the app port.

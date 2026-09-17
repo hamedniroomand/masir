@@ -1,0 +1,21 @@
+{
+  "name": "Masir",
+  "dockerComposeFile": ["../compose.dev.yaml"],
+  "service": "app",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  // The bun image has no git, and the source control view needs it.
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "oven.bun-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}

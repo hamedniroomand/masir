@@ -108,8 +108,8 @@ sent. That is fine for a single-user instance where you seed the admin account
 and never invite anybody, and useless for anything else — invitations and
 password recovery both stop working.
 
-For development, `docker compose up -d mail` starts Mailpit and every message
-lands in a web inbox rather than a real one:
+For development, `docker compose -f compose.dev.yaml up -d mail` starts
+Mailpit and every message lands in a web inbox rather than a real one:
 
 ```sh [.env]
 NUXT_MAIL_SMTP_HOST=localhost
