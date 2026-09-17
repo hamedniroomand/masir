@@ -1,0 +1,5 @@
+[install]
+# Bun uses the isolated linker once a workspace exists, which stops hoisting
+# transitive dependencies to the root. vue-tsc resolves types through the root
+# node_modules, so typecheck fails on @adonisjs/hash and @internationalized/date.
+linker = "hoisted"

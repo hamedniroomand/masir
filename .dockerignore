@@ -1,0 +1,16 @@
+node_modules
+.nuxt
+.output
+.git
+.claude
+data
+coverage
+test-results
+
+# The image serves the app. The docs site is built and published separately.
+docs
+!docs/package.json
+
+.env
+.env.*
+!.env.example
