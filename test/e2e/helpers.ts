@@ -41,16 +41,18 @@ export const TEST_EMAIL = 'test@example.com';
 export const TEST_PASSWORD = 'test-password-12345';
 export const TEST_WORKSPACE_SLUG = 'acme';
 
-export async function resetTestDb(databaseUrl: string) {
-  await truncateTestDatabase(databaseUrl);
+export async function insertTestUser(databaseUrl: string, input: {
+  email: string;
+  password: string;
+  verified?: boolean;
+}) {
   const db = openTestDatabase(databaseUrl);
   const userId = newId();
-  const workspaceId = newId();
   const now = new Date();
   await db.insert(users).values({
     id: userId,
-    email: TEST_EMAIL,
-    emailVerifiedAt: now,
+    email: input.email,
+    emailVerifiedAt: input.verified === false ? null : now,
     firstName: 'Test',
     lastName: 'User',
     avatarUrl: null,
@@ -63,10 +65,19 @@ export async function resetTestDb(databaseUrl: string) {
     userId,
     provider: 'PASSWORD',
     providerAccountId: userId,
-    passwordHash: await hashSecret(TEST_PASSWORD),
+    passwordHash: await hashSecret(input.password),
     createdAt: now,
     updatedAt: now,
   });
+  return userId;
+}
+
+export async function resetTestDb(databaseUrl: string) {
+  await truncateTestDatabase(databaseUrl);
+  const db = openTestDatabase(databaseUrl);
+  const userId = await insertTestUser(databaseUrl, { email: TEST_EMAIL, password: TEST_PASSWORD });
+  const workspaceId = newId();
+  const now = new Date();
   await db.insert(workspaces).values({
     id: workspaceId,
     name: 'Acme',

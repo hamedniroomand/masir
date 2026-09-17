@@ -1,4 +1,4 @@
-import { $fetch, fetch, setup } from '@nuxt/test-utils';
+import { fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { e2eSetupOptions, insertTestCampaign, insertTestLink, resetTestDb, testDatabaseUrl } from './helpers';
 
@@ -78,7 +78,8 @@ describe('redirect middleware', async () => {
   });
 
   it('does not handle /login', async () => {
-    const html = await $fetch<string>('/login', { responseType: 'text' });
-    expect(html.toLowerCase()).toContain('sign in');
+    const res = await fetch('/login');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
   });
 });

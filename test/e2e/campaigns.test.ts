@@ -92,22 +92,6 @@ describe('campaigns API', async () => {
     expect(analytics.bySource[0]!.label).toBe('twitter');
   });
 
-  it('renders the campaigns pages', async () => {
-    const cookie = await loginCookie();
-    const campaign = await $fetch<CampaignDto>('/api/campaigns', {
-      method: 'POST',
-      body: { name: 'Rendered', utmCampaign: 'rendered' },
-      headers: { cookie },
-    });
-
-    const list = await $fetch<string>('/campaigns', { responseType: 'text', headers: { cookie } });
-    expect(list).toContain('Rendered');
-
-    const detail = await $fetch<string>(`/campaigns/${campaign.id}`, { responseType: 'text', headers: { cookie } });
-    expect(detail).toContain('utm_campaign=rendered');
-    expect(detail).toContain('Link performance');
-  });
-
   it('clears the campaign from links when the campaign is deleted', async () => {
     const cookie = await loginCookie();
     const campaign = await $fetch<CampaignDto>('/api/campaigns', {

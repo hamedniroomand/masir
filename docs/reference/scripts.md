@@ -53,17 +53,38 @@ The e2e suite builds the application **once**, then starts `.output/server/index
 for the test files. Building per file took 137 seconds; building once takes
 about 20.
 
-Both need a reachable Postgres. Tests reset their schema between files, so point
-`NUXT_DATABASE_URL` at a database you are willing to lose.
+Both need a reachable Postgres. The tests never read `NUXT_DATABASE_URL`. They
+read `TEST_DATABASE_URL`, and they create one database for each test file from
+it, so point it at a server you are willing to lose.
 
-```sh [.env.test]
-NUXT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/masir_test
+```sh [.env]
+TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/masir_test
 NUXT_DATABASE_POOL_MAX=2
 ```
 
 The small pool is not a detail. Twelve test files at the default of 10 open 120
 connections against a server that allows 100, and the failures look like random
 flakes rather than exhaustion.
+
+## Browser tests
+
+| Script | Does |
+|---|---|
+| `test:browser` | Build, then run the Playwright suite |
+| `test:browser:run` | Run it against the last build |
+
+Playwright starts one server for each deployment shape from `.output`, with the
+environment that shape needs: `single` (one workspace, registration off),
+`multi` (subdomain per workspace, registration on), and `cloud` (trial, s3
+storage, an OAuth provider). Each has its own `masir_test_browser_<shape>`
+database. Run one shape with `--project`:
+
+```sh
+bun run test:browser:run --project multi
+```
+
+The runner is Node, and the database helpers need Bun, so the specs seed
+through `test/browser/bridge.ts`, a Bun script that prints one JSON line.
 
 ## Documentation
 

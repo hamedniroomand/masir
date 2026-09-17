@@ -73,6 +73,11 @@ bun run test              # everything
 bun run test -- links     # one file
 ```
 
+The tests read `TEST_DATABASE_URL`, never `NUXT_DATABASE_URL`. It points at the
+`masir_test` database that the db service makes on its first start, and each
+test file gets its own `masir_test_<file>` beside it. The application database
+is never touched.
+
 The e2e suite builds **once**, then runs `.output/server/index.mjs` for every
 file. Rebuilding per file took 137 seconds; this takes about 20.
 
@@ -90,6 +95,18 @@ NUXT_DATABASE_POOL_MAX=2
 
 Failures from connection exhaustion look like random flakes. If tests fail
 differently on each run, check this before anything else.
+
+### Browser tests
+
+`bun run test:browser` runs Playwright against the same build, once per
+deployment shape. Every behavior an operator can switch on with an environment
+variable has a project: `single`, `multi`, and `cloud`, each with its own server
+and database. A spec that only holds in one shape lives in that shape's folder
+under `test/browser/`.
+
+Specs seed the database through `test/browser/bridge.ts`, because Playwright
+runs on Node and the helpers need Bun. Use the `db` fixture, never a direct
+connection.
 
 ### Writing an e2e test
 

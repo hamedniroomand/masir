@@ -276,11 +276,17 @@ Read the caught mail at `http://localhost:8025`. Set `MASIR_APP_PORT`, `MASIR_DB
 The e2e tests build the app once into `.output`, then each test file starts a bun server from that build against its own database. This is the same artifact and runtime that Docker runs.
 
 ```sh
-docker compose -f compose.dev.yaml up -d db
-TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/postgres bun run test
+bun run test
 ```
 
-`TEST_DATABASE_URL` points at a database the test user can connect to. The tests create `masir_test_<file>` beside it and keep it between runs. Drop these databases by hand if you rewrite an existing migration file.
+`bun run test` starts the db service first and waits for it. It skips that step under `CI` and on a machine without Docker, where Postgres comes from somewhere else. The db service makes `masir_test` beside the application database on its first start. `TEST_DATABASE_URL` in `.env` points at it, and the tests create `masir_test_<file>` from it and keep them between runs. Drop these databases by hand if you rewrite an existing migration file. On a volume made before `masir_test` existed, the same step creates it.
+
+Browser tests drive the built app in Chromium through Playwright, once per deployment shape: single workspace, multi-workspace, and cloud.
+
+```sh
+bun run test:browser        # builds, then runs
+bun run test:browser:run    # reuses the last build
+```
 
 ## Scripts
 
@@ -290,4 +296,5 @@ TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/postgres bun run test
 | `bun run build` | Production build |
 | `bun run db:migrate` | Apply migrations |
 | `bun run db:seed:admin` | First admin user |
-| `bun run test` | Tests (needs Postgres; set `TEST_DATABASE_URL`) |
+| `bun run test` | Tests (starts the db service first) |
+| `bun run test:browser` | Browser tests, one project per deployment shape |

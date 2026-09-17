@@ -28,3 +28,6 @@ logs
 # Claude local
 .claude/
 .superpowers/
+
+test-results
+playwright-report

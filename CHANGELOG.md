@@ -23,6 +23,11 @@ block. Read them for every version between yours and the one you install.
 - `MASIR_APP_PORT`, `MASIR_DB_PORT`, `MASIR_MAIL_SMTP_PORT`, and
   `MASIR_MAIL_UI_PORT` to move a published host port
 - `uploads` volume in the production stack, so logos survive a recreate
+- `masir_test` database in the development stack, and `TEST_DATABASE_URL` to
+  move the tests to another server
+- `bun run test` starts the db service and waits for it
+- Browser tests with Playwright, one project per deployment shape
+- `NUXT_SESSION_COOKIE_SECURE` for an instance served over plain http
 
 ### Changed
 
@@ -33,6 +38,10 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- A short link that does not exist, or a slug on a host without a workspace,
+  answers 404 again instead of the application shell
+- The test servers no longer inherit the developer's `.env`, which made the
+  suite fail on a machine with `NUXT_MULTI_WORKSPACE=true`
 - Ship the migration files in the Docker image, so migrate-on-boot finds them
 - The app health check in compose used curl, which the image does not have
 - `bun run db:seed:admin` and `db:migrate` failed inside the production image;

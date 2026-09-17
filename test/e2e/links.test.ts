@@ -36,18 +36,6 @@ describe('links API', async () => {
     expect(link.shortUrl).toContain(`/${link.slug}`);
   });
 
-  it('renders the link detail page with the tracking card', async () => {
-    const cookie = await loginCookie();
-    const link = await $fetch<{ id: string }>('/api/links', {
-      method: 'POST',
-      body: { destinationUrl: 'https://example.com/detail', utmSource: 'newsletter' },
-      headers: { cookie },
-    });
-    const html = await $fetch<string>(`/links/${link.id}`, { responseType: 'text', headers: { cookie } });
-    expect(html).toContain('Campaign and tracking');
-    expect(html).toContain('utm_source=newsletter');
-  });
-
   it('deletes a link and reserves its slug', async () => {
     const cookie = await loginCookie();
     const link = await $fetch<{ id: string; slug: string }>('/api/links', {
