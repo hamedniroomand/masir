@@ -7,14 +7,28 @@ export function rateLimitSalt() {
   return salt;
 }
 
+type RateLimitVerdict = { ok: true } | { ok: false; retryAfterSec: number };
+
+// A shared store can be unreachable. The redirect path keeps serving, because a
+// store outage must not take the shortener down. Everything else refuses, so an
+// outage cannot quietly disable brute-force protection.
 export async function rateLimitCheck(
   key: string,
   limit: number,
   windowMs: number,
-): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
-  const { count, resetAt } = await resolveRateLimitStore().hit(key, windowMs);
-  if (count > limit)
-    return { ok: false, retryAfterSec: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) };
+  onStoreError: 'deny' | 'allow' = 'deny',
+): Promise<RateLimitVerdict> {
+  let hit;
+  try {
+    hit = await resolveRateLimitStore().hit(key, windowMs);
+  }
+  catch (error) {
+    console.error('[rate-limit] store unreachable', error);
+    return onStoreError === 'allow' ? { ok: true } : { ok: false, retryAfterSec: 1 };
+  }
+
+  if (hit.count > limit)
+    return { ok: false, retryAfterSec: Math.max(1, Math.ceil((hit.resetAt - Date.now()) / 1000)) };
   return { ok: true };
 }
 

@@ -1,6 +1,7 @@
 import type { RateLimitStore } from '#server/utils/rate-limit-store';
-import { describe, expect, it } from 'vitest';
-import { createMemoryStore } from '#server/utils/rate-limit-store';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { rateLimitCheck } from '#server/utils/rate-limit';
+import { createMemoryStore, setRateLimitStore } from '#server/utils/rate-limit-store';
 
 // Every driver must pass this. A shared store reuses it unchanged.
 function storeContract(name: string, make: () => RateLimitStore) {
@@ -35,3 +36,28 @@ function storeContract(name: string, make: () => RateLimitStore) {
 }
 
 storeContract('memory store', () => createMemoryStore());
+
+describe('store outage policy', () => {
+  const broken: RateLimitStore = {
+    hit: () => Promise.reject(new Error('redis unreachable')),
+  };
+
+  afterEach(() => {
+    setRateLimitStore(null);
+    vi.restoreAllMocks();
+  });
+
+  // An outage must not quietly turn brute-force protection off.
+  it('denies by default when the store is unreachable', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    setRateLimitStore(broken);
+    expect(await rateLimitCheck('login:x', 10, 60_000)).toMatchObject({ ok: false });
+  });
+
+  // A shortener that stops redirecting because Redis blinked is worse.
+  it('allows the redirect path when the store is unreachable', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    setRateLimitStore(broken);
+    expect(await rateLimitCheck('redirect:x', 120, 60_000, 'allow')).toEqual({ ok: true });
+  });
+});

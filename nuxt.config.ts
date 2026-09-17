@@ -67,6 +67,9 @@ export default defineNuxtConfig({
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,
+    // Shared rate-limit counters. Empty counts inside one process only.
+    // Use the Upstash TLS endpoint (rediss://), not the REST URL.
+    redisUrl: '',
     // How many proxies sit in front. 0 reads the socket and ignores
     // X-Forwarded-For, because a caller can write that header themselves.
     trustedProxyDepth: 0,

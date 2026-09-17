@@ -1,3 +1,5 @@
+import { createRedisStore } from '#server/utils/rate-limit-redis';
+
 export type RateLimitHit = {
   count: number;
   resetAt: number;
@@ -45,9 +47,16 @@ export function setRateLimitStore(store: RateLimitStore | null) {
   memoised = null;
 }
 
+// The memory store counts inside one process. Several instances then each hold
+// their own counters, so every limit is multiplied by the instance count. Set
+// NUXT_REDIS_URL to share them.
 export function resolveRateLimitStore(): RateLimitStore {
   if (override)
     return override;
-  memoised ??= createMemoryStore();
+  if (memoised)
+    return memoised;
+
+  const { redisUrl } = useRuntimeConfig();
+  memoised = redisUrl ? createRedisStore(redisUrl) : createMemoryStore();
   return memoised;
 }
