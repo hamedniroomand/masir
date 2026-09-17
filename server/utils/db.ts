@@ -27,8 +27,8 @@ export async function getDb(): Promise<AppDatabase> {
   const existing = getMemoisedDb();
   if (existing)
     return existing;
-  const { databaseUrl } = useRuntimeConfig();
-  const db = openDatabase(databaseUrl);
+  const { databaseUrl, databasePoolMax } = useRuntimeConfig();
+  const db = openDatabase(databaseUrl, Number(databasePoolMax) || undefined);
   setMemoisedDb(db);
   return db;
 }

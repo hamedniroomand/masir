@@ -27,6 +27,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     sessionPassword: '',
     databaseUrl: 'postgres://linkyard:linkyard@127.0.0.1:5432/linkyard',
+    databasePoolMax: 10,
     deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
     multiWorkspace: false,

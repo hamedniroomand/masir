@@ -11,6 +11,7 @@ import {
   TEST_EMAIL,
   TEST_PASSWORD,
   testDatabaseUrl,
+  waitFor,
 } from './helpers';
 import { openTestDatabase } from './test-db';
 
@@ -59,15 +60,18 @@ describe('link analytics', async () => {
     await fetch('/an-bot', { redirect: 'manual', headers: { 'user-agent': 'Googlebot/2.1' } });
 
     const db = openTestDatabase(TEST_DB);
-    const outcomes = async (linkId: string) => {
-      const rows = await db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId));
-      return rows.map(r => r.outcome);
-    };
+    const outcomes = (linkId: string, expected: string) => waitFor(
+      async () => {
+        const rows = await db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId));
+        return rows.map(r => r.outcome);
+      },
+      found => found.includes(expected),
+    );
 
-    expect(await outcomes(disabledId)).toContain('disabled_block');
-    expect(await outcomes(scheduledId)).toContain('scheduled_block');
-    expect(await outcomes(expiredId)).toContain('expired_block');
-    expect(await outcomes(botId)).toContain('bot_request');
+    expect(await outcomes(disabledId, 'disabled_block')).toContain('disabled_block');
+    expect(await outcomes(scheduledId, 'scheduled_block')).toContain('scheduled_block');
+    expect(await outcomes(expiredId, 'expired_block')).toContain('expired_block');
+    expect(await outcomes(botId, 'bot_request')).toContain('bot_request');
 
     const botLink = await db.select().from(links).where(eq(links.id, botId)).limit(1);
     expect(botLink[0]?.clickCount).toBe(0);
@@ -79,6 +83,12 @@ describe('link analytics', async () => {
       await fetch('/an-unique', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
     }
 
+    const db = openTestDatabase(TEST_DB);
+    await waitFor(
+      async () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      found => found.length >= 5,
+    );
+
     const cookie = await loginCookie();
     const stats = await $fetch<{
       totalClicks: number;
@@ -89,7 +99,6 @@ describe('link analytics', async () => {
     expect(stats.totalClicks).toBe(5);
     expect(stats.uniqueVisitors).toBe(1);
 
-    const db = openTestDatabase(TEST_DB);
     const rows = await db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId));
     expect(rows.every(r => !String(r.referrerHost).includes('127.0.0.1'))).toBe(true);
     expect(rows.every(r => r.visitorHash != null)).toBe(true);

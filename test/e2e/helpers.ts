@@ -12,6 +12,8 @@ const sharedEnv = {
   NUXT_PUBLIC_SHORT_DOMAIN: 'http://127.0.0.1:3000',
   NUXT_ALLOW_REGISTRATION: 'true',
   NUXT_MAIL_DRIVER: 'outbox',
+  // Test files run together. A pool of 10 for each would exhaust Postgres.
+  NUXT_DATABASE_POOL_MAX: '2',
 };
 
 // The Nuxt server migrates on boot, so the database must exist before setup().
@@ -21,6 +23,18 @@ export async function e2eSetupOptions(databaseUrl: string) {
   // host makes setup() skip the build and the server. It only points the test
   // helpers at the server this file started.
   return { host, runner: 'vitest' as const };
+}
+
+// The redirect records its event with waitUntil, so the response returns before
+// the row lands. Poll instead of reading once.
+export async function waitFor<T>(read: () => Promise<T>, ready: (value: T) => boolean, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  let value = await read();
+  while (!ready(value) && Date.now() < deadline) {
+    await new Promise(done => setTimeout(done, 50));
+    value = await read();
+  }
+  return value;
 }
 
 export const TEST_EMAIL = 'test@example.com';
