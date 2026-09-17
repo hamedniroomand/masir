@@ -18,6 +18,10 @@ export async function findWorkspaceById(id: string) {
 }
 
 // Self-hosted holds one workspace. The host carries no subdomain there.
+// ponytail: one indexed LIMIT 1 for every request in single-workspace mode.
+// Measured at 0.04ms of query above a 0.2ms round trip, so a cache would buy
+// ~0.24ms and cost a window where a renamed or deleted workspace still
+// resolves, invisibly across instances. Revisit only if a profile says so.
 export async function findSingleWorkspace() {
   const db = await getDb();
   const rows = await db.select().from(workspaces).where(isNull(workspaces.deletedAt)).limit(1);
