@@ -31,6 +31,9 @@ block. Read them for every version between yours and the one you install.
 
 ### Changed
 
+- Application pages render on the client only. The server renders the visitor
+  error page behind a short link, so previews and crawlers read it without
+  JavaScript.
 - The production compose file is now `compose.yaml`. It requires
   `POSTGRES_PASSWORD`, no longer publishes the Postgres port, restarts its
   services, and no longer starts the Mailpit catcher. Set `NUXT_MAIL_*` for a

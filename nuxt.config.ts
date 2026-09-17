@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -7,12 +8,22 @@ function nitroPreset(): string {
   return process.env.NITRO_PRESET ?? (process.env.VERCEL ? 'vercel' : 'bun');
 }
 
+// Every page under app/pages renders on the client. Read from the directory,
+// so a new page needs no line here. A directory covers its index and children.
+function clientOnlyRoutes() {
+  const pagesDir = fileURLToPath(new URL('./app/pages', import.meta.url));
+  return readdirSync(pagesDir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory())
+      return [`/${entry.name}`, `/${entry.name}/**`];
+    const name = entry.name.replace(/\.vue$/, '');
+    return [name === 'index' ? '/' : `/${name}`];
+  });
+}
+
 export default defineNuxtConfig({
   alias: {
     '#scripts': fileURLToPath(new URL('./scripts', import.meta.url)),
   },
-
-  ssr: false,
 
   modules: [
     '@nuxt/ui',
@@ -104,6 +115,11 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    // Application pages render on the client. The server renders only what a
+    // visitor without a session sees: the error page behind a short link that
+    // is missing, disabled, expired, or not yet open. That page must not need
+    // JavaScript, because link previews and crawlers do not run it.
+    ...Object.fromEntries(clientOnlyRoutes().map(path => [path, { ssr: false }])),
     // Every route here is the application itself. There are no marketing pages,
     // so one blanket rule beats a list that drifts as pages are added.
     // ponytail: no CSP yet. A useful one needs a report-only pass against a
