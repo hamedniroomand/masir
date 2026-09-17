@@ -56,3 +56,13 @@ Rules:
 - Short-form // comments, never JSDoc blocks; comment only WHY (a constraint the code cannot express, still true for a reader who never saw your change), never WHAT.
 - Types over interfaces (except when extending third-party interfaces); string literals over enums (except GraphQL enums); no any; descriptive generics (TData, not T).
 - Named exports only. Functional components only.
+
+## Compatibility
+
+Masir is self-hosted. Operators upgrade on their own schedule and skip versions. Follow `docs/project/compatibility.md` for every change. The short form:
+
+- A migration only adds. Removals wait one minor and land in a major. Never edit a shipped migration.
+- Old code must work against the new schema during a rolling deploy.
+- Every new env var has a default and a row in `docs/reference/environment.md`. Never rename, remove, or change the default of one in a minor.
+- Slugs, routes, response fields, sessions, stored hashes, and upload keys that worked before the upgrade work after it.
+- Every PR that changes a migration, an env var, a route, or user-visible behavior adds a line under `Unreleased` in `CHANGELOG.md`.

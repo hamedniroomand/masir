@@ -2,7 +2,7 @@
 
 How Masir is put together, and how to work on it.
 
-<CardGroup :cols="3">
+<CardGroup :cols="2">
 
 <Card title="Architecture" icon="network" to="/project/architecture">
 
@@ -19,6 +19,12 @@ Tenancy, sessions, destination validation, and what is not covered.
 <Card title="Development" icon="hammer" to="/project/development">
 
 Set up, run the tests, and understand the layout.
+
+</Card>
+
+<Card title="Compatibility" icon="shield-check" to="/project/compatibility">
+
+Versioning, migrations, config, and the changelog. What an upgrade must never break.
 
 </Card>
 

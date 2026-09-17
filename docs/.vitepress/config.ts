@@ -87,6 +87,7 @@ export default defineConfig({
           text: 'Running it',
           items: [
             link('server', 'Self-hosting', '/guide/self-hosting'),
+            link('arrow-up-circle', 'Upgrading', '/guide/upgrading'),
             link('cloud', 'Multi-workspace mode', '/guide/multi-workspace'),
             link('triangle', 'Vercel', '/guide/vercel'),
             link('life-buoy', 'Troubleshooting', '/guide/troubleshooting'),
@@ -124,6 +125,7 @@ export default defineConfig({
             link('network', 'Architecture', '/project/architecture'),
             link('lock', 'Security', '/project/security'),
             link('hammer', 'Development', '/project/development'),
+            link('shield-check', 'Compatibility', '/project/compatibility'),
           ],
         },
       ],

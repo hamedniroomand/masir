@@ -105,3 +105,5 @@ docker compose up -d --build
 Migrations run on boot under an advisory lock, so a rolling deploy applies them
 once and the other instances wait. They are incremental and additive, so your
 data comes along.
+
+<ReadMore to="/guide/upgrading" title="Back up, skip versions, and recover" />
