@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const limit = Number(config.rateLimitPasswordPerMinute) || 10;
   const rl = await rateLimitCheck(`pwd:${workspace.id}:${body.slug}:${clientKey}`, limit, 60_000);
   if (!rl.ok) {
-    await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' });
+    await writeSecurityEvent('rate_limit_exceeded', { scope: 'password' }, { workspaceId: workspace.id });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }

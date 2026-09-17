@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const updated = await updateCampaign(id, workspaceId, patch);
-    await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, user.id);
+    await writeSecurityEvent('campaign_updated', { fields: Object.keys(patch) }, { workspaceId, actor: user.id });
     if (!updated)
       throw createError({ statusCode: 404, statusMessage: 'Campaign not found' });
     return campaignToDto(updated);

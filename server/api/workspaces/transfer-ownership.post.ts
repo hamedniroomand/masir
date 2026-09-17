@@ -30,6 +30,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'This workspace has no owner.' });
 
   await transferOwnership(workspaceId, current.id, body.memberId);
-  await writeSecurityEvent('ownership_transferred', { to: body.memberId }, user.id);
+  await writeSecurityEvent('ownership_transferred', { to: body.memberId }, { workspaceId, actor: user.id });
   return { ok: true };
 });

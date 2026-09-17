@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const raw = await replaceInvitationToken(id);
   const base = workspaceUrl(workspace.slug, config as never);
   await sendMail(inviteMessage(invitation.email, workspace.name, `${base}/invite?token=${raw}`));
-  await writeSecurityEvent('invitation_resent', { invitationId: id }, user.id);
+  await writeSecurityEvent('invitation_resent', { invitationId: id }, { workspaceId, actor: user.id });
 
   return { ok: true };
 });

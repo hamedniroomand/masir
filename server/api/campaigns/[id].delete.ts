@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!removed)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('campaign_deleted', { campaignId: id }, user.id);
+  await writeSecurityEvent('campaign_deleted', { campaignId: id }, { workspaceId, actor: user.id });
   setResponseStatus(event, 204);
   return null;
 });

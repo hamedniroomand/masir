@@ -28,6 +28,6 @@ export default defineEventHandler(async (event) => {
 
   const body = await readValidBody(event, bodySchema);
   await setMemberDeactivated(id, workspaceId, !body.isActive);
-  await writeSecurityEvent('member_activity_changed', { memberId: id, isActive: body.isActive }, user.id);
+  await writeSecurityEvent('member_activity_changed', { memberId: id, isActive: body.isActive }, { workspaceId, actor: user.id });
   return { ok: true };
 });

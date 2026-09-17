@@ -29,6 +29,9 @@ export default defineEventHandler(async (event) => {
   if (normalizeEmail(user.email) !== invitation.email)
     throw createError({ statusCode: 403, statusMessage: WRONG_EMAIL, data: { reason: WRONG_EMAIL } });
 
+  // The other path is workspace creation. Both refuse an unverified address,
+  // which is what keeps an unverified account out of every workspace-scoped
+  // handler. Do not drop this.
   if (!user.emailVerified) {
     const reason = 'Verify your email before you accept an invitation.';
     throw createError({ statusCode: 403, statusMessage: reason, data: { reason } });
@@ -38,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (!joined)
     throw createError({ statusCode: 400, statusMessage: NOT_VALID, data: { reason: NOT_VALID } });
 
-  await writeSecurityEvent('invitation_accepted', { workspaceId: invitation.workspaceId }, user.id);
+  await writeSecurityEvent('invitation_accepted', {}, { workspaceId: invitation.workspaceId, actor: user.id });
 
   const workspace = await findWorkspaceById(invitation.workspaceId);
   return { ok: true, workspace: workspace ? { slug: workspace.slug, name: workspace.name } : null };

@@ -8,6 +8,6 @@ export default defineEventHandler(async (event) => {
   // Soft deletion. Every lookup filters on deletedAt, so the subdomain stops
   // resolving while the rows stay for recovery.
   await softDeleteWorkspace(workspaceId);
-  await writeSecurityEvent('workspace_deleted', { workspaceId }, user.id);
+  await writeSecurityEvent('workspace_deleted', { workspaceId }, { workspaceId, actor: user.id });
   return { ok: true };
 });

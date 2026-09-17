@@ -19,6 +19,6 @@ export default defineEventHandler(async (event) => {
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('workspace_updated', { fields: Object.keys(body) }, user.id);
+  await writeSecurityEvent('workspace_updated', { fields: Object.keys(body) }, { workspaceId, actor: user.id });
   return { id: workspace.id, name: workspace.name, slug: workspace.slug, logoUrl: workspace.logoUrl };
 });

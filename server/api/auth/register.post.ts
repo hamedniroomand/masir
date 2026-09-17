@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     passwordHash: await hashSecret(body.password),
     emailVerified: false,
   });
-  await writeSecurityEvent('user_registered', { email }, user.id);
+  await writeSecurityEvent('user_registered', { email }, { actor: user.id });
   await sendVerification(user.id, email);
 
   return { ok: true };

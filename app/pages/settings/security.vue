@@ -15,7 +15,7 @@ const { data, pending, error, refresh } = await useFetch('/api/admin/security-ev
       <h1 class="page-title">
         Security log
       </h1><p class="page-description">
-        Review account and link security events in your workspace.
+        What happened in this workspace. Sign-in events belong to an account, not a workspace, and are not listed here.
       </p>
     </div>
     <UInput v-model="type" placeholder="Filter by event type" aria-label="Filter security events by type" icon="i-lucide-search" size="sm" class="sm:max-w-64" />

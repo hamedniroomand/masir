@@ -19,15 +19,15 @@ const workspaceNav = computed(() => [
   { label: 'Campaigns', icon: 'i-lucide-megaphone', to: '/campaigns', active: route.path.startsWith('/campaigns') },
 ]);
 
-const adminNav = computed(() => [
-  ...(isOwner.value
-    ? [
-        { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
-        { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
-      ]
-    : []),
-  { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
-]);
+// Every entry here needs workspace.manage, which only an owner holds. A member
+// who sees the link would reach a 403.
+const adminNav = computed(() => (isOwner.value
+  ? [
+      { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
+      { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
+      { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
+    ]
+  : []));
 
 const section = computed(() => [...workspaceNav.value, ...adminNav.value].find(item => item.active)?.label ?? 'All links');
 

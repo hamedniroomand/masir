@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       ownerUserId: user.id,
       trialDays: config.deploymentMode === 'CLOUD' ? Number(config.trialDays) : null,
     });
-    await writeSecurityEvent('workspace_created', { slug: workspace.slug }, user.id);
+    await writeSecurityEvent('workspace_created', { slug: workspace.slug }, { workspaceId: workspace.id, actor: user.id });
     setResponseStatus(event, 201);
     return {
       id: workspace.id,

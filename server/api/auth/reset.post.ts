@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // cookie must not survive the theft victim changing the password.
   await bumpSessionVersion(result.userId);
   await clearUserSession(event);
-  await writeSecurityEvent('password_reset', {}, result.userId);
+  await writeSecurityEvent('password_reset', {}, { actor: result.userId });
 
   return { ok: true };
 });

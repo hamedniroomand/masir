@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     eq(authIdentities.id, id),
     eq(authIdentities.userId, user.id),
   ));
-  await writeSecurityEvent('identity_disconnected', { provider: target.provider }, user.id);
+  await writeSecurityEvent('identity_disconnected', { provider: target.provider }, { actor: user.id });
 
   return { ok: true };
 });

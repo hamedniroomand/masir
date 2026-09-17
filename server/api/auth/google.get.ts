@@ -11,7 +11,7 @@ export default defineOAuthGoogleEventHandler({
       return sendRedirect(event, `/login?error=${encodeURIComponent(result.reason)}`);
     }
     await setSessionUser(event, result.user);
-    await writeSecurityEvent('oauth_login', { provider: 'GOOGLE' }, result.user.id);
+    await writeSecurityEvent('oauth_login', { provider: 'GOOGLE' }, { actor: result.user.id });
     return sendRedirect(event, '/');
   },
   async onError(event, error) {

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       utmCampaign: body.utmCampaign,
       utmMedium: emptyToNull(body.utmMedium),
     });
-    await writeSecurityEvent('campaign_created', { name: body.name }, user.id);
+    await writeSecurityEvent('campaign_created', { name: body.name }, { workspaceId, actor: user.id });
     setResponseStatus(event, 201);
     if (!campaign)
       throw createError({ statusCode: 500, statusMessage: 'Campaign could not be read back' });

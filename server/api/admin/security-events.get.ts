@@ -1,15 +1,27 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { securityEvents } from '#server/database/schema';
-import { requireUser } from '#server/utils/auth';
+import { requireWorkspaceMember } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event);
+  const { workspaceId } = await requireWorkspaceMember(event, 'workspace.manage');
   const type = getQuery(event).type;
   const db = await getDb();
-  const rows = type && typeof type === 'string'
-    ? await db.select().from(securityEvents).where(eq(securityEvents.type, type)).orderBy(desc(securityEvents.createdAt)).limit(200)
-    : await db.select().from(securityEvents).orderBy(desc(securityEvents.createdAt)).limit(200);
+
+  // A row with no workspace belongs to no tenant: sign-in failures, OAuth
+  // errors, abuse reports. eq() never matches null, so those stay operator-only
+  // and never reach a workspace.
+  const filters = [eq(securityEvents.workspaceId, workspaceId)];
+  if (typeof type === 'string' && type)
+    filters.push(eq(securityEvents.type, type));
+
+  const rows = await db
+    .select()
+    .from(securityEvents)
+    .where(and(...filters))
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(200);
+
   return {
     items: rows.map(row => ({
       ...row,

@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
 
   const base = workspaceUrl(workspace.slug, config as never);
   await sendMail(inviteMessage(body.email, workspace.name, `${base}/invite?token=${raw}`));
-  await writeSecurityEvent('invitation_sent', { email: body.email }, user.id);
+  await writeSecurityEvent('invitation_sent', { email: body.email }, { workspaceId, actor: user.id });
 
   setResponseStatus(event, 201);
   return { id, email: body.email };

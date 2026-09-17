@@ -20,6 +20,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await removeMember(id, workspaceId);
-  await writeSecurityEvent('member_removed', { memberId: id }, user.id);
+  await writeSecurityEvent('member_removed', { memberId: id }, { workspaceId, actor: user.id });
   return { ok: true };
 });

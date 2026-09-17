@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   if (!await revokeInvitation(id, workspaceId))
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeSecurityEvent('invitation_revoked', { invitationId: id }, user.id);
+  await writeSecurityEvent('invitation_revoked', { invitationId: id }, { workspaceId, actor: user.id });
   return { ok: true };
 });

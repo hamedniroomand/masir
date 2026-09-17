@@ -11,7 +11,7 @@ export default defineOAuthMicrosoftEventHandler({
       return sendRedirect(event, `/login?error=${encodeURIComponent(result.reason)}`);
     }
     await setSessionUser(event, result.user);
-    await writeSecurityEvent('oauth_login', { provider: 'MICROSOFT' }, result.user.id);
+    await writeSecurityEvent('oauth_login', { provider: 'MICROSOFT' }, { actor: result.user.id });
     return sendRedirect(event, '/');
   },
   async onError(event, error) {

@@ -144,11 +144,10 @@ export default defineEventHandler(async (event) => {
     await writeSecurityEvent(
       body.password == null ? 'link_password_removed' : 'link_password_set',
       {},
-      user.id,
-      id,
+      { workspaceId, actor: user.id, linkId: id },
     );
   }
-  await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, user.id, id);
+  await writeSecurityEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
   const tagMap = await tagNamesByLinkIds([updated.id]);
   return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? []);
 });

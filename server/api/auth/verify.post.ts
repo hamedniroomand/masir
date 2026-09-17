@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'This verification link is not valid.' });
 
   await markVerified(result.userId);
-  await writeSecurityEvent('email_verified', {}, result.userId);
+  await writeSecurityEvent('email_verified', {}, { actor: result.userId });
 
   const user = await findUserById(result.userId);
   if (user)

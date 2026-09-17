@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
   const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
   if (!rl.ok) {
-    await writeSecurityEvent('rate_limit_exceeded', { scope: 'create' }, user.id);
+    await writeSecurityEvent('rate_limit_exceeded', { scope: 'create' }, { workspaceId, actor: user.id });
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
   }
@@ -118,7 +118,7 @@ export default defineEventHandler(async (event) => {
     });
     if (body.tags?.length)
       await setLinkTags(link.id, workspaceId, body.tags);
-    await writeSecurityEvent('link_created', { slug: link.slug }, user.id, link.id);
+    await writeSecurityEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
     setResponseStatus(event, 201);
     const tagMap = await tagNamesByLinkIds([link.id]);
     return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
@@ -128,7 +128,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'This short link is already taken.', data: { reason: 'This short link is already taken.' } });
     }
     if (error instanceof SlugExhaustedError) {
-      await writeSecurityEvent('slug_generation_exhausted', {}, user.id);
+      await writeSecurityEvent('slug_generation_exhausted', {}, { workspaceId, actor: user.id });
       throw createError({ statusCode: 500, statusMessage: 'Could not generate a slug.' });
     }
     throw error;

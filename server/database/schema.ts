@@ -185,8 +185,12 @@ export const clickEvents = pgTable('click_events', {
   index('click_events_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
 ]);
 
+// workspaceId is nullable because a sign-in failure happens before any
+// workspace is known. A null row is operator-only and never reaches the
+// workspace UI, which filters on a concrete workspace.
 export const securityEvents = pgTable('security_events', {
   id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
   createdAt: timestampTz('created_at').notNull(),
   type: text('type').notNull(),
   actorUserId: text('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -194,6 +198,7 @@ export const securityEvents = pgTable('security_events', {
   detail: text('detail'),
 }, table => [
   index('security_events_link_id_created_at_idx').on(table.linkId, table.createdAt),
+  index('security_events_workspace_id_created_at_idx').on(table.workspaceId, table.createdAt),
 ]);
 
 // A slug released in one workspace must not block another workspace.
