@@ -64,7 +64,6 @@ function clearFilters() {
           <UIcon name="i-lucide-list-filter" class="size-4 text-muted" />Link library
         </h2>
         <UButton v-if="hasFilters" label="Reset filters" icon="i-lucide-x" color="neutral" variant="ghost" size="xs" @click="clearFilters" />
-        <span v-else class="hidden items-center gap-1.5 text-xs text-muted sm:flex"><UIcon name="i-lucide-lock-keyhole" class="size-3" />Only visible to you</span>
       </div>
       <div class="flex flex-wrap items-center gap-2 border-b border-default bg-muted/30 p-3 sm:px-5">
         <UInput v-model="searchInput" icon="i-lucide-search" placeholder="Search links…" aria-label="Search links" size="sm" class="w-full sm:w-64" />
