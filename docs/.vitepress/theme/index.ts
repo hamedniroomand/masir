@@ -1,6 +1,8 @@
 import type { Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
+import { h } from 'vue';
 
+import BrandPattern from './components/BrandPattern.vue';
 import Card from './components/Card.vue';
 import CardGroup from './components/CardGroup.vue';
 import Mermaid from './components/Mermaid.vue';
@@ -13,6 +15,11 @@ import './style.css';
 
 export default {
   extends: DefaultTheme,
+  Layout() {
+    return h(DefaultTheme.Layout, null, {
+      'home-hero-before': () => h(BrandPattern),
+    });
+  },
   enhanceApp({ app }) {
     app.component('Card', Card);
     app.component('CardGroup', CardGroup);

@@ -26,6 +26,9 @@ export default defineConfig({
   sitemap: { hostname: 'https://hamedniroomand.github.io/masir/' },
 
   head: [
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/masir/icon.svg' }],
     ['meta', { name: 'theme-color', content: '#2566f0' }],
     ['meta', { property: 'og:type', content: 'website' }],
@@ -144,7 +147,7 @@ export default defineConfig({
     search: { provider: 'local' },
 
     footer: {
-      message: 'Released under the MIT License.',
+      message: 'Every link has a destination. Released under the MIT License.',
       copyright: 'Copyright © 2026-present Hamed Niroomand',
     },
   },
