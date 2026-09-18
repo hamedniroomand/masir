@@ -63,10 +63,13 @@ An owner cannot be deactivated, removed, or demoted. Each of those would leave
 the workspace with nobody able to manage it, so each is refused with a clear
 reason.
 
-To hand over, use **Make owner** on another member. The transfer runs as one
-transaction that lowers the current owner to member and raises the target.
-After it, you are a member. If you then want to leave, ask the new owner to
-remove you.
+To hand over, use **Make owner** on another member and confirm in the dialog.
+The transfer runs as one transaction that lowers you to member and raises the
+target. You land on the dashboard as a member, with your links intact but
+without the workspace and member settings. Only the new owner can give the role
+back. If you then want to leave, ask the new owner to remove you.
+
+Removing a member asks for the same confirmation.
 
 ## What a member sees
 

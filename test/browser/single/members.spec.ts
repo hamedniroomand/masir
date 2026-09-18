@@ -45,6 +45,7 @@ test('reports the reason when an action is refused', async ({ page, login }) => 
 
   // Ownership may not move to somebody who cannot use the workspace.
   await memberRow(page, MATE).getByRole('button', { name: 'Make owner' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Transfer ownership' }).click();
   await expect(page.getByRole('alert')).toHaveText('Reactivate this member before you transfer ownership.');
   await memberRow(page, MATE).getByRole('button', { name: 'Reactivate' }).click();
 });
@@ -64,26 +65,35 @@ test('resends and revokes a pending invitation', async ({ page, login, db }) => 
   await expect(page.getByText('Pending invitations')).toHaveCount(0);
 });
 
-test('removes a member', async ({ page, login }) => {
+test('asks before it removes a member', async ({ page, login }) => {
   await login();
   await page.goto('/settings/members');
   await memberRow(page, MATE).getByRole('button', { name: 'Remove' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(memberRow(page, MATE)).toHaveCount(1);
+
+  await memberRow(page, MATE).getByRole('button', { name: 'Remove' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove member' }).click();
   await expect(memberRow(page, MATE)).toHaveCount(0);
 });
 
 // Last in the file: the owner gives the role away, so nothing after it can act.
-test('transfers ownership and takes the controls away from the former owner', async ({ page, login, db, browser, server }) => {
+test('transfers ownership after a confirmation and sends the former owner to the dashboard', async ({ page, login, db, browser, server }) => {
   await login();
   const heir = db.insertUser({ email: HEIR, password: MATE_PASSWORD });
   db.insertMember({ workspaceId, userId: heir });
 
   await page.goto('/settings/members');
-  const transferred = page.waitForResponse(response => response.url().includes('/transfer-ownership'));
   await memberRow(page, HEIR).getByRole('button', { name: 'Make owner' }).click();
-  await transferred;
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(HEIR);
+  await dialog.getByRole('button', { name: 'Transfer ownership' }).click();
+
+  // The former owner cannot open this page any more, so it leaves on its own.
+  await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await expect(page.getByText('Ownership transferred. You are now a member.', { exact: true })).toBeVisible();
 
   // The admin nav follows the role, so the former owner loses it.
-  await page.reload();
   await expect(page.getByRole('link', { name: 'Members' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Workspace' })).toHaveCount(0);
 

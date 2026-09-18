@@ -3,9 +3,12 @@ type Member = { userId: string; email: string; role: string; isActive: boolean }
 type Invitation = { id: string; email: string; expiresAt: string };
 
 const { $api } = useNuxtApp();
+const toast = useToast();
 
 const { data: members, refresh: refreshMembers } = await useApi<{ items: Member[] }>('/api/workspaces/members');
 const { data: invites, refresh: refreshInvites } = await useApi<{ items: Invitation[] }>('/api/workspaces/invitations');
+// Shares the sidebar's key, so the admin nav follows the role change at once.
+const { refresh: refreshWorkspaces } = await useWorkspaces();
 
 const inviteEmail = ref('');
 const error = ref('');
@@ -54,6 +57,24 @@ function setActive(userId: string, isActive: boolean) {
   );
 }
 
+// Both actions are irreversible from the owner's side, so each asks first.
+type Pending = { kind: 'remove' | 'transfer'; member: Member };
+const pending = ref<Pending | null>(null);
+
+const dialog = computed(() => pending.value?.kind === 'transfer'
+  ? {
+      title: 'Transfer ownership',
+      description: 'A workspace has one owner. You become a member.',
+      action: 'Transfer ownership',
+      color: 'primary' as const,
+    }
+  : {
+      title: 'Remove member',
+      description: 'They lose access to this workspace. Their account stays.',
+      action: 'Remove member',
+      color: 'error' as const,
+    });
+
 function removeMember(userId: string) {
   return run(
     () => $api(`/api/workspaces/members/${userId}`, { method: 'DELETE' }),
@@ -61,11 +82,28 @@ function removeMember(userId: string) {
   );
 }
 
-function transfer(userId: string) {
-  return run(
+async function transfer(userId: string) {
+  await run(
     () => $api('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } }),
     'We could not transfer ownership.',
   );
+  if (error.value)
+    return;
+  // The former owner can no longer open this page, so leave it before it 404s.
+  toast.add({ title: 'Ownership transferred. You are now a member.', icon: 'i-lucide-check' });
+  await refreshWorkspaces();
+  await navigateTo('/');
+}
+
+async function confirmPending() {
+  const current = pending.value;
+  pending.value = null;
+  if (!current)
+    return;
+  if (current.kind === 'transfer')
+    await transfer(current.member.userId);
+  else
+    await removeMember(current.member.userId);
 }
 </script>
 
@@ -101,8 +139,8 @@ function transfer(userId: string) {
         </div>
         <div v-if="m.role !== 'OWNER'" class="flex shrink-0 gap-1">
           <UButton :label="m.isActive ? 'Deactivate' : 'Reactivate'" size="xs" variant="ghost" @click="setActive(m.userId, !m.isActive)" />
-          <UButton label="Make owner" size="xs" variant="ghost" @click="transfer(m.userId)" />
-          <UButton label="Remove" size="xs" variant="ghost" color="error" @click="removeMember(m.userId)" />
+          <UButton label="Make owner" size="xs" variant="ghost" @click="pending = { kind: 'transfer', member: m }" />
+          <UButton label="Remove" size="xs" variant="ghost" color="error" @click="pending = { kind: 'remove', member: m }" />
         </div>
       </li>
     </ul>
@@ -121,5 +159,19 @@ function transfer(userId: string) {
         </li>
       </ul>
     </div>
+
+    <UModal :open="pending !== null" :title="dialog.title" :description="dialog.description" @update:open="pending = null">
+      <template #body>
+        <p v-if="pending?.kind === 'transfer'" class="text-sm">
+          Make <strong>{{ pending.member.email }}</strong> the owner? You lose access to the workspace and member settings. Only the new owner can give the role back.
+        </p>
+        <p v-else-if="pending" class="text-sm">
+          Remove <strong>{{ pending.member.email }}</strong> from this workspace? You can invite them again later.
+        </p>
+      </template>
+      <template #footer>
+        <UButton label="Cancel" color="neutral" variant="outline" @click="pending = null" /><UButton :label="dialog.action" :color="dialog.color" :loading="busy" @click="confirmPending" />
+      </template>
+    </UModal>
   </div>
 </template>
