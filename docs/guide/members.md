@@ -1,19 +1,19 @@
 # Members and roles
 
-Masir has two roles. That is a deliberate choice, not an unfinished one.
+Masir has two roles. That is a deliberate choice, and most teams never need a
+third.
 
 | | Owner | Member |
 |---|---|---|
 | Links, tags, campaigns | Yes | Yes |
 | Analytics | Yes | Yes |
-| Invite and remove people | Yes | — |
-| Workspace settings | Yes | — |
-| Transfer ownership | Yes | — |
-| Delete the workspace | Yes | — |
+| Invite and remove people | Yes | |
+| Workspace name and logo | Yes | |
+| Transfer ownership | Yes | |
+| Delete the workspace | Yes | |
 
-Most teams do not need a middle tier, and every extra role is another
-combination to get wrong. If you find yourself wanting one, the thing you
-usually want is a second workspace.
+Every extra role is another combination that can go wrong. If you find yourself
+wanting one, what you usually want is a second workspace.
 
 ## Exactly one owner
 
@@ -21,55 +21,55 @@ A workspace has one owner, and Postgres enforces it with a partial unique
 index:
 
 ```sql
-CREATE UNIQUE INDEX workspace_members_single_owner_idx
-  ON workspace_members (workspace_id)
-  WHERE role = 'OWNER';
+create unique index workspace_members_one_owner_idx
+  on workspace_members (workspace_id) where role = 'owner';
 ```
 
-A second owner cannot be inserted even if application code tries. That is the
-kind of rule worth pushing into the database, because the cost of it being
-wrong is somebody losing control of their workspace.
+A second owner cannot be inserted even if application code tries. Rules like
+this belong in the database, because the cost of getting them wrong is somebody
+losing control of their workspace.
 
 ## Inviting people
 
-The owner invites by email address. Every invitation joins as a member, expires
-after seven days, and can be resent or revoked.
+From **Settings → Members**, the owner invites by email address. Every
+invitation:
 
-Only the invited address can accept. Signing in as somebody else and opening the
-link gives you:
+- joins the workspace as a **member**
+- expires after **7 days**
+- can be resent, which replaces the token and invalidates the previous link
+- can be revoked
 
-> This invitation belongs to another email address.
+Only the invited address can accept. Someone signed in with a different account
+who opens the link sees that the invitation belongs to another email address.
 
-The invitation token is stored as a hash, so somebody with a copy of your
-database still cannot forge an invitation link. Resending replaces the token,
-which invalidates the previous link.
+The token is stored as a hash. A copy of your database is not enough to forge an
+invitation link.
 
-## Deactivating without deleting
+Inviting an address that already has an open invitation answers `409`. Revoke
+the first one, or resend it.
 
-Deactivating a member revokes their access to that workspace and nothing else.
+## Deactivating a member
 
-The flag lives on the membership, not on the user, which matters the moment
-somebody belongs to two workspaces. Removing a contractor from one client's
-workspace must not lock them out of another — so it does not.
+Deactivating removes someone's access to **this** workspace and nothing else.
 
-Their account, their password, and their other memberships are untouched. Flip
-the switch back and they are in again.
+The flag lives on the membership, not on the user. That matters as soon as a
+person belongs to two workspaces: removing a contractor from one client's
+workspace must not lock them out of another. Their account, password, and other
+memberships are untouched. Turn the switch back and they are in again.
 
 ## Transferring ownership
 
-Owners cannot be deactivated, removed, or demoted. Each of those is refused with
-a clear reason, because each of them would leave the workspace with nobody able
-to manage it.
+An owner cannot be deactivated, removed, or demoted. Each of those would leave
+the workspace with nobody able to manage it, so each is refused with a clear
+reason.
 
 To hand over, use **Make owner** on another member. The transfer runs as one
-transaction that lowers the current owner to member and raises the target,
-which is also the only order the single-owner index allows.
-
-After transferring, you are a member. If you then want to leave entirely, ask
-the new owner to remove you.
+transaction that lowers the current owner to member and raises the target.
+After it, you are a member. If you then want to leave, ask the new owner to
+remove you.
 
 ## What a member sees
 
-A member gets the links, tags, campaigns, and analytics. They do not get the
-workspace or members settings, and those pages are not merely hidden — the API
-answers `404` for them, the same answer an outsider gets.
+Members get links, tags, campaigns, and analytics. They do not get the
+workspace or member settings, and those pages are not just hidden. The API
+answers `404` for them, the same answer an outsider would get.

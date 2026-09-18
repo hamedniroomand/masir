@@ -1,19 +1,24 @@
 # Scripts
 
-Every command is `bun run <name>`.
+Every command is `bun run <name>` from the repository root.
 
-## Development
+## Day to day
 
 | Script | Does |
 |---|---|
-| `dev` | Nuxt dev server on port 3000, hot reload |
+| `dev` | Start the development stack in Docker: app with hot reload, Postgres, and Mailpit |
 | `build` | Production build into `.output/` |
-| `preview` | Serve the build |
+| `preview` | Serve the last build |
 | `lint` | ESLint over the repository |
 | `typecheck` | `vue-tsc` over app and server |
 
-`dev` runs through Bun's own runtime (`bun --bun nuxt dev`), which is what makes
-`bun:sqlite`-style native APIs available in server code.
+`dev` is a shortcut for `docker compose -f compose.dev.yaml up`. To run the app
+on the host and keep only Postgres and Mailpit in Docker:
+
+```sh
+docker compose -f compose.dev.yaml up -d db mail
+bun --bun nuxt dev
+```
 
 ## Database
 
@@ -24,71 +29,56 @@ Every command is `bun run <name>`.
 | `db:studio` | Drizzle Studio, a browser client for the data |
 | `db:seed:admin` | Create the first account and workspace |
 
-The normal loop after editing `server/database/schema.ts`:
+The loop after editing `server/database/schema.ts`:
 
 ```sh
 bun run db:generate   # writes drizzle/<timestamp>_<name>/migration.sql
 bun run db:migrate    # applies it
 ```
 
-Read the generated SQL before applying it. Drizzle infers intent from a diff,
-and a renamed column can come back as a drop plus an add.
+Read the generated SQL before you apply it. Drizzle infers intent from a diff,
+and a renamed column can come back as a drop plus an add, which loses the data.
 
-Migrations also run automatically when the server boots, so a deployment does
-not need a separate step.
+Migrations also run when the server boots, so a deployment needs no separate
+step. `db:migrate` and `db:seed:admin` both work inside the production image.
 
 ## Tests
 
-```sh
-bun run test
-```
-
-Vitest, with unit and end-to-end tests in one run.
-
-The e2e suite builds the application **once**, then starts `.output/server/index.mjs`
-for the test files. Building per file took 137 seconds; building once takes
-about 20.
-
-Both need a reachable Postgres. The tests never read `NUXT_DATABASE_URL`. They
-read `TEST_DATABASE_URL`, and they create one database for each test file from
-it, so point it at a server you are willing to lose.
-
-```sh [.env]
-TEST_DATABASE_URL=postgres://masir:masir@127.0.0.1:5432/masir_test
-NUXT_DATABASE_POOL_MAX=2
-```
-
-The small pool is not a detail. Twelve test files at the default of 10 open 120
-connections against a server that allows 100, and the failures look like random
-flakes rather than exhaustion.
-
-## Browser tests
-
 | Script | Does |
 |---|---|
+| `test` | Unit and end-to-end tests in one Vitest run |
+| `test:coverage` | The same, with a coverage report in `coverage/` |
 | `test:browser` | Build, then run the Playwright suite |
-| `test:browser:run` | Run it against the last build |
+| `test:browser:run` | Run Playwright against the last build |
 
-Playwright starts one server for each deployment shape from `.output`, with the
-environment that shape needs: `single` (one workspace, registration off),
-`multi` (subdomain per workspace, registration on), and `cloud` (trial, s3
-storage, an OAuth provider). Each has its own `masir_test_browser_<shape>`
-database. Run one shape with `--project`:
+`test` and `test:coverage` start the `db` service from the development stack
+first and wait for it. They skip that step under `CI` and on a machine without
+Docker, where Postgres comes from somewhere else.
+
+The tests read `TEST_DATABASE_URL`, never `NUXT_DATABASE_URL`. They create one
+database per test file from it, named `masir_test_<file>`, and keep them between
+runs. The development stack creates the `masir_test` database on its first
+start.
+
+The end-to-end suite builds the application **once**, then starts a server from
+`.output` for each test file. This is the same artifact that Docker runs.
+
+Browser tests start one server per deployment shape: `single`, `multi`, and
+`cloud`. Run one shape with `--project`:
 
 ```sh
 bun run test:browser:run --project multi
 ```
 
-The runner is Node, and the database helpers need Bun, so the specs seed
-through `test/browser/bridge.ts`, a Bun script that prints one JSON line.
+<ReadMore to="/project/development#tests" title="How the test suite is put together" />
 
 ## Documentation
 
-The site is its own workspace package under `docs/`, so `vitepress` never
+The docs site is its own workspace package under `docs/`, so VitePress never
 reaches the application image.
 
-```sh
-bun run docs:dev      # this site, locally
-bun run docs:build    # static output into docs/.vitepress/dist
-bun run docs:preview  # serve the built site
-```
+| Script | Does |
+|---|---|
+| `docs:dev` | This site, locally, with hot reload |
+| `docs:build` | Static output into `docs/.vitepress/dist` |
+| `docs:preview` | Serve the built site |

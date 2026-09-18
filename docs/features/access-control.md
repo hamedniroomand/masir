@@ -9,57 +9,53 @@ Set a password and visitors see an unlock page before the redirect. Link
 passwords are hashed with argon2id, the same as account passwords, and the plain
 value is never stored.
 
-An unlock is remembered for **15 minutes** in a cookie that is scoped to one
-link in one workspace:
+A successful unlock is remembered for **15 minutes** in a cookie scoped to one
+link in one workspace. The cookie is `httpOnly`, carries its expiry, and is
+signed, so unlocking one link does not unlock another, and a grant from one
+workspace cannot open the same slug in a different one.
 
-```text
-ms_pwd_<workspaceId>_<slug>
-```
+The destination is never sent to the browser before the check passes. Viewing
+the unlock page does not count as a click, and a wrong password does not use up
+a visit. Failed attempts are rate limited per client per link, 10 a minute by
+default.
 
-The cookie is `httpOnly`, carries an expiry, and is signed with HMAC-SHA256 over
-`workspaceId:slug:expiry`. Unlocking one link does not unlock another, and a
-grant issued in one workspace cannot unlock the same slug in a different one.
-
-Failed attempts are rate limited per client per link:
-
-```sh [.env]
-NUXT_RATE_LIMIT_PASSWORD_PER_MINUTE=10
-```
-
-::: warning
-A password stops casual access, not a determined one. Anyone who unlocks the
-link can share the destination. Use it for "not indexed, not guessable", not for
-protecting something confidential.
+::: warning A password is not confidentiality
+It stops casual access. Anyone who unlocks the link can pass the destination
+on. Use it for "not indexed, not guessable", not for protecting something
+secret.
 :::
 
 ## Schedule
 
-`startsAt` holds the link until a moment you choose. Before then it answers
-**404**, exactly like a link that does not exist. It goes live the second the
-time passes, with no job to run and nothing to remember.
+A **start date** holds the link until a moment you choose. Before then it
+answers 404, exactly like a link that does not exist. It goes live the second
+the time passes, with no job to run and nothing to remember.
 
 Useful for a launch announcement that goes into a printed programme weeks
 early.
 
 ## Expiry
 
-`expiresAt` retires a link. Two behaviours:
+An **expiry date** retires a link. What happens next depends on whether you set
+an expiration destination.
 
-**Without an expiration destination** the link answers 404.
+**Without one**, the link answers 404.
 
 **With one**, the link redirects there instead. Send people to a "this offer
-ended" page rather than a dead end. This is almost always the better choice —
-a 404 tells the visitor nothing and makes your organisation look broken.
+has ended" page rather than a dead end. This is almost always the better
+choice. A 404 tells the visitor nothing and makes you look broken.
+
+Start must be before expiry. A redirect to the expiration destination is
+recorded as its own outcome and does not count as a click.
 
 ## Visit cap
 
-`maximumVisits` stops a link after a number of **successful** redirects.
+A **maximum visits** value stops a link after a number of **successful**
+redirects. Blocked attempts do not count: a failed password, a bot request, a
+click after expiry. The counter moves only when somebody actually reached the
+destination.
 
-Blocked attempts do not count. A failed password, a request from a bot, a
-click after expiry — none of these consume the allowance. The counter moves
-only when somebody actually reached the destination.
-
-The increment is a single atomic statement:
+The increment is one atomic statement, so the database decides:
 
 ```sql
 update links
@@ -68,23 +64,25 @@ where id = $1 and deleted_at is null
   and (maximum_visits is null or click_count < maximum_visits)
 ```
 
-The database decides, not the application. Ten simultaneous clicks on a
-one-visit link let exactly one through — there is no window between reading the
-count and writing it.
+Ten simultaneous clicks on a one-visit link let exactly one through. There is
+no window between reading the count and writing it.
+
+A **one-time link** is a cap of one. You can raise or remove the cap later. The
+count of visits already used does not reset when you do.
 
 ## Disable
 
 A switch. The link answers 404 while it is off and keeps its analytics, its
 slug, and its history. Turn it back on and everything resumes.
 
-Prefer disabling over deleting when you are not certain. A deleted link keeps
-its row, so its slug stays taken in that workspace and its click history stays
-readable.
+Prefer disabling over deleting when you are not certain.
 
 ## What visitors see
 
-Every blocked state answers **404**, deliberately. A visitor cannot tell a
+Every blocked state answers **404** on purpose. A visitor cannot tell a
 disabled link from an expired one from a slug that was never created, so the
 error page leaks nothing about what a workspace holds.
 
-Your team sees the real reason in the dashboard.
+Your team sees the real reason in the dashboard, and the
+[outcome breakdown](/features/analytics#outcomes) shows how often each block
+happened.

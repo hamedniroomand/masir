@@ -3,76 +3,76 @@ layout: home
 
 hero:
   name: Masir
-  text: Short links your team actually owns.
+  text: Short links your team owns.
   image:
     src: /icon.svg
     alt: Masir
   tagline: >-
-    Self-hosted link management with workspaces, real access control, and
-    analytics that never store a visitor's IP address. Change where a link
-    points long after you have shared it.
+    A self-hosted link manager with workspaces, access control, and analytics
+    that never store a visitor's IP address. Share a link once, then change
+    where it goes whenever you like.
   actions:
     - theme: brand
       text: Get started
       link: /guide/installation
     - theme: alt
-      text: Why Masir
+      text: What is Masir?
       link: /guide/
+    - theme: alt
+      text: GitHub
+      link: https://github.com/hamedniroomand/masir
 ---
 
 ```sh
-docker compose up -d
+docker compose up -d --build
 docker compose exec app bun run db:seed:admin
 ```
 
-## Built for teams that share links
+## Why teams pick Masir
 
 <CardGroup :cols="2">
 
-<Card title="The destination is not the URL" icon="link">
+<Card title="The link outlives the destination" icon="link">
 
-Share `go.acme.com/pricing` once. Point it somewhere new next quarter. Every
-deck, email, and QR code you already sent keeps working, because the short link
-never changed.
-
-</Card>
-
-<Card title="Workspaces, not accounts" icon="building-2">
-
-Links belong to a workspace, not to whoever created them. People come and go;
-the links stay. One owner holds the keys, and the database itself refuses a
-second one.
+Print `go.acme.com/pricing` on a poster. Point it somewhere new next year.
+Every slide, email, and QR code you already sent keeps working.
 
 </Card>
 
-<Card title="Analytics without surveillance" icon="chart-line">
+<Card title="Links belong to the team" icon="building-2">
 
-No IP address ever reaches the database. Unique visitors come from a hash that
-rotates daily, bots are classified and excluded, and there is no third party in
-the request path.
+A workspace owns its links. When someone leaves, you remove the person and
+keep the links. One owner, any number of members, and the database itself
+refuses a second owner.
 
 </Card>
 
-<Card title="Links that expire, lock, and count" icon="shield-check">
+<Card title="Analytics you can show a lawyer" icon="chart-line">
 
-Set a password, a start date, an expiry, or a hard visit cap. A one-time link
-is a cap of one. Expired links can redirect somewhere else instead of dying.
+Clicks, unique visitors, referrers, countries, devices, and browsers. No IP
+addresses, no user agents, no third party in the request path. Bots are counted
+on their own row.
+
+</Card>
+
+<Card title="Links that lock, wait, and expire" icon="shield-check">
+
+Put a password on a link, hold it until a launch date, retire it after an
+event, or cap it at a number of visits. A one-time link is a cap of one.
 
 </Card>
 
 </CardGroup>
 
-## Run it your way
+## One codebase, two shapes
 
-Masir ships one codebase in two shapes.
+**Single workspace.** One team, your own domain, nothing else to set up. This
+is the default.
 
-**Self-hosted** holds a single workspace on your own domain. No wildcard DNS, no
-certificates beyond the one you already have, no subdomain to think about.
+**Multi-workspace.** Every workspace gets its own subdomain behind one wildcard
+DNS record and one wildcard certificate. Creating a workspace is a database
+insert. No DNS API, no certificate automation.
 
-**Multi-workspace** gives every workspace its own subdomain — `acme.example.com`,
-`apple.example.com` — behind one wildcard record. Creating a workspace is a
-database insert and nothing else. No DNS API, no certificate provisioning.
+The schema is the same in both. One environment variable picks the shape.
 
-The schema is identical in both. One environment variable decides.
-
-<ReadMore to="/guide/self-hosting" title="Set up your own instance" />
+<ReadMore to="/guide/installation" title="Install Masir in five minutes" />

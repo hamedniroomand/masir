@@ -112,6 +112,7 @@ export default defineConfig({
           items: [
             link('braces', 'Overview', '/reference/'),
             link('settings', 'Environment variables', '/reference/environment'),
+            link('braces', 'HTTP API', '/reference/api'),
             link('terminal', 'Scripts', '/reference/scripts'),
             link('database', 'Data model', '/reference/data-model'),
           ],

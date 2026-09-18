@@ -1,54 +1,64 @@
 # Your first link
 
-This walks through the flow once, end to end. It assumes you have
-[installed](/guide/installation) Masir and can sign in.
+This page walks through the core loop once: create a link, change where it
+points, and look at the clicks. It assumes you have
+[installed Masir](/guide/installation) and can sign in.
 
 ## Create a link
 
-Sign in and press **New link**. The only field you must fill is the
-destination.
+Sign in and press **New link**. The only required field is the destination.
 
-Leave the slug blank and Masir generates a seven-character one from an
-alphabet that avoids `0`, `1`, `l`, and `o`, so nobody mistypes it reading off a
-slide. Type your own slug if you want something memorable.
+Leave the slug empty and Masir generates a seven-character one. The alphabet
+skips `0`, `1`, `i`, `l`, and `o`, so nobody misreads it from a slide or a
+printed page. Or type your own slug for something memorable.
 
 ```text
 Destination   https://acme.example.com/pricing/2026-enterprise
 Slug          pricing
 ```
 
-You now have `https://go.example.com/pricing`.
+You now have `https://go.example.com/pricing`. Open it in a new tab and you
+land on the destination.
 
 ## Change where it points
 
-Open the link and edit the destination. Save.
+Open the link, switch to **Settings**, and edit the destination. Save.
 
-The short URL does not change, so everything you already shared keeps working
-and now lands somewhere new. This is the reason to use a shortener at all, and
-it is worth trying once to convince yourself it works.
+The short URL is unchanged, so everything you already shared keeps working and
+now lands somewhere new. This is the whole reason to use a shortener, and it is
+worth trying once to see it happen.
 
-::: info Why 302 and not 301
-Masir answers with a temporary redirect. A permanent redirect gets cached by
-browsers for a long time, and you would lose the ability to edit the
-destination for anyone who had already clicked.
+::: info Why a 302 and not a 301
+Masir answers with a temporary redirect. Browsers cache a permanent redirect
+for a long time, and you would lose the ability to move anyone who had already
+clicked.
 :::
 
 ## Watch the clicks
 
-Open the link and switch to **Analytics**. You will see total clicks, unique
-visitors, referrers, countries, devices, and browsers, with a period selector.
+The **Overview** tab shows total clicks, unique visitors, a timeline, and
+breakdowns by referrer, country, device, browser, and outcome. Pick a period of
+24 hours, 7 days, 30 days, or all time.
 
-Two things are worth knowing straight away. Bot traffic is counted separately
-and never inflates your click count. And unique visitors come from a hash that
-rotates every day, so the same person visiting on Monday and Tuesday counts
-twice — that is the trade for storing no IP addresses at all.
+Two things are worth knowing from the start:
+
+- **Bots are counted separately.** A link posted to Slack collects a preview
+  fetch for every channel it lands in. Those show up under bot traffic, never
+  in your click count.
+- **Unique visitors rotate daily.** The same person visiting on Monday and
+  Tuesday counts twice. That is the trade for storing no IP addresses at all.
 
 <ReadMore to="/features/analytics" title="How the numbers are calculated" />
 
+## See who changed what
+
+The **History** tab lists every change to the link, who made it, and which
+fields moved. Useful when a destination changes and nobody remembers doing it.
+
 ## Try the API
 
-Everything the interface does is a normal HTTP endpoint on the same session
-cookie.
+Everything the interface does is a normal HTTP endpoint that uses the same
+session cookie.
 
 ```sh
 # Sign in and keep the cookie
@@ -72,13 +82,15 @@ curl -s -X POST https://go.example.com/api/links \
 }
 ```
 
+<ReadMore to="/reference/api" title="Every API route" />
+
 ## Next steps
 
 <CardGroup :cols="2">
 
 <Card title="Access control" icon="shield-check" to="/features/access-control">
 
-Passwords, expiry dates, schedules, and visit caps.
+Passwords, schedules, expiry, and visit caps.
 
 </Card>
 

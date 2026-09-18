@@ -1,65 +1,61 @@
 # Security
 
-What Masir defends against, how, and what it does not cover.
+What Masir defends against, how, and what it leaves to you.
 
 ## Tenancy
 
-Every user-reachable table carries `workspace_id`, `NOT NULL`, and every
-repository function takes a workspace as its first argument. A query that forgets
-it does not silently return more rows — it does not compile.
+Every user-reachable table carries a `NOT NULL` `workspace_id`, and every
+repository function takes a workspace as its first argument. A query that
+forgets it does not compile.
 
 Three places where isolation had to be designed rather than inherited:
 
-**The link cache** is keyed on `workspaceId + slug`. Keyed on slug alone, one
-workspace's `pricing` would be served from another's cache entry.
+- **The link cache** is keyed on workspace plus slug. Keyed on the slug alone,
+  one workspace's `pricing` would be served from another's cache entry.
+- **The password unlock cookie** carries the workspace in its name and inside
+  its signature. Unlocking `acme.example.com/secret` does not unlock
+  `apple.example.com/secret`.
+- **Link updates** resolve and authorise in one statement. A separate read then
+  write leaves a window in which the link could move between workspaces.
 
-**The password grant cookie** carries the workspace in its name and inside its
-HMAC signature. Unlocking `acme.example.com/secret` does not unlock
-`apple.example.com/secret`.
-
-**Link updates** resolve and authorize in one statement. A separate read then
-write leaves a window where the link can move between workspaces, which is the
-shape of a time-of-check bug rather than a missing check.
+A request for something outside your workspaces answers `404`, never `403`, so
+the response does not confirm that the thing exists.
 
 ## Sessions
 
-Sealed JSON cookies, `httpOnly`, `sameSite=lax`, `secure` over HTTPS. No
-server-side store, which is what keeps sign-in fast and stateless.
+Sealed JSON cookies, `httpOnly`, `SameSite=Lax`, `Secure` over HTTPS. There is
+no server-side store, which keeps sign-in fast and stateless.
 
-A sealed cookie cannot be deleted from the server, so revocation runs on a
+A sealed cookie cannot be deleted from the server, so revocation works on a
 version. Each session carries the `session_version` it was issued at, and the
 value is compared on every request. Bumping the column on a user invalidates
-every session that person holds, on every device, immediately.
+every session that person holds, on every device, at once. A password reset
+bumps it. Changing `NUXT_SESSION_PASSWORD` invalidates everything.
 
-The version is bumped on a password reset and on removal from a workspace.
-Changing `NUXT_SESSION_PASSWORD` invalidates everything at once.
+A state-changing request whose `Origin` header does not match the `Host` is
+refused with `403`. A request without an `Origin`, which is what non-browser
+clients send, is accepted, since browsers always send one on a cross-site
+request.
 
 ## Passwords
 
-**argon2id**, through Bun's own `Bun.password`, for account passwords and for
-link passwords. The plain value is never written.
+**argon2id** through `Bun.password`, for account passwords and link passwords
+alike. The plain value is never written.
 
-The cost is the one Bun picks: `m=65536` (64 MiB), `t=2`, `p=1`. That is above
-the OWASP floor, so no parameters are passed — an options object could only make
-the hash weaker. Every hash carries its own salt and names its algorithm, so a
-future change can verify old hashes and rewrite them on the next sign-in.
+The cost is the one Bun picks: 64 MiB of memory, 2 iterations, 1 lane. That is
+above the OWASP floor, so no parameters are passed. Every hash carries its own
+salt and names its algorithm, so a future change can verify old hashes and
+rewrite them on the next sign-in.
 
-A stored hash that `verify` cannot read counts as a failed check, not a server
-error. A release that changes algorithm refuses the sign-in instead of
-answering 500.
+A stored hash that cannot be read counts as a failed check, not a server error.
 
-Sign-in answers the same way for an unknown address as for a wrong password.
-Password recovery answers the same way whether or not the address exists. Both
-are deliberate — a shortener's sign-in form is otherwise a way to learn who
-works somewhere.
+Sign-in answers the same way for an unknown address as for a wrong password,
+and password recovery answers the same way whether or not the address exists.
+An address with no account is still checked against a dummy hash, so the two
+paths take the same time.
 
-The same answer is not enough on its own. An address with no account would
-return before the hash was computed, and the difference is measurable, so a
-sign-in for an unknown address is checked against a hash nobody holds. The two
-paths cost the same.
-
-Reset tokens are stored as hashes, expire, and are single-use. The token in the
-email is never in the database.
+Reset and verification tokens are stored as hashes, expire, and work once. The
+token in the email is never in the database.
 
 ## Destination validation
 
@@ -78,72 +74,66 @@ localhost, *.local
 
 A shortener that accepts `http://169.254.169.254/` is a request-forgery tool
 aimed at your own cloud metadata service, published on a URL anybody can click.
-
 `NUXT_ALLOW_PRIVATE_DESTINATIONS=true` lifts the restriction for development.
 Leave it off in production.
 
-A link cannot point at itself. A slug whose destination resolves back to the same
-short link is refused, so there is no redirect loop to trip over.
+A link cannot point at itself, so there is no redirect loop to trip over.
 
 ## Rate limits
 
 | Action | Default |
 |---|---|
-| Sign in | 10 / minute per client **and** per address |
-| Redirect | 120 / minute per client |
-| Link password attempt | 10 / minute per client per link |
-| Create link | 30 / hour per workspace |
-| Update link | 60 / minute per workspace |
-| Register | 5 / hour per client, 3 / hour per address |
-| Password recovery | 5 / hour per client |
-| Invitation | 30 / hour per workspace |
-| Abuse report | 5 / hour per client |
+| Sign in | 10 a minute per client **and** per address |
+| Register | 5 an hour per client, 3 an hour per address |
+| Password recovery | 5 an hour per client |
+| Resend verification | 5 an hour per client |
+| Redirect | 120 a minute per client |
+| Link password attempt | 10 a minute per client per link |
+| Create link | 30 an hour per workspace |
+| Update link | 60 a minute per workspace |
+| Slug availability check | 30 a minute per client |
+| Create workspace | 5 a day per client |
+| Invitation | 30 an hour per workspace |
+| Abuse report | 5 an hour per client |
 
-Client keys are a salted hash of the IP address with a salt generated per
-process, so the counters do not hold addresses either.
+Client keys are a hash of the IP address with a salt generated per process, so
+the counters do not hold addresses either.
 
-The sign-in limit counts twice, per client and per address, because the two
-stop different attacks: one caller guessing many passwords, and many callers
-guessing one account. It also bounds memory, since argon2id holds 64 MiB for
-the length of every check.
+The sign-in limit counts twice because the two stop different attacks: one
+caller guessing many passwords, and many callers guessing one account. It also
+bounds memory, since argon2id holds 64 MiB for the length of every check.
 
-::: warning Counted per process
-Several instances mean several independent counters. This is the one part of
-the design that does not survive horizontal scaling; run a single instance until
-a shared store is wired in.
-:::
+Counters live in the process unless `NUXT_REDIS_URL` is set. Several instances
+without a shared store mean several independent counters. When the shared
+store is unreachable, protected routes refuse and the redirect path keeps
+serving.
 
 ## Uploads
 
-Workspace logos are validated by their bytes, not by the name or the declared
-content type. PNG, JPEG, GIF, and WebP pass; an SVG is refused because it can
-hold script. Size is capped at `NUXT_STORAGE_MAX_UPLOAD_BYTES` before anything
-is written. Dimensions are not bounded. Only an owner can set or remove a logo,
-and the route takes the workspace id from the request, so it authorizes the
-same way on the root domain and on a workspace host.
+Workspace logos are validated by their bytes, not by the file name or the
+declared content type. PNG, JPEG, GIF, and WebP pass. SVG is refused because it
+can hold script. Size is capped at `NUXT_STORAGE_MAX_UPLOAD_BYTES` before
+anything is written. Only an owner can set or remove a logo.
 
-The whole request body is read before the size check runs, so an oversized
-upload costs memory once before it is refused.
+Storage keys are resolved against the upload root and checked before any
+write. An absolute path, a `..` climb, a backslash, and a null byte are all
+refused.
 
-Storage keys are resolved against the root and checked before any write. An
-absolute path, a `..` climb, a backslash, and a null byte are all refused, so a
-key that reaches the disk cannot escape the upload directory.
+## Abuse reports
+
+Anyone can report a link at `/report` without an account. The report is written
+to the audit log with the slug and the reason. The form always acknowledges,
+even when rate limited, so it cannot be used to probe.
 
 ## What is not covered
 
-**No two-factor authentication.** Not built.
-
-**No audit log for teams.** Security events are recorded for sign-in failures
-and link changes, but there is no interface for reading them.
-
-**No API tokens.** The HTTP API authenticates with the session cookie. There is
-no separate credential to scope or revoke.
-
-**Link passwords are not confidentiality.** They stop casual access. Anybody who
-unlocks a link can pass the destination on.
-
-**Rate limits are per instance.** Stated again because it is the one that bites
-quietly.
+- **No two-factor authentication.**
+- **No API tokens.** The HTTP API authenticates with the session cookie. There
+  is no separate credential to scope or revoke.
+- **No interface for the audit log.** Events are recorded and readable over
+  the API by the owner. There is no page for them yet.
+- **Link passwords are not confidentiality.** Anyone who unlocks a link can
+  pass the destination on.
 
 ## Reporting a problem
 
