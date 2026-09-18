@@ -3,10 +3,12 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { provider } from 'std-env';
 import { resolveNitroPreset } from './shared/nitro-preset';
+import { sentryEnabled } from './shared/sentry';
 
 // The build is the one place that knows the target for certain, so the
 // serverless flag is decided here and read from runtimeConfig at run time.
 const preset = resolveNitroPreset(process.env, provider);
+const sentry = sentryEnabled(process.env);
 
 // Every page under app/pages renders on the client. Read from the directory,
 // so a new page needs no line here. A directory covers its index and children.
@@ -29,6 +31,7 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@vueuse/nuxt',
     'nuxt-auth-utils',
+    '@sentry/nuxt/module',
   ],
 
   components: [
@@ -118,6 +121,12 @@ export default defineNuxtConfig({
     public: {
       shortDomain: 'http://localhost:3000',
       turnstileSiteKey: '',
+      sentry: {
+        dsn: '',
+        environment: '',
+        tracesSampleRate: 1,
+        release: '',
+      },
     },
   },
 
@@ -167,5 +176,20 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
+  },
+
+  sourcemap: process.env.SENTRY_AUTH_TOKEN ? { client: 'hidden' } : undefined,
+
+  sentry: {
+    enabled: sentry,
+    autoInjectServerSentry: 'top-level-import',
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sentryUrl: process.env.SENTRY_URL,
+    telemetry: false,
+    sourcemaps: {
+      disable: !process.env.SENTRY_AUTH_TOKEN,
+    },
   },
 });

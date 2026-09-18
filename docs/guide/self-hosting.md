@@ -28,6 +28,17 @@ request arrived on.
 
 <ReadMore to="/reference/environment" title="Every environment variable" />
 
+## Error reporting
+
+Leave the Sentry variables empty and reporting stays off. Set
+`NUXT_PUBLIC_SENTRY_DSN` to a DSN from sentry.io or from your own Sentry to
+send errors and traces.
+
+```sh [.env]
+NUXT_PUBLIC_SENTRY_DSN=
+NUXT_PUBLIC_SENTRY_ENVIRONMENT=production
+```
+
 ## Behind a proxy
 
 Masir reads the client IP from `x-forwarded-for` for rate limiting, and the

@@ -148,6 +148,34 @@ is public and goes into the browser. Keep the secret key on the server.
 Turning the check on or off needs a restart, not a rebuild. The server treats
 an unreachable Cloudflare as a failed check.
 
+## Error reporting
+
+Sentry stays off until at least one of these is set.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `NUXT_PUBLIC_SENTRY_DSN` | — | Project DSN. The browser reads this one |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | — | `production`, `staging`, or your own label |
+| `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `1` | Fraction of requests to trace, from 0 to 1 |
+| `NUXT_PUBLIC_SENTRY_RELEASE` | — | Release name. Empty lets the SDK pick |
+| `SENTRY_AUTH_TOKEN` | — | Build only. Uploads source maps |
+| `SENTRY_ORG` | — | Build only. Organisation slug |
+| `SENTRY_PROJECT` | — | Build only. Project slug |
+| `SENTRY_URL` | — | Build only. Set for a self-hosted Sentry |
+
+A DSN from sentry.io or from your own Sentry is fine. The SDK sends no events
+when every variable is empty, so local and a typical self-hosted instance do
+not need an account. Adding these variables for the first time needs a rebuild,
+because the module is compiled in only when at least one of them is set.
+
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are read at **build**.
+Set them in the environment that runs `nuxt build` if you want readable client
+stack traces. `SENTRY_URL` points the upload at a self-hosted Sentry; leave it
+empty for sentry.io.
+
+The Docker start command does not change. Server-side Sentry loads through a
+top-level import, which is the documented path when `--import` is not available.
+
 ## Requests
 
 | Variable | Default | Notes |

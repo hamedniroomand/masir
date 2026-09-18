@@ -46,11 +46,11 @@ async function waitForReady(url: string, server: Subprocess) {
 }
 
 // Bun loads the repository .env into every process it starts, this one and
-// the server below. A developer with NUXT_MULTI_WORKSPACE=true in .env would
-// otherwise hand it to every test server. Only the values in `env` may reach
-// the server, so both leaks are closed here.
+// the server below. A developer with NUXT_MULTI_WORKSPACE=true or a Sentry
+// DSN in .env would otherwise hand it to every test server. Only the values
+// in `env` may reach the server, so both leaks are closed here.
 function serverEnv(env: Record<string, string>, port: number) {
-  const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('NUXT_')));
+  const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('NUXT_') && !key.startsWith('SENTRY_')));
   return { ...inherited, ...env, PORT: String(port), NODE_ENV: 'production' };
 }
 

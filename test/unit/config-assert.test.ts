@@ -25,4 +25,40 @@ describe('assertRuntimeConfig', () => {
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_DATABASE_URL/);
   });
+
+  it('accepts an empty Sentry DSN', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', sentry: { dsn: '' } },
+    })).not.toThrow();
+  });
+
+  it('throws for a Sentry DSN that is not an http url', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', sentry: { dsn: 'not-a-url' } },
+    })).toThrow(/NUXT_PUBLIC_SENTRY_DSN/);
+  });
+
+  it('throws for a Sentry sample rate outside 0 to 1', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', sentry: { tracesSampleRate: 2 } },
+    })).toThrow(/NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE/);
+  });
 });

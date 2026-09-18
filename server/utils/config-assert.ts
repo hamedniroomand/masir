@@ -5,7 +5,10 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
   databaseUrl: string;
   oauth?: { microsoft?: { clientId?: string; tenant?: string } };
-  public: { shortDomain: string };
+  public: {
+    shortDomain: string;
+    sentry?: { dsn?: string; tracesSampleRate?: number | string };
+  };
 }) {
   if (!config.sessionPassword || config.sessionPassword.length < 32)
     throw new Error('Missing or invalid NUXT_SESSION_PASSWORD (need 32+ characters)');
@@ -30,5 +33,24 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   }
   catch {
     throw new Error('Missing or invalid NUXT_PUBLIC_SHORT_DOMAIN (must be a valid http(s) URL)');
+  }
+
+  const dsn = config.public.sentry?.dsn?.trim();
+  if (dsn) {
+    try {
+      const url = new URL(dsn);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:')
+        throw new Error('bad protocol');
+    }
+    catch {
+      throw new Error('Missing or invalid NUXT_PUBLIC_SENTRY_DSN (must be a valid http(s) URL)');
+    }
+  }
+
+  const sampleRate = config.public.sentry?.tracesSampleRate;
+  if (sampleRate != null && sampleRate !== '') {
+    const rate = typeof sampleRate === 'number' ? sampleRate : Number(sampleRate);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 1)
+      throw new Error('Missing or invalid NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE (must be a number from 0 to 1)');
   }
 }
