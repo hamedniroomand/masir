@@ -9,6 +9,7 @@ const hasProviders = computed(() => Boolean(providers.value?.google || providers
 const showEmailForm = ref(!hasProviders.value);
 
 const route = useRoute();
+const { fetch: fetchSession } = useUserSession();
 
 const schema = v.object({
   email: v.pipe(
@@ -43,6 +44,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: { email: state.email, password: state.password },
     });
+    // The route middleware reads the session it already has. Without this the
+    // next client-side navigation still looks signed out and bounces back here.
+    await fetchSession();
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '';
     if (redirect) {
       // navigateTo throws on an absolute or protocol-relative value rather than

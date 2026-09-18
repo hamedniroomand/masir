@@ -9,11 +9,15 @@ definePageMeta({
 });
 
 const route = useRoute();
+const { fetch: fetchSession } = useUserSession();
 const failed = ref(false);
 
 onMounted(async () => {
   try {
     await $fetch('/api/auth/verify', { method: 'POST', body: { token: route.query.token } });
+    // Verifying signs the person in. The route middleware reads the session it
+    // already has, so refresh it before the next navigation.
+    await fetchSession();
     await navigateTo('/');
   }
   catch {

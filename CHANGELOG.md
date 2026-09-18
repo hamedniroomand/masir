@@ -73,6 +73,11 @@ block. Read them for every version between yours and the one you install.
 - A refused form shows the reason the server gave, not the generic HTTP text.
   A link, a campaign, and a toast all read the reason from the response body,
   and a debounced re-validation no longer wipes it before the user reads it
+- Signing in and verifying an email refresh the session before they navigate.
+  The route middleware read the session it already had, so a workspace on the
+  same origin sent the person back to the login page
+- A new link answers at once. A visitor who reached the address before it
+  existed left a cached miss behind, and the link stayed 404 for 15 seconds
 - The file storage provider is refused on a serverless target, not in `CLOUD`
   mode; a `CLOUD` instance on a server with a disk boots with it, and the build
   accepts only the `bun` and `vercel` presets

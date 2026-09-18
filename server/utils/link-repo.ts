@@ -135,6 +135,9 @@ export async function createLink(input: {
       }).returning();
       if (!created)
         throw new Error('insert failed');
+      // A visitor who reached this address before it existed left a cached miss
+      // behind. Without this the new link answers 404 until that entry ages out.
+      invalidateLink(input.workspaceId, created.slug);
       return created;
     }
     catch (error: unknown) {
