@@ -1,6 +1,6 @@
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { defineVitestConfig } from '@nuxt/test-utils/config';
+import { defineConfig } from 'vitest/config';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 
@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 // file then creates masir_test_<file> from this connection.
 const testDatabaseUrl = process.env.TEST_DATABASE_URL ?? 'postgres://masir:masir@127.0.0.1:5432/masir_test';
 
-export default defineVitestConfig({
+export default defineConfig({
   resolve: {
     alias: {
       '#server': `${root}server`,
