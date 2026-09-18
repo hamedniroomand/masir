@@ -36,6 +36,25 @@ test('answers 404 for a subdomain that names no workspace', async ({ page, serve
   await expect(page.getByText('Workspace not found')).toBeVisible();
 });
 
+// A reserved label is never a workspace, so the host serves the root site. A
+// 404 there would take out www and api for every operator.
+test('serves the root site on a reserved subdomain', async ({ page, server }) => {
+  for (const label of ['www', 'api']) {
+    const response = await page.goto(`${server.hostUrl(label)}/login`);
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  }
+});
+
+test('moves to another workspace from the sidebar and stays signed in', async ({ page, login, server }) => {
+  await login();
+  await page.goto(`${server.hostUrl('acme')}/`);
+  await page.getByRole('button', { name: /Acme/ }).click();
+  await page.getByRole('menuitem', { name: 'Beta' }).click();
+  await expect(page).toHaveURL(`${server.hostUrl('beta')}/`);
+  await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+});
+
 // The shell must follow the host, not the first membership in the list. A
 // wrong pick shows one workspace and edits another.
 test('shows the workspace the host names, not the first membership', async ({ page, login, server }) => {
