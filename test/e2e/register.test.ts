@@ -17,7 +17,7 @@ describe('registration API', async () => {
   it('creates a user and its password identity', async () => {
     const res = await $fetch<{ ok: boolean }>('/api/auth/register', {
       method: 'POST',
-      body: { email: 'new-person@example.com', password: 'a-long-enough-password' },
+      body: { email: 'new-person@example.com', password: 'a-long-enough-pass1!' },
     });
     expect(res.ok).toBe(true);
 
@@ -30,7 +30,7 @@ describe('registration API', async () => {
   it('answers the same way for an email that already exists', async () => {
     const res = await $fetch<{ ok: boolean }>('/api/auth/register', {
       method: 'POST',
-      body: { email: TEST_EMAIL, password: 'another-long-password' },
+      body: { email: TEST_EMAIL, password: 'another-long-pass2!' },
     });
     expect(res.ok).toBe(true);
 
@@ -42,17 +42,21 @@ describe('registration API', async () => {
   it('lowercases the stored email', async () => {
     await $fetch('/api/auth/register', {
       method: 'POST',
-      body: { email: 'MiXeD@Example.COM', password: 'a-long-enough-password' },
+      body: { email: 'MiXeD@Example.COM', password: 'a-long-enough-pass1!' },
     });
     const db = openTestDatabase(TEST_DB);
     const rows = await db.select().from(users).where(eq(users.email, 'mixed@example.com'));
     expect(rows).toHaveLength(1);
   });
 
-  it('refuses a short password with 422', async () => {
+  it.each([
+    ['too short', 'shrt1!'],
+    ['no number', 'no-number-here!'],
+    ['no sign', 'nosignhere12345'],
+  ])('refuses a password with %s', async (_label, password) => {
     await expect($fetch('/api/auth/register', {
       method: 'POST',
-      body: { email: 'short@example.com', password: 'tiny' },
+      body: { email: 'weak@example.com', password },
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 });

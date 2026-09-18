@@ -16,6 +16,8 @@ block. Read them for every version between yours and the one you install.
 - Workspaces, members, roles, and invitations
 - Password, Google, and Microsoft sign-in with email verification; an account password needs at least 8 characters with at least 1 number and 1 sign, and the register and reset forms show the rules as you type
 - Login and register pages show only the configured sign-in providers first; a link reveals the email and password form
+- The verify email page shows a loader while it checks the link and an alert when the link fails; a visit without a token goes to the login page
+- The register page and the new-workspace page show the check-your-inbox notice with Resend, so the emailed link and the URL carry only the token
 - Click analytics without IP storage
 - Self-hosted and multi-workspace deployment modes
 - Compatibility rules, this changelog, and the upgrade guide
@@ -29,6 +31,10 @@ block. Read them for every version between yours and the one you install.
 - `bun run test` starts the db service and waits for it
 - Browser tests with Playwright, one project per deployment shape
 - `NUXT_SESSION_COOKIE_SECURE` for an instance served over plain http
+- Workspace logo upload, replace, and remove on the workspace settings page and
+  the create workspace page, with `POST` and `DELETE /api/workspaces/logo`. The
+  bytes are checked before anything is written. `NUXT_STORAGE_MAX_UPLOAD_BYTES`
+  caps the size, 2 MiB by default
 
 ### Changed
 
@@ -47,6 +53,8 @@ block. Read them for every version between yours and the one you install.
 - A link with a campaign cannot carry its own `utm_campaign`. The create and
   update routes answer 400.
 - Inviting an address that already has an open invitation answers 409.
+- `POST` and `PATCH /api/workspaces` ignore `logoUrl`. Only the logo upload
+  route sets a logo, and the column now holds the storage key, not the URL.
 - Application pages render on the client only. The server renders the visitor
   error page behind a short link, so previews and crawlers read it without
   JavaScript.
@@ -63,10 +71,17 @@ block. Read them for every version between yours and the one you install.
 ### Fixed
 
 - A refused form shows the reason the server gave, not the generic HTTP text.
-  A link, a campaign, and a toast all read the reason from the response body
+  A link, a campaign, and a toast all read the reason from the response body,
+  and a debounced re-validation no longer wipes it before the user reads it
+- The file storage provider is refused on a serverless target, not in `CLOUD`
+  mode; a `CLOUD` instance on a server with a disk boots with it, and the build
+  accepts only the `bun` and `vercel` presets
+- Multi-workspace mode refuses to boot on `localhost` and asks for a hostname
+  with a dot; browsers drop a `Domain=.localhost` cookie, so every sign-in on a
+  workspace subdomain looped back to the login page
 - The sidebar and the workspace settings page show the workspace the host
   names, not the first membership; the root host of a multi-workspace instance
-  goes to the workspace chooser
+  goes straight to the only workspace, or to the chooser when there are several
 - A short link that does not exist, or a slug on a host without a workspace,
   answers 404 again instead of the application shell
 - The test servers no longer inherit the developer's `.env`, which made the

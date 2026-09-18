@@ -49,3 +49,10 @@ test('returns to the requested page after sign-in', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/settings\/account$/);
 });
+
+test('sends a verification visit without a token to the login page', async ({ page }) => {
+  await page.goto('/verify-email');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/verify-email?email=someone%40example.com');
+  await expect(page).toHaveURL(/\/login$/);
+});

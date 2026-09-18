@@ -1,4 +1,3 @@
-import type { DeploymentMode } from '#shared/deployment';
 import { fileProvider } from '#server/utils/storage-file';
 import { s3Provider } from '#server/utils/storage-s3';
 
@@ -68,13 +67,12 @@ export function buildStorageDriver(config: StorageConfig): { name: string; drive
   throw new Error('No storage provider is configured; set NUXT_STORAGE_LOCAL_ROOT or NUXT_STORAGE_BUCKET');
 }
 
-// A CLOUD deployment runs on an edge or serverless runtime, which keeps no disk
-// between requests. Refuse at boot rather than lose every upload at the first
-// cold start.
-export function assertStorageConfig(config: StorageConfig, deploymentMode: DeploymentMode) {
+// A serverless target keeps no disk between requests. Refuse at boot rather
+// than lose every upload at the first cold start.
+export function assertStorageConfig(config: StorageConfig, target: { serverless: boolean }) {
   const { name } = buildStorageDriver(config);
-  if (deploymentMode === 'CLOUD' && providers.get(name)?.needsDisk)
-    throw new Error(`Storage provider "${name}" needs a disk, which a CLOUD deployment does not keep. Set NUXT_STORAGE_BUCKET to store uploads in a bucket.`);
+  if (target.serverless && providers.get(name)?.needsDisk)
+    throw new Error(`Storage provider "${name}" needs a disk, and a serverless deployment keeps none between requests. Set NUXT_STORAGE_BUCKET to store uploads in a bucket.`);
 }
 
 export function setStorageDriver(driver: StorageDriver | null) {
@@ -101,4 +99,10 @@ export function deleteObject(key: string) {
 
 export function publicUrl(key: string) {
   return resolveDriver().publicUrl(key);
+}
+
+// workspaces.logo_url holds a key, not a URL, so a moved bucket needs no
+// data migration. Every response maps it here.
+export function publicUrlOrNull(key: string | null) {
+  return key ? publicUrl(key) : null;
 }

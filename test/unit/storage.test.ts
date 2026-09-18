@@ -56,16 +56,16 @@ describe('provider registry', () => {
 });
 
 describe('assertStorageConfig', () => {
-  it('refuses a disk provider in CLOUD mode', () => {
-    expect(() => assertStorageConfig(storageConfig(), 'CLOUD')).toThrow(/needs a disk/);
+  it('refuses a disk provider on a serverless target', () => {
+    expect(() => assertStorageConfig(storageConfig(), { serverless: true })).toThrow(/needs a disk/);
   });
 
-  it('allows a disk provider in SELF_HOSTED mode', () => {
-    expect(() => assertStorageConfig(storageConfig(), 'SELF_HOSTED')).not.toThrow();
+  it('allows a disk provider on a server with a disk', () => {
+    expect(() => assertStorageConfig(storageConfig(), { serverless: false })).not.toThrow();
   });
 
-  it('allows s3 in CLOUD mode', () => {
-    expect(() => assertStorageConfig(storageConfig({ bucket: 'masir' }), 'CLOUD')).not.toThrow();
+  it('allows s3 on a serverless target', () => {
+    expect(() => assertStorageConfig(storageConfig({ bucket: 'masir' }), { serverless: true })).not.toThrow();
   });
 });
 

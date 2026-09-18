@@ -6,5 +6,5 @@ export default defineNitroPlugin(() => {
   // Nuxt widens runtimeConfig string literals to `string`. The cast is safe:
   // assertRuntimeConfig validates the value at runtime and throws on a bad one.
   assertRuntimeConfig(config as Parameters<typeof assertRuntimeConfig>[0]);
-  assertStorageConfig(config.storage, config.deploymentMode as Parameters<typeof assertStorageConfig>[1]);
+  assertStorageConfig(config.storage, { serverless: Boolean(config.serverless) });
 });

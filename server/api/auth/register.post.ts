@@ -5,10 +5,11 @@ import { readValidBody } from '#server/utils/body';
 import { createUserWithIdentity, findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { hashSecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { accountPasswordSchema } from '#shared/account-password';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
-  password: v.pipe(v.string(), v.minLength(12, 'Use at least 12 characters.'), v.maxLength(200)),
+  password: accountPasswordSchema,
 });
 
 export default defineEventHandler(async (event) => {

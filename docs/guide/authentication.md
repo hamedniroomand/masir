@@ -5,8 +5,9 @@ all three for the same account.
 
 ## Email and password
 
-Registration collects an email and a password of at least 12 characters, then
-sends a verification link that works once and expires after 24 hours.
+Registration collects an email and a password of at least 8 characters with at
+least 1 number and 1 sign, then sends a verification link that works once and
+expires after 24 hours.
 
 Verification gates workspace work, not sign-in. An unverified user can log in
 and see that they need to verify; they cannot create a workspace or accept an

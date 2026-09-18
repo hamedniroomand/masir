@@ -35,9 +35,14 @@ export function assertDeploymentConfig(config: DeploymentConfig & { sessionCooki
     throw new Error('Missing or invalid NUXT_ROOT_DOMAIN (must be a valid http(s) URL)');
   }
 
-  // A wildcard certificate and wildcard DNS need a real name. localhost is the
-  // one exception, because *.localhost resolves on a development machine.
-  if (config.multiWorkspace && (IP_HOST.test(host) || (!host.includes('.') && host !== 'localhost')))
+  // Browsers store a cookie for localhost as host-only and drop Domain=.localhost,
+  // so a session set on the root never reaches acme.localhost and every sign-in
+  // loops back to the login page. A dotted name has no such rule.
+  if (config.multiWorkspace && host === 'localhost')
+    throw new Error('NUXT_ROOT_DOMAIN "localhost" cannot share a session cookie with its subdomains; use a hostname with a dot, or set NUXT_MULTI_WORKSPACE=false');
+
+  // A wildcard certificate and wildcard DNS need a real name.
+  if (config.multiWorkspace && (IP_HOST.test(host) || !host.includes('.')))
     throw new Error(`NUXT_ROOT_DOMAIN "${host}" cannot hold a wildcard subdomain; set NUXT_MULTI_WORKSPACE=false`);
 
   // A session sealed for one subdomain does not reach another. Without the

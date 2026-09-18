@@ -16,9 +16,9 @@ const sharedEnv = {
 };
 
 // The Nuxt server migrates on boot, so the database must exist before setup().
-export async function e2eSetupOptions(databaseUrl: string) {
+export async function e2eSetupOptions(databaseUrl: string, env: Record<string, string> = {}) {
   await createTestDatabase(databaseUrl);
-  const host = await startTestServer({ ...sharedEnv, NUXT_DATABASE_URL: databaseUrl });
+  const host = await startTestServer({ ...sharedEnv, NUXT_DATABASE_URL: databaseUrl, ...env });
   // host makes setup() skip the build and the server. It only points the test
   // helpers at the server this file started.
   return { host, runner: 'vitest' as const };

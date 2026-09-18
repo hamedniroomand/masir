@@ -1,7 +1,7 @@
 import { expect, OWNER_EMAIL, test } from '../fixtures';
 
 const ANSWER = 'If an account exists for this email, we sent a recovery link.';
-const NEW_PASSWORD = 'a-brand-new-password';
+const NEW_PASSWORD = 'a-brand-new-12345!';
 
 test.beforeAll(({ db }) => {
   db.reset();
@@ -23,7 +23,7 @@ test('sets a new password from the emailed link and signs in with it', async ({ 
   const token = db.lastToken(OWNER_EMAIL);
   expect(token).toBeTruthy();
   await page.goto(`/reset-password?token=${token}`);
-  await page.getByLabel('New password').fill(NEW_PASSWORD);
+  await page.getByLabel(/^New password/).fill(NEW_PASSWORD);
   await page.getByRole('button', { name: 'Save password' }).click();
   await expect(page).toHaveURL(/\/login$/);
 
@@ -32,7 +32,7 @@ test('sets a new password from the emailed link and signs in with it', async ({ 
 
   // A recovery link is spent once it is used.
   await page.goto(`/reset-password?token=${token}`);
-  await page.getByLabel('New password').fill('another-password-again');
+  await page.getByLabel(/^New password/).fill('another-password-9!');
   await page.getByRole('button', { name: 'Save password' }).click();
   await expect(page.getByRole('alert')).toHaveText('This recovery link is not valid. Ask for a new one.');
 });

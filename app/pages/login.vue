@@ -57,14 +57,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       return;
     }
 
-    // One workspace goes straight there. Several offer a choice. None means
-    // this person has nowhere to land yet.
     const { items } = await $fetch<{ items: { url: string }[] }>('/api/workspaces');
-    if (items.length === 1) {
-      window.location.href = items[0]?.url ?? '/';
-      return;
-    }
-    await navigateTo(items.length === 0 ? '/workspaces/new' : '/workspaces');
+    await landInWorkspace(items);
   }
   catch {
     error.value = 'Invalid email or password.';

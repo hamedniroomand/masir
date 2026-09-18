@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { user, clear } = useUserSession();
+const { user } = useUserSession();
 const { data: workspaces } = await useFetch<{ currentId: string | null; items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
 const current = computed(() => workspaces.value?.items.find(workspace => workspace.id === workspaces.value?.currentId) ?? null);
 
@@ -11,7 +11,7 @@ if (!workspaces.value?.items.length)
 // No current workspace means the root host. Never fall back to the first
 // membership: the shell would show one workspace and edit another.
 else if (!current.value)
-  await navigateTo('/workspaces');
+  await landInWorkspace(workspaces.value?.items ?? []);
 
 const isOwner = computed(() => current.value?.role === 'OWNER');
 const switcher = computed(() => [(workspaces.value?.items ?? []).map(workspace => ({
@@ -46,18 +46,7 @@ watch(() => route.fullPath, () => {
   mobileOpen.value = false;
 });
 
-const showError = useErrorToast();
-
-async function signOut() {
-  try {
-    await $fetch('/api/auth/logout', { method: 'POST' });
-  }
-  catch (error) {
-    showError(error);
-  }
-  await clear();
-  await navigateTo('/login');
-}
+const signOut = useSignOut();
 </script>
 
 <template>

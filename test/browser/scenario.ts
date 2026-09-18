@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import process from 'node:process';
 
 // Each scenario is one operator's .env. A project runs its tests against a
@@ -60,10 +62,11 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     NUXT_ROOT_DOMAIN: origin,
     NUXT_PUBLIC_SHORT_DOMAIN: origin,
     NUXT_MAIL_DRIVER: 'outbox',
-    // One worker drives every test in order, and most of them sign in. Ten
-    // sign-ins a minute would refuse the eleventh test in a file. The HTTP
-    // suite tests the limit itself.
-    NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '1000',
+    // Every test signs in from one loopback address inside one minute. The
+    // default of 10 refuses the eleventh test.
+    NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '100',
+    // Logo uploads go to a scratch directory, not into the repository.
+    NUXT_STORAGE_LOCAL_ROOT: join(tmpdir(), 'masir-browser-uploads'),
   };
   const multi = {
     NUXT_MULTI_WORKSPACE: 'true',

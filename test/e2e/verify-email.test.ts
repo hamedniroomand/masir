@@ -22,7 +22,7 @@ describe('email verification', async () => {
     await resetTestDb(TEST_DB);
     await $fetch('/api/auth/register', {
       method: 'POST',
-      body: { email: EMAIL, password: 'a-long-enough-password' },
+      body: { email: EMAIL, password: 'a-long-enough-pass1!' },
     });
   });
 
@@ -31,6 +31,13 @@ describe('email verification', async () => {
     const rows = await db.select().from(mailOutbox).where(eq(mailOutbox.to, EMAIL));
     expect(rows).toHaveLength(1);
     expect(rows[0]!.subject).toBe('Verify your email');
+  });
+
+  it('puts only the token in the link', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const rows = await db.select().from(mailOutbox).where(eq(mailOutbox.to, EMAIL));
+    expect(rows[0]!.text).toMatch(/verify-email\?token=[\w-]+(\s|$)/);
+    expect(rows[0]!.text).not.toContain('email=');
   });
 
   it('verifies once and refuses the second use', async () => {

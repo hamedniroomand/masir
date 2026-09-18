@@ -61,8 +61,13 @@ describe('assertDeploymentConfig', () => {
     expect(() => assertDeploymentConfig(c)).toThrow(/wildcard/i);
   });
 
-  it('accepts localhost in multi mode', () => {
-    const c = config({ rootDomain: 'http://localhost:3000' });
+  it('rejects localhost in multi mode', () => {
+    const c = config({ rootDomain: 'http://localhost:3000', sessionCookieDomain: '.localhost' });
+    expect(() => assertDeploymentConfig(c)).toThrow(/hostname with a dot/);
+  });
+
+  it('accepts localhost in single mode', () => {
+    const c = config({ rootDomain: 'http://localhost:3000', multiWorkspace: false });
     expect(() => assertDeploymentConfig(c)).not.toThrow();
   });
 

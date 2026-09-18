@@ -7,11 +7,11 @@ const TEST_DB = testDatabaseUrl('boot_config');
 
 const baseEnv = {
   NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
-  NUXT_PUBLIC_SHORT_DOMAIN: 'http://localhost:3000',
+  NUXT_PUBLIC_SHORT_DOMAIN: 'http://masir.test:3000',
   NUXT_DATABASE_POOL_MAX: '2',
   NUXT_DATABASE_URL: TEST_DB,
   NUXT_MULTI_WORKSPACE: 'true',
-  NUXT_ROOT_DOMAIN: 'http://localhost:3000',
+  NUXT_ROOT_DOMAIN: 'http://masir.test:3000',
 };
 
 // A hand-built config object cannot catch this. NUXT_SESSION_COOKIE_DOMAIN only
@@ -27,12 +27,17 @@ describe('multi-workspace boot', () => {
   });
 
   it('starts when the session cookie domain is set', async () => {
-    const host = await startTestServer({ ...baseEnv, NUXT_SESSION_COOKIE_DOMAIN: '.localhost' });
+    const host = await startTestServer({ ...baseEnv, NUXT_SESSION_COOKIE_DOMAIN: '.masir.test' });
     const res = await fetch(`${host}/api/health`);
     expect(res.status).toBe(200);
   });
 
   it('refuses to start when the session cookie domain is missing', async () => {
     await expect(startTestServer(baseEnv)).rejects.toThrow(/NUXT_SESSION_COOKIE_DOMAIN must be set/);
+  });
+
+  it('refuses to start on localhost, where a subdomain never receives the session cookie', async () => {
+    const env = { ...baseEnv, NUXT_ROOT_DOMAIN: 'http://localhost:3000', NUXT_SESSION_COOKIE_DOMAIN: '.localhost' };
+    await expect(startTestServer(env)).rejects.toThrow(/hostname with a dot/);
   });
 });

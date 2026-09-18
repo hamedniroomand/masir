@@ -29,7 +29,7 @@ test('hides the password form until the visitor asks for email sign-in', async (
   await expect(page.getByLabel('Password')).toBeVisible();
 
   await page.goto('/register');
-  await expect(page.getByLabel('Password')).toHaveCount(0);
+  await expect(page.getByLabel(/^Password/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign up with email instead' }).click();
-  await expect(page.getByLabel('Password')).toBeVisible();
+  await expect(page.getByLabel(/^Password/)).toBeVisible();
 });
