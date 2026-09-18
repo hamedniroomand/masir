@@ -12,6 +12,11 @@ const tab = computed({
   set: (value: string) => navigateTo({ query: { ...route.query, tab: value === 'overview' ? undefined : value }, hash: '' }),
 });
 
+// A panel mounts on its first visit and stays, so its api calls wait for the
+// tab and its form state survives a switch.
+const visited = reactive(new Set([tab.value]));
+watch(tab, value => visited.add(value));
+
 const tabIcons = { overview: 'i-lucide-chart-no-axes-combined', settings: 'i-lucide-sliders-horizontal', history: 'i-lucide-history' };
 const tabItems = LINK_TABS.map(value => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1), icon: tabIcons[value] }));
 
@@ -65,7 +70,9 @@ onMounted(() => {
       :ui="{ root: 'gap-7', list: 'border-b border-default', trigger: 'px-4 pb-3' }"
     >
       <template #content="{ item }">
-        <LinkAnalyticsPanel v-if="item.value === 'overview'" :link-id="link.id" />
+        <template v-if="!visited.has(item.value)" />
+
+        <LinkAnalyticsPanel v-else-if="item.value === 'overview'" :link-id="link.id" />
 
         <div v-else-if="item.value === 'settings'" class="max-w-4xl space-y-5">
           <LinkDestinationForm :link="link" @updated="refreshLink()" />
