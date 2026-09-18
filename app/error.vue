@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import type { NuxtError } from '#app';
 
-const props = defineProps<{ error: NuxtError<{ linkState?: string; startsAt?: string | null }> }>();
+type ErrorData = { linkState?: string; startsAt?: string | null; reason?: string; home?: string };
+
+const props = defineProps<{ error: NuxtError<ErrorData> }>();
 
 const linkState = computed(() => props.error.data?.linkState);
 const startsAt = computed(() => props.error.data?.startsAt);
 const statusCode = computed(() => props.error.statusCode ?? 500);
 const notFound = computed(() => statusCode.value === 404);
+const noWorkspace = computed(() => props.error.data?.reason === 'workspace_not_found');
+// A dead subdomain answers 404 for "/" too, so the home link needs the root host.
+const home = computed(() => props.error.data?.home ?? '/');
 
 const META = {
   disabled: { icon: 'i-lucide-pause', title: 'This link is currently unavailable.' },
@@ -19,6 +24,8 @@ const meta = computed(() => {
   const known = META[linkState.value as keyof typeof META];
   if (known)
     return known;
+  if (noWorkspace.value)
+    return { icon: 'i-lucide-building-2', title: 'Workspace not found.' };
   if (notFound.value)
     return { icon: 'i-lucide-link-2-off', title: 'Link not found.' };
   return { icon: 'i-lucide-triangle-alert', title: 'Something went wrong.' };
@@ -27,6 +34,8 @@ const meta = computed(() => {
 const help = computed(() => {
   if (linkState.value === 'scheduled' && startsAt.value)
     return '';
+  if (noWorkspace.value)
+    return 'No workspace answers at this address. Check the spelling, or ask the workspace owner for an invitation.';
   if (notFound.value)
     return 'Check the address, or ask the person who shared it for a new link.';
   return 'Try again in a moment. If it keeps happening, report it so we can look into it.';
@@ -70,7 +79,7 @@ useHead({ title: () => `${meta.value.title.replace(/\.$/, '')} · Masir` });
     </p>
     <div class="mt-8 flex flex-wrap gap-2">
       <UButton v-if="!notFound" label="Try again" icon="i-lucide-rotate-cw" @click="clearError()" />
-      <UButton to="/" label="Go to Masir" color="neutral" variant="outline" />
+      <UButton :to="home" label="Go to Masir" color="neutral" variant="outline" />
       <UButton to="/report" label="Report a problem" variant="ghost" />
     </div>
   </NuxtLayout>

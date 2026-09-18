@@ -33,7 +33,7 @@ test('serves no short links on the root host', async ({ page }) => {
 test('answers 404 for a subdomain that names no workspace', async ({ page, server }) => {
   const response = await page.goto(`${server.hostUrl('nobody')}/`);
   expect(response?.status()).toBe(404);
-  await expect(page.getByText('Workspace not found')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Workspace not found.' })).toBeVisible();
 });
 
 // A reserved label is never a workspace, so the host serves the root site. A

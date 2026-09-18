@@ -37,7 +37,7 @@ test('deletes a workspace and its address stops resolving', async ({ page, login
 
   const response = await page.goto(`${server.hostUrl('acme')}/`);
   expect(response?.status()).toBe(404);
-  await expect(page.getByText('Workspace not found')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Workspace not found.' })).toBeVisible();
 
   await page.goto(`${server.hostUrl('beta')}/`);
   await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();

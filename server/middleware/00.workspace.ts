@@ -32,8 +32,16 @@ export default defineEventHandler(async (event) => {
 
   const workspace = await findWorkspaceBySlug(label);
   if (!workspace) {
+    // Nuxt renders the error page with a second request on the same host. A
+    // 404 here too would leave only the bare Nitro fallback.
+    if (event.path.startsWith('/__nuxt_error'))
+      return;
     // Never make a workspace from a hostname.
-    throw createError({ statusCode: 404, statusMessage: 'Workspace not found' });
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Workspace not found',
+      data: { reason: 'workspace_not_found', home: config.rootDomain },
+    });
   }
 
   event.context.workspace = workspace;

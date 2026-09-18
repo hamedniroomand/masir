@@ -10,6 +10,11 @@ function isPublicShortLinkPath(path: string): boolean {
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
+  // The error page is a separate render of the app. A redirect here would
+  // hide it behind the login page.
+  if (useError().value)
+    return;
+
   const { loggedIn, ready, fetch: fetchSession } = useUserSession();
   if (!ready.value)
     await fetchSession();

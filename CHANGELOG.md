@@ -75,6 +75,7 @@ block. Read them for every version between yours and the one you install.
 - A refused form shows the reason the server gave, not the generic HTTP text.
   A link, a campaign, and a toast all read the reason from the response body,
   and a debounced re-validation no longer wipes it before the user reads it
+- The error page covers a workspace address that names no workspace, with a link back to the root host
 - Signing in and verifying an email refresh the session before they navigate.
   The route middleware read the session it already had, so a workspace on the
   same origin sent the person back to the login page
