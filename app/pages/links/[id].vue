@@ -24,6 +24,13 @@ const { data: link, error, refresh: refreshLink } = await useApi<LinkItem>(() =>
 
 useHead({ title: () => `${link.value?.title || link.value?.slug || 'Link'} · Masir` });
 
+const creatorName = computed(() => {
+  const creator = link.value?.creator;
+  if (!creator)
+    return '';
+  return [creator.firstName, creator.lastName].filter(Boolean).join(' ') || creator.email;
+});
+
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
 
@@ -47,6 +54,11 @@ onMounted(() => {
           </h1><LinkStatusBadge :link="link" /><UBadge v-if="link.isProtected" color="primary" variant="subtle" size="sm" icon="i-lucide-lock" label="Password protected" />
         </div>
         <a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="mt-2 block break-all text-sm text-primary hover:underline">{{ link.shortUrl }}</a>
+        <p class="mt-2 text-xs text-muted">
+          Created {{ new Date(link.createdAt).toLocaleDateString() }}<template v-if="link.creator">
+            by <a :href="`mailto:${link.creator.email}`" class="text-toned hover:text-primary hover:underline">{{ creatorName }}</a>
+          </template>
+        </p>
       </div>
       <div class="flex shrink-0 gap-2">
         <UButton :label="copied ? 'Copied' : 'Copy link'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" size="sm" @click="copy(link.shortUrl)" /><UButton label="QR code" icon="i-lucide-qr-code" color="neutral" variant="outline" size="sm" @click="qrOpen = true" />

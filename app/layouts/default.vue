@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { user } = useUserSession();
-const { data: workspaces } = await useApi<{ currentId: string | null; items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
+const { data: workspaces } = await useWorkspaces();
 const current = computed(() => workspaces.value?.items.find(workspace => workspace.id === workspaces.value?.currentId) ?? null);
 
 // Every page in this layout is workspace-scoped, so without one the person sits
@@ -14,12 +14,25 @@ else if (!current.value)
   await landInWorkspace(workspaces.value?.items ?? []);
 
 const isOwner = computed(() => current.value?.role === 'OWNER');
-const switcher = computed(() => [(workspaces.value?.items ?? []).map(workspace => ({
-  label: workspace.name,
-  icon: 'i-lucide-building-2',
-  // A workspace lives on its own host, so this is a navigation, not a route.
-  onSelect: () => { window.location.href = workspace.url; },
-}))]);
+const signOut = useSignOut();
+const accountMenu = computed(() => {
+  const items = workspaces.value?.items ?? [];
+  const switcher = items.length > 1
+    ? [[{
+        label: 'Switch workspace',
+        icon: 'i-lucide-arrow-left-right',
+        children: [items.map(workspace => ({
+          label: workspace.name,
+          type: 'checkbox' as const,
+          checked: workspace.id === current.value?.id,
+          avatar: { src: workspace.logoUrl ?? undefined, alt: workspace.name, icon: 'i-lucide-building-2' },
+          // A workspace lives on its own host, so this is a navigation, not a route.
+          onSelect: () => { window.location.href = workspace.url; },
+        }))],
+      }]]
+    : [];
+  return [...switcher, [{ label: 'Sign out', icon: 'i-lucide-log-out', onSelect: signOut }]];
+});
 const route = useRoute();
 const config = useRuntimeConfig();
 const mobileOpen = ref(false);
@@ -45,26 +58,19 @@ const section = computed(() => [...workspaceNav.value, ...adminNav.value].find(i
 watch(() => route.fullPath, () => {
   mobileOpen.value = false;
 });
-
-const signOut = useSignOut();
 </script>
 
 <template>
   <div class="min-h-screen lg:py-2 lg:pr-2 lg:pl-60">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-default focus:p-3">Skip to content</a>
     <aside class="fixed inset-y-0 left-0 hidden w-60 flex-col bg-[var(--workspace-bg)] px-4 py-6 lg:flex">
-      <NuxtLink to="/" aria-label="Masir home" class="px-2.5">
-        <AppLogo />
+      <NuxtLink to="/" :aria-label="`${current?.name ?? 'Workspace'} home`" class="mb-8 flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-default/70">
+        <UAvatar :src="current?.logoUrl ?? undefined" :alt="current?.name ?? 'Workspace'" icon="i-lucide-building-2" size="md" class="rounded-lg shadow-control" />
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm font-semibold tracking-tight text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
+          <span class="block truncate text-xs text-muted" :title="domain">{{ domain }}</span>
+        </span>
       </NuxtLink>
-      <UDropdownMenu :items="switcher" :content="{ align: 'start' }" class="mx-1 mb-7 mt-7 w-[calc(100%-0.5rem)]">
-        <UButton color="neutral" variant="ghost" class="w-full rounded-lg border border-default bg-default/70 px-3 py-3 shadow-control" :trailing-icon="(workspaces?.items.length ?? 0) > 1 ? 'i-lucide-chevrons-up-down' : undefined">
-          <UIcon name="i-lucide-building-2" class="size-4 shrink-0 text-muted" />
-          <span class="min-w-0 flex-1 text-left">
-            <span class="block truncate text-sm font-medium text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
-            <span class="block truncate text-xs font-normal text-muted" :title="domain">{{ domain }}</span>
-          </span>
-        </UButton>
-      </UDropdownMenu>
       <nav class="space-y-7">
         <div>
           <p class="px-2.5 pb-2 text-[11px] font-medium text-muted">
@@ -84,15 +90,15 @@ const signOut = useSignOut();
       </div>
       <div class="mt-auto">
         <p class="flex items-center gap-1.5 px-2.5 py-4 text-[11px] text-muted">
-          <UIcon name="i-lucide-server" class="size-3.5" />Self-hosted workspace
+          <UIcon name="i-lucide-link-2" class="size-3.5" />Masir<span class="text-dimmed">/</span>Self-hosted
         </p>
         <UDropdownMenu
           v-if="user"
-          :items="[[{ label: 'Sign out', icon: 'i-lucide-log-out', onSelect: signOut }]]"
+          :items="accountMenu"
           :content="{ align: 'start' }"
           class="w-full"
         >
-          <UButton color="neutral" variant="ghost" class="w-full border-t border-default pt-4 pb-2 px-2.5 rounded-none" trailing-icon="i-lucide-chevron-down" :aria-label="`Account menu for ${user.email}`">
+          <UButton color="neutral" variant="ghost" class="w-full border-t border-default p-2.5" trailing-icon="i-lucide-chevron-down" :aria-label="`Account menu for ${user.email}`">
             <UAvatar :alt="user.email" size="xs" />
             <span class="min-w-0 flex-1 text-left">
               <span class="block truncate text-sm font-medium">{{ user.email }}</span>
@@ -105,7 +111,7 @@ const signOut = useSignOut();
     <div class="min-h-[calc(100dvh-1rem)] bg-default lg:rounded-xl lg:border lg:border-default lg:shadow-panel">
       <header class="flex h-14 items-center justify-between gap-3 border-b border-default px-4 sm:px-8">
         <div class="flex min-w-0 items-center gap-2">
-          <USlideover v-model:open="mobileOpen" title="Workspace" side="left">
+          <USlideover v-model:open="mobileOpen" :title="current?.name ?? 'Workspace'" side="left">
             <UButton icon="i-lucide-menu" aria-label="Open navigation" color="neutral" variant="ghost" size="sm" class="lg:hidden" />
             <template #body>
               <nav class="space-y-7">

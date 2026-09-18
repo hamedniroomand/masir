@@ -22,6 +22,8 @@ export type LinkItem = {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  // Only the detail route sends this.
+  creator?: { email: string; firstName: string | null; lastName: string | null } | null;
 };
 
 export function useLinksList() {

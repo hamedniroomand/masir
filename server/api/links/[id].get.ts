@@ -1,4 +1,5 @@
 import { requireWorkspaceMember } from '#server/utils/auth';
+import { findUserById } from '#server/utils/identity-repo';
 import { findLinkById, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
@@ -13,5 +14,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const tagMap = await tagNamesByLinkIds([link.id]);
-  return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
+  const creator = link.createdBy ? await findUserById(link.createdBy) : null;
+  return {
+    ...linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []),
+    creator: creator ? { email: creator.email, firstName: creator.firstName, lastName: creator.lastName } : null,
+  };
 });

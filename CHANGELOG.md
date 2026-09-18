@@ -16,9 +16,12 @@ block. Read them for every version between yours and the one you install.
 - Workspaces, members, roles, and invitations
 - Password, Google, and Microsoft sign-in with email verification; an account password needs at least 8 characters with at least 1 number and 1 sign, and the register and reset forms show the rules as you type
 - Login and register pages show only the configured sign-in providers first; a link reveals the email and password form
+- With registration off, the login page hides the sign-up link and the register page goes to the login page; `/api/auth/providers` reports `registration`
 - The verify email page shows a loader while it checks the link and an alert when the link fails; a visit without a token goes to the login page
 - The register page and the new-workspace page show the check-your-inbox notice with Resend, so the emailed link and the URL carry only the token
 - Click analytics without IP storage
+- The sidebar shows the workspace name and logo, follows changes made on the settings page, and the account menu lists the workspaces to switch to
+- The link detail page names who created the link with a mail link, and `/api/links/:id` returns `creator`
 - Error page with a route illustration, the status code, the requested path, and a Try again action for errors other than 404
 - Self-hosted and multi-workspace deployment modes
 - Compatibility rules, this changelog, and the upgrade guide
@@ -72,10 +75,10 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- The error page covers a workspace address that names no workspace, with a link back to the root host
 - A refused form shows the reason the server gave, not the generic HTTP text.
   A link, a campaign, and a toast all read the reason from the response body,
   and a debounced re-validation no longer wipes it before the user reads it
-- The error page covers a workspace address that names no workspace, with a link back to the root host
 - Signing in and verifying an email refresh the session before they navigate.
   The route middleware read the session it already had, so a workspace on the
   same origin sent the person back to the login page

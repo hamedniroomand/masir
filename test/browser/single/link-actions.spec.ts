@@ -112,6 +112,35 @@ test('lists who created the link and what each edit changed on the history tab',
   await expect(page.getByText('test@example.com').first()).toBeVisible();
 });
 
+test('calls the api of a tab only once the tab is opened', async ({ page, login }) => {
+  await login();
+  const calls: string[] = [];
+  page.on('request', (request) => {
+    const { pathname } = new URL(request.url());
+    if (pathname.endsWith('/history') || pathname === '/api/campaigns')
+      calls.push(pathname);
+  });
+  const link = await createLink(page, { destinationUrl: 'https://example.com/lazy', title: 'Lazy tabs' });
+  await page.goto(`/links/${link.id}`);
+  await expect(page.getByText('Link activity')).toBeVisible();
+  expect(calls).toEqual([]);
+
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByText('Campaign and tracking')).toBeVisible();
+  await expect.poll(() => calls).toEqual(['/api/campaigns']);
+
+  await page.getByRole('tab', { name: 'History' }).click();
+  await expect(page.getByText('Created this link')).toBeVisible();
+  expect(calls.filter(path => path.endsWith('/history'))).toHaveLength(1);
+});
+
+test('names who created the link in the detail header', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/who', title: 'Who made me' });
+  await page.goto(`/links/${link.id}`);
+  await expect(page.getByRole('link', { name: 'Test User' })).toHaveAttribute('href', 'mailto:test@example.com');
+});
+
 test('opens the QR slideover from the row and from the detail header', async ({ page, login }) => {
   await login();
   await page.goto('/');

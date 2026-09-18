@@ -1,9 +1,7 @@
 <script setup lang="ts">
-type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
-
 const { $api } = useNuxtApp();
 
-const { data, refresh } = await useApi<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
+const { data, refresh } = await useWorkspaces();
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
@@ -31,6 +29,7 @@ async function save() {
   saving.value = true;
   try {
     await $api('/api/workspaces', { method: 'PATCH', body: { name: name.value } });
+    await refresh();
     message.value = 'Saved.';
   }
   catch (failure) {

@@ -22,10 +22,22 @@ test('uploads, shows, and removes the workspace logo', async ({ page, login }) =
   const logo = page.getByRole('img', { name: 'Acme logo' });
   await expect(logo).toHaveAttribute('src', /\/uploads\/logos\//);
   await expect(page.getByRole('button', { name: 'Replace logo' })).toBeVisible();
+  const sidebar = page.getByRole('link', { name: 'Acme home' });
+  await expect(sidebar.getByRole('img')).toHaveAttribute('src', /\/uploads\/logos\//);
 
   await page.getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('button', { name: 'Upload logo' })).toBeVisible();
   await expect(page.getByText('A', { exact: true })).toBeVisible();
+  await expect(sidebar.getByRole('img')).toHaveCount(0);
+});
+
+test('renames the workspace and the sidebar follows', async ({ page, login }) => {
+  await login();
+  await page.goto('/settings/workspace');
+  await page.getByLabel('Workspace name').fill('Acme Ltd');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Acme Ltd home' })).toBeVisible();
 });
 
 test('refuses a second workspace on a single-workspace instance', async ({ page, login }) => {

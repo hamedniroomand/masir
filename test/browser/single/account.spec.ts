@@ -41,3 +41,10 @@ test('offers no provider buttons when the operator configured none', async ({ pa
   await page.goto('/settings/account');
   await expect(page.getByRole('link', { name: /^Connect / })).toHaveCount(0);
 });
+
+test('offers no workspace switcher with a single workspace', async ({ page, login }) => {
+  await login();
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Switch workspace' })).toHaveCount(0);
+});
