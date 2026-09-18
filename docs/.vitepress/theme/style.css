@@ -696,6 +696,21 @@ body {
   height: auto;
 }
 
+/* Mermaid draws labels in <p> inside the svg and sizes the box at line-height
+   1.5 with no margin. The prose rules would grow the text afterwards and clip it. */
+.vp-doc .aw-mermaid p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.aw-mermaid .node rect,
+.aw-mermaid .node polygon,
+.aw-mermaid .node circle {
+  rx: 6;
+  ry: 6;
+  stroke-width: 1px;
+}
+
 /* Footer */
 
 .VPFooter {
