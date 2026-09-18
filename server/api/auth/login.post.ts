@@ -4,16 +4,19 @@ import { readValidBody } from '#server/utils/body';
 import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
 import { matchAbsentSecret, verifySecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { requireHuman } from '#server/utils/turnstile';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),
   password: v.pipe(v.string(), v.minLength(1)),
+  turnstileToken: v.optional(v.string()),
 });
 
 const GENERIC = 'Invalid email or password.';
 
 export default defineEventHandler(async (event) => {
   const body = await readValidBody(event, bodySchema);
+  await requireHuman(event, body.turnstileToken);
   const email = normalizeEmail(body.email);
   const config = useRuntimeConfig();
 

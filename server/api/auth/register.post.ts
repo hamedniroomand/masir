@@ -5,11 +5,13 @@ import { readValidBody } from '#server/utils/body';
 import { createUserWithIdentity, findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { hashSecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { requireHuman } from '#server/utils/turnstile';
 import { accountPasswordSchema } from '#shared/account-password';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
   password: accountPasswordSchema,
+  turnstileToken: v.optional(v.string()),
 });
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const body = await readValidBody(event, bodySchema);
+  await requireHuman(event, body.turnstileToken);
   const email = normalizeEmail(body.email);
 
   const clientKey = await hashClientKey(event);

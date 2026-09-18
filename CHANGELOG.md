@@ -11,6 +11,7 @@ block. Read them for every version between yours and the one you install.
 
 ### Added
 
+- Optional Cloudflare Turnstile check on the email sign-in and sign-up forms; `NUXT_PUBLIC_TURNSTILE_SITE_KEY` and `NUXT_TURNSTILE_SECRET_KEY` turn it on
 - Links with slugs, destinations, tags, schedules, passwords, and expiry
 - Campaigns with UTM defaults
 - Workspaces, members, roles, and invitations

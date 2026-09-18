@@ -70,6 +70,8 @@ export default defineNuxtConfig({
     rootDomain: 'http://localhost:3000',
     multiWorkspace: false,
     allowRegistration: false,
+    // Both Turnstile keys set turns on the robot check on the email forms.
+    turnstileSecretKey: '',
     mail: {
       driver: '',
       from: 'Masir <no-reply@localhost>',
@@ -115,6 +117,7 @@ export default defineNuxtConfig({
     },
     public: {
       shortDomain: 'http://localhost:3000',
+      turnstileSiteKey: '',
     },
   },
 

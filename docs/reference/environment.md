@@ -128,6 +128,26 @@ not a rebuild.
 Set `NUXT_OAUTH_MICROSOFT_TENANT` to your tenant ID to accept one organisation
 only.
 
+## Bot protection
+
+| Variable | Default |
+|---|---|
+| `NUXT_PUBLIC_TURNSTILE_SITE_KEY` | — |
+| `NUXT_TURNSTILE_SECRET_KEY` | — |
+
+Set both and the email sign-in and sign-up forms show a Cloudflare Turnstile
+check. The server accepts a submit only after Cloudflare confirms the token.
+Leave both empty and the forms work as before. The OAuth buttons never show the
+check.
+
+Make the keys in the Cloudflare dashboard under Turnstile, add a widget, and
+list every hostname that serves the login page. With `NUXT_MULTI_WORKSPACE` on
+that is the root domain; the workspace subdomains do not serve it. The site key
+is public and goes into the browser. Keep the secret key on the server.
+
+Turning the check on or off needs a restart, not a rebuild. The server treats
+an unreachable Cloudflare as a failed check.
+
 ## Requests
 
 | Variable | Default | Notes |

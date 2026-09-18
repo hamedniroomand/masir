@@ -95,6 +95,10 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
         NUXT_STORAGE_ENDPOINT: 'http://127.0.0.1:9',
         NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test-client',
         NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test-secret',
+        // Cloudflare's documented test keys. The widget always passes, so the
+        // wiring is checked end to end. The script itself loads from Cloudflare.
+        NUXT_PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
+        NUXT_TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
       };
   }
 }

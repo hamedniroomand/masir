@@ -35,15 +35,20 @@ const error = ref('');
 const loading = ref(false);
 const sentTo = ref('');
 
+const { turnstileSiteKey } = useRuntimeConfig().public;
+const turnstileToken = ref('');
+const turnstile = useTemplateRef('turnstile');
+
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   error.value = '';
   loading.value = true;
   try {
-    await $fetch('/api/auth/register', { method: 'POST', body: event.data });
+    await $fetch('/api/auth/register', { method: 'POST', body: { ...event.data, turnstileToken: turnstileToken.value } });
     sentTo.value = event.data.email;
   }
-  catch {
-    error.value = 'We could not complete the registration. Try again.';
+  catch (failure) {
+    error.value = errorReason(failure, 'We could not complete the registration. Try again.');
+    turnstile.value?.reset();
   }
   finally {
     loading.value = false;
@@ -78,13 +83,14 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       :fields="fields"
       :validate-on="[]"
       :loading="loading"
-      :submit="{ label: 'Create account' }"
+      :submit="{ label: 'Create account', disabled: Boolean(turnstileSiteKey) && !turnstileToken }"
       @submit="onSubmit"
     >
       <template #password-help>
         <PasswordRules :value="password" />
       </template>
       <template #validation>
+        <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" />
         <p v-if="error" role="alert" class="text-sm text-error">
           {{ error }}
         </p>
