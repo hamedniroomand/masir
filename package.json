@@ -39,6 +39,7 @@
     "@iconify-json/lucide": "^1.2.133",
     "@iconify-json/simple-icons": "^1.2.96",
     "@internationalized/date": "^3.12.4",
+    "@nuxt/scripts": "^1.3.9",
     "@nuxt/ui": "^4.11.1",
     "@sentry/nuxt": "^10.75.0",
     "drizzle-orm": "rc",

@@ -26,6 +26,30 @@ describe('assertRuntimeConfig', () => {
     })).toThrow(/NUXT_DATABASE_URL/);
   });
 
+  it('throws for a google analytics id that is not a GA4 measurement id', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', scripts: { googleAnalytics: { id: 'UA-123' } } },
+    })).toThrow(/NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID/);
+  });
+
+  it('accepts an empty google analytics id', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', scripts: { googleAnalytics: { id: '' } } },
+    })).not.toThrow();
+  });
+
   it('accepts an empty Sentry DSN', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),

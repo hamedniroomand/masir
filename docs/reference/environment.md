@@ -148,6 +148,18 @@ is public and goes into the browser. Keep the secret key on the server.
 Turning the check on or off needs a restart, not a rebuild. The server treats
 an unreachable Cloudflare as a failed check.
 
+## Product analytics
+
+| Variable | Default | Notes |
+|---|---|---|
+| `NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID` | — | GA4 measurement ID. Empty keeps Google Analytics off |
+
+Set a GA4 measurement ID (`G-XXXXXXXX`) to record page views of the application.
+The tag loads after the interface is ready, and it stays off the short-link
+visitor pages. Leave it empty and the script is not requested.
+
+The ID is public. It reaches the browser.
+
 ## Error reporting
 
 Sentry stays off until at least one of these is set.

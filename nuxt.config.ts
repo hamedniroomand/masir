@@ -31,6 +31,7 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@vueuse/nuxt',
     'nuxt-auth-utils',
+    '@nuxt/scripts',
     '@sentry/nuxt/module',
   ],
 
@@ -172,6 +173,17 @@ export default defineNuxtConfig({
 
   fonts: {
     families: [{ name: 'Inter', provider: 'google', global: true }],
+  },
+
+  scripts: {
+    defaultScriptOptions: {
+      trigger: 'onNuxtReady',
+      warmupStrategy: false,
+    },
+    registry: {
+      googleAnalytics: {},
+    },
+    security: false,
   },
 
   typescript: {

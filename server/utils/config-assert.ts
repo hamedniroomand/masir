@@ -1,12 +1,15 @@
 import type { DeploymentConfig } from '#shared/deployment';
 import { assertDeploymentConfig } from '#shared/deployment';
 
+const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i;
+
 export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
   databaseUrl: string;
   oauth?: { microsoft?: { clientId?: string; tenant?: string } };
   public: {
     shortDomain: string;
+    scripts?: { googleAnalytics?: { id?: string } };
     sentry?: { dsn?: string; tracesSampleRate?: number | string };
   };
 }) {
@@ -34,6 +37,10 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   catch {
     throw new Error('Missing or invalid NUXT_PUBLIC_SHORT_DOMAIN (must be a valid http(s) URL)');
   }
+
+  const googleAnalyticsId = config.public.scripts?.googleAnalytics?.id;
+  if (googleAnalyticsId && !GA4_MEASUREMENT_ID.test(googleAnalyticsId))
+    throw new Error('Missing or invalid NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID (must be a GA4 measurement ID, G-XXXXXXXX)');
 
   const dsn = config.public.sentry?.dsn?.trim();
   if (dsn) {
