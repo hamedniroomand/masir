@@ -39,10 +39,6 @@ async function save() {
     showError(error);
   }
 }
-
-function setOneTime() {
-  state.maximumVisits = 1;
-}
 </script>
 
 <template>
@@ -55,10 +51,7 @@ function setOneTime() {
       <LinkTagInput v-model="state.tags" />
     </UFormField>
     <UFormField label="Maximum visits" description="Optional. The link stops after this many successful redirects.">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" />
-        <UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="setOneTime" />
-      </div>
+      <LinkVisitLimitField v-model="state.maximumVisits" />
     </UFormField>
     <UFormField label="Expiration destination" description="Optional. Send visitors here when the link expires.">
       <UInput v-model="state.expirationDestination" type="url" inputmode="url" placeholder="https://example.com/expired" />

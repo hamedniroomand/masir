@@ -93,6 +93,12 @@ test('saves a password, a schedule, and a visit cap from the access card', async
   await page.reload();
   await expect(page.getByLabel('Maximum visits')).toHaveValue('3');
   await expect(page.getByRole('button', { name: 'No expiry' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Remove limit' }).click();
+  await page.getByRole('button', { name: 'Save access settings' }).click();
+  await page.reload();
+  await expect(page.getByLabel('Maximum visits')).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Remove limit' })).toHaveCount(0);
 });
 
 test('shows the password badge on the link header', async ({ page, login }) => {

@@ -254,9 +254,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           <div class="space-y-4 px-2 pb-2 pt-4">
             <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
             <UFormField label="Maximum visits" name="maximumVisits" description="Optional. Stop the link after this many redirects.">
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <UInput v-model.number="state.maximumVisits" type="number" min="1" placeholder="No limit" class="sm:max-w-40" /><UButton type="button" label="One-time link" color="neutral" variant="outline" size="sm" @click="state.maximumVisits = 1" />
-              </div>
+              <LinkVisitLimitField v-model="state.maximumVisits" />
             </UFormField>
             <UFormField label="Password" name="password" description="Optional. Visitors must enter it before the redirect.">
               <UInput v-model="state.password" type="password" autocomplete="new-password" placeholder="No password" />
