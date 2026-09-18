@@ -4,6 +4,9 @@ Every link has a destination.
 
 Link manager for teams. Create short links, change destinations without changing the URL, and view click analytics.
 
+Documentation: <https://hamedniroomand.github.io/masir/>. Source:
+<https://github.com/hamedniroomand/masir>.
+
 One codebase serves two shapes. **Self-hosted** holds one workspace on your own
 host. **Cloud** holds many, each on its own subdomain. The schema is the same in
 both; a flag decides.
@@ -14,7 +17,7 @@ Postgres 18 or newer. Every primary key defaults to the native `uuidv7()`,
 which arrived in 18.
 
 ```sh
-git clone <repo>
+git clone https://github.com/hamedniroomand/masir.git
 cd masir
 cp .env.example .env
 # Edit .env — set NUXT_SESSION_PASSWORD (32+ chars), NUXT_PUBLIC_SHORT_DOMAIN and NUXT_DATABASE_URL
