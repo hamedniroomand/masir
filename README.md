@@ -285,6 +285,12 @@ bun run test
 
 `bun run test` starts the db service first and waits for it. It skips that step under `CI` and on a machine without Docker, where Postgres comes from somewhere else. The db service makes `masir_test` beside the application database on its first start. `TEST_DATABASE_URL` in `.env` points at it, and the tests create `masir_test_<file>` from it and keep them between runs. Drop these databases by hand if you rewrite an existing migration file. On a volume made before `masir_test` existed, the same step creates it.
 
+```sh
+bun run test:coverage
+```
+
+`bun run test:coverage` writes a coverage report to `coverage/`. The e2e server runs in its own process, so the report only holds code the test process imports: `shared/`, `server/utils/` and `app/composables/`. Route, repo and page modules read low for that reason, and only `shared/` has a threshold. CI runs this command.
+
 Browser tests drive the built app in Chromium through Playwright, once per deployment shape: single workspace, multi-workspace, and cloud.
 
 ```sh
@@ -301,4 +307,5 @@ bun run test:browser:run    # reuses the last build
 | `bun run db:migrate` | Apply migrations |
 | `bun run db:seed:admin` | First admin user |
 | `bun run test` | Tests (starts the db service first) |
+| `bun run test:coverage` | Tests with a coverage report in `coverage/` |
 | `bun run test:browser` | Browser tests, one project per deployment shape |

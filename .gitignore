@@ -31,3 +31,6 @@ logs
 
 test-results
 playwright-report
+
+# Coverage report
+coverage
