@@ -9,10 +9,6 @@ const inviteEmail = ref('');
 const error = ref('');
 const busy = ref(false);
 
-function reason(failure: unknown, fallback: string) {
-  return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason ?? fallback;
-}
-
 async function run(action: () => Promise<unknown>, fallback: string) {
   error.value = '';
   busy.value = true;
@@ -21,7 +17,7 @@ async function run(action: () => Promise<unknown>, fallback: string) {
     await Promise.all([refreshMembers(), refreshInvites()]);
   }
   catch (failure) {
-    error.value = reason(failure, fallback);
+    error.value = errorReason(failure, fallback);
   }
   finally {
     busy.value = false;

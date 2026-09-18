@@ -62,6 +62,8 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- A refused form shows the reason the server gave, not the generic HTTP text.
+  A link, a campaign, and a toast all read the reason from the response body
 - The sidebar and the workspace settings page show the workspace the host
   names, not the first membership; the root host of a multi-workspace instance
   goes to the workspace chooser

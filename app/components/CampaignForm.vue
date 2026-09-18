@@ -39,9 +39,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     emit('saved', saved);
   }
   catch (error: unknown) {
-    const err = error as { statusCode?: number; statusMessage?: string };
+    const err = error as { statusCode?: number };
     if (err.statusCode === 409)
-      form.value?.setErrors([{ name: 'utmCampaign', message: err.statusMessage ?? 'Invalid value.' }]);
+      form.value?.setErrors([{ name: 'utmCampaign', message: errorReason(error, 'Invalid value.') }]);
     else
       showError(error);
   }

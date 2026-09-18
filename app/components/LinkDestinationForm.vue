@@ -35,12 +35,12 @@ async function save(_event: FormSubmitEvent<Schema>) {
     emit('updated');
   }
   catch (error: unknown) {
-    const detail = error as { statusCode?: number; statusMessage?: string };
+    const detail = error as { statusCode?: number };
     if (detail.statusCode !== 422) {
       showError(error);
       return;
     }
-    form.value?.setErrors([{ name: 'destinationUrl', message: detail.statusMessage || 'Invalid URL.' }]);
+    form.value?.setErrors([{ name: 'destinationUrl', message: errorReason(error, 'Invalid URL.') }]);
   }
 }
 </script>

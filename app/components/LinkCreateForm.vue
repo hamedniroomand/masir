@@ -148,12 +148,12 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     reset();
   }
   catch (error: unknown) {
-    const err = error as { statusCode?: number; statusMessage?: string };
+    const err = error as { statusCode?: number };
     if (err.statusCode === 409) {
       setErrors([{ name: 'slug', message: 'This short link is already taken.' }]);
     }
     else if (err.statusCode === 422) {
-      setErrors([{ name: 'destinationUrl', message: err.statusMessage || 'Invalid input.' }]);
+      setErrors([{ name: 'destinationUrl', message: errorReason(error, 'Invalid input.') }]);
     }
     else if (err.statusCode === 429) {
       setErrors([{ name: 'destinationUrl', message: 'Too many links created. Try again later.' }]);
