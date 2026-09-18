@@ -40,6 +40,7 @@ pooled connection string.
 | Variable | Default | Notes |
 |---|---|---|
 | `NUXT_DEPLOYMENT_MODE` | `SELF_HOSTED` | Or `CLOUD` |
+| `NUXT_SERVERLESS` | from the build | `true` on the `vercel` preset; set it on a container that keeps no disk |
 | `NUXT_MULTI_WORKSPACE` | `false` | Subdomain per workspace |
 | `NUXT_SESSION_COOKIE_DOMAIN` | — | **Required** when multi-workspace is true |
 | `NUXT_SESSION_COOKIE_SECURE` | `true` | `false` only for plain http on a private network |
@@ -105,9 +106,9 @@ Bun's built-in S3 client, so neither adds a dependency.
 
 ::: warning The file provider needs a real disk
 It writes to the local filesystem, which works on a VPS or a container with a
-mounted volume and does not survive an edge or serverless cold start. With
-`NUXT_DEPLOYMENT_MODE=CLOUD` and no bucket, the app refuses to boot rather than
-lose every upload later.
+mounted volume and does not survive a serverless cold start. When
+`NUXT_SERVERLESS` is true and no bucket is set, the app refuses to boot rather
+than lose every upload later.
 :::
 
 ## OAuth

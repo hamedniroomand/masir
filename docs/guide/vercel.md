@@ -23,8 +23,8 @@ your project. It does **not** change the function runtime. Without
 runtime — after a green build.
 :::
 
-The Nitro preset switches itself: `vercel` when Vercel sets `VERCEL`, `bun`
-everywhere else.
+The Nitro preset switches itself: `vercel` when the build runs on Vercel, `bun`
+everywhere else. `bun` and `vercel` are the only presets the build accepts.
 
 ::: warning Never vercel-edge
 The edge runtime is a restricted environment. Bun's APIs, `node:zlib` for QR
@@ -50,9 +50,10 @@ run them constantly. Turn it off and migrate as a deploy step against the
 bun run db:migrate
 ```
 
-**Storage.** There is no disk that survives a request. The boot refuses a
-disk-backed provider in `CLOUD` mode and names the variable, so a missing
-bucket stops the deployment instead of losing uploads later.
+**Storage.** There is no disk that survives a request. The build marks the
+`vercel` preset as serverless, and the boot refuses a disk-backed provider
+there and names the variable, so a missing bucket stops the deployment
+instead of losing uploads later.
 
 **The pool.** Use a plain TCP Postgres connection, not Neon's HTTP driver.
 Fluid keeps an instance alive long enough to close idle connections, which is

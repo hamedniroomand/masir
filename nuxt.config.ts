@@ -1,12 +1,12 @@
 import { readdirSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { provider } from 'std-env';
+import { resolveNitroPreset } from './shared/nitro-preset';
 
-// vercel on Vercel, bun everywhere else. Never vercel-edge: the edge runtime
-// drops back to a restricted environment and Bun's own APIs stop working.
-function nitroPreset(): string {
-  return process.env.NITRO_PRESET ?? (process.env.VERCEL ? 'vercel' : 'bun');
-}
+// The build is the one place that knows the target for certain, so the
+// serverless flag is decided here and read from runtimeConfig at run time.
+const preset = resolveNitroPreset(process.env, provider);
 
 // Every page under app/pages renders on the client. Read from the directory,
 // so a new page needs no line here. A directory covers its index and children.
@@ -58,6 +58,10 @@ export default defineNuxtConfig({
         secure: true,
       },
     },
+    // true on a target that keeps no disk and no process between requests.
+    // Declared so NUXT_SERVERLESS=true can bind on a container that behaves
+    // the same way.
+    serverless: preset !== 'bun',
     sessionPassword: '',
     visitorHashSecret: '',
     databaseUrl: 'postgres://masir:masir@127.0.0.1:5432/masir',
@@ -141,7 +145,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset: nitroPreset(),
+    preset,
   },
 
   ui: {

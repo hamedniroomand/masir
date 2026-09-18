@@ -70,6 +70,9 @@ block. Read them for every version between yours and the one you install.
 
 ### Fixed
 
+- The file storage provider is refused on a serverless target, not in `CLOUD`
+  mode; a `CLOUD` instance on a server with a disk boots with it, and the build
+  accepts only the `bun` and `vercel` presets
 - Multi-workspace mode refuses to boot on `localhost` and asks for a hostname
   with a dot; browsers drop a `Domain=.localhost` cookie, so every sign-in on a
   workspace subdomain looped back to the login page
