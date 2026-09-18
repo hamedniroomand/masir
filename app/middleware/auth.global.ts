@@ -10,8 +10,9 @@ function isPublicShortLinkPath(path: string): boolean {
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const { loggedIn, fetch: fetchSession } = useUserSession();
-  await fetchSession();
+  const { loggedIn, ready, fetch: fetchSession } = useUserSession();
+  if (!ready.value)
+    await fetchSession();
 
   const isPublic = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
 
