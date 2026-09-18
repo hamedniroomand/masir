@@ -7,6 +7,8 @@ import { accountPasswordSchema } from '#shared/account-password';
 definePageMeta({ layout: 'auth' });
 
 const { data: providers } = await useFetch('/api/auth/providers');
+if (!providers.value?.registration)
+  await navigateTo('/login', { replace: true });
 const hasProviders = computed(() => Boolean(providers.value?.google || providers.value?.microsoft));
 const showEmailForm = ref(!hasProviders.value);
 

@@ -10,10 +10,10 @@ test('refuses registration when the operator turned it off', async ({ page }) =>
   });
   expect(api.status()).toBe(404);
 
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Create an account' })).toHaveCount(0);
+
   await page.goto('/register');
-  await page.getByLabel('Email').fill('stranger@example.com');
-  await page.getByLabel(/^Password/).fill('a-long-enough-pass1!');
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page).toHaveURL(/\/register$/);
+  await expect(page).toHaveURL(/\/login$/);
 });

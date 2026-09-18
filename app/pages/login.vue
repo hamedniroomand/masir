@@ -121,10 +121,12 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       <ULink to="/forgot-password">
         Forgot your password?
       </ULink>
-      <span class="mx-2">·</span>
-      <ULink to="/register">
-        Create an account
-      </ULink>
+      <template v-if="providers?.registration">
+        <span class="mx-2">·</span>
+        <ULink to="/register">
+          Create an account
+        </ULink>
+      </template>
     </p>
   </div>
 </template>
