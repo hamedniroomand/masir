@@ -1,3 +1,8 @@
+<script setup lang="ts">
+// plain drops the card for pages that read as a hero, such as the error page.
+defineProps<{ plain?: boolean }>();
+</script>
+
 <template>
   <div class="relative isolate flex min-h-dvh flex-col bg-[var(--workspace-bg)]">
     <BrandPattern variant="canvas" />
@@ -8,7 +13,10 @@
       <UColorModeButton size="sm" />
     </header>
     <main class="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
-      <div class="w-full max-w-[420px] rounded-xl border border-default bg-default p-7 shadow-panel sm:p-9">
+      <div v-if="plain" class="w-full max-w-[560px]">
+        <slot />
+      </div>
+      <div v-else class="w-full max-w-[420px] rounded-xl border border-default bg-default p-7 shadow-panel sm:p-9">
         <slot />
       </div>
     </main>

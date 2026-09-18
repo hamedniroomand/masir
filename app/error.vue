@@ -1,8 +1,12 @@
 <script setup lang="ts">
-const props = defineProps<{ error: { statusCode?: number; data?: { linkState?: string; startsAt?: string | null } } }>();
+import type { NuxtError } from '#app';
 
-const linkState = computed(() => props.error?.data?.linkState);
-const startsAt = computed(() => props.error?.data?.startsAt);
+const props = defineProps<{ error: NuxtError<{ linkState?: string; startsAt?: string | null }> }>();
+
+const linkState = computed(() => props.error.data?.linkState);
+const startsAt = computed(() => props.error.data?.startsAt);
+const statusCode = computed(() => props.error.statusCode ?? 500);
+const notFound = computed(() => statusCode.value === 404);
 
 const META = {
   disabled: { icon: 'i-lucide-pause', title: 'This link is currently unavailable.' },
@@ -15,34 +19,59 @@ const meta = computed(() => {
   const known = META[linkState.value as keyof typeof META];
   if (known)
     return known;
-  if (props.error?.statusCode === 404)
+  if (notFound.value)
     return { icon: 'i-lucide-link-2-off', title: 'Link not found.' };
   return { icon: 'i-lucide-triangle-alert', title: 'Something went wrong.' };
 });
 
-const activationText = computed(() => {
-  if (linkState.value !== 'scheduled' || !startsAt.value)
+const help = computed(() => {
+  if (linkState.value === 'scheduled' && startsAt.value)
     return '';
-  return new Date(startsAt.value).toLocaleString();
+  if (notFound.value)
+    return 'Check the address, or ask the person who shared it for a new link.';
+  return 'Try again in a moment. If it keeps happening, report it so we can look into it.';
 });
+
+const opensAt = computed(() => {
+  if (linkState.value !== 'scheduled' || !startsAt.value)
+    return null;
+  const date = new Date(startsAt.value);
+  return {
+    iso: date.toISOString(),
+    text: new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeStyle: 'short' }).format(date),
+  };
+});
+
+// The visitor typed this path, so showing it back leaks nothing new.
+const { pathname } = useRequestURL();
+const path = pathname === '/' ? '' : pathname;
+
+useHead({ title: () => `${meta.value.title.replace(/\.$/, '')} · Masir` });
 </script>
 
 <template>
-  <NuxtLayout name="auth">
-    <div class="mb-6 flex size-11 items-center justify-center rounded-lg border border-default bg-muted/50 text-muted shadow-control">
-      <UIcon :name="meta.icon" class="size-5" aria-hidden="true" />
-    </div>
-    <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
+  <NuxtLayout name="auth" plain>
+    <ErrorRouteArt :icon="meta.icon" class="mb-10" />
+    <p class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-muted">
+      <span>Error {{ statusCode }}</span>
+      <template v-if="path">
+        <span class="text-dimmed">/</span>
+        <code class="rounded-md border border-default bg-default px-1.5 py-0.5 font-mono text-[11px] normal-case tracking-normal text-toned shadow-control">{{ path }}</code>
+      </template>
+    </p>
+    <h1 class="mt-3 text-3xl font-semibold tracking-tight text-highlighted sm:text-4xl">
       {{ meta.title }}
     </h1>
-    <p v-if="activationText" class="mt-2 text-sm text-muted">
-      Opens {{ activationText }}
+    <p v-if="opensAt" class="mt-3 text-sm leading-6 text-muted">
+      Opens <time :datetime="opensAt.iso" class="font-medium text-toned">{{ opensAt.text }}</time>
     </p>
-    <p v-else class="mt-2 text-sm text-muted">
-      Check the address, or ask the person who shared it for a new link.
+    <p v-else class="mt-3 max-w-[44ch] text-sm leading-6 text-muted">
+      {{ help }}
     </p>
-    <div class="mt-7 flex flex-wrap gap-2">
-      <UButton to="/" label="Go to Masir" color="neutral" variant="outline" size="sm" /><UButton to="/report" label="Report a problem" variant="ghost" size="sm" />
+    <div class="mt-8 flex flex-wrap gap-2">
+      <UButton v-if="!notFound" label="Try again" icon="i-lucide-rotate-cw" @click="clearError()" />
+      <UButton to="/" label="Go to Masir" color="neutral" variant="outline" />
+      <UButton to="/report" label="Report a problem" variant="ghost" />
     </div>
   </NuxtLayout>
 </template>

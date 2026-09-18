@@ -19,6 +19,7 @@ block. Read them for every version between yours and the one you install.
 - The verify email page shows a loader while it checks the link and an alert when the link fails; a visit without a token goes to the login page
 - The register page and the new-workspace page show the check-your-inbox notice with Resend, so the emailed link and the URL carry only the token
 - Click analytics without IP storage
+- Error page with a route illustration, the status code, the requested path, and a Try again action for errors other than 404
 - Self-hosted and multi-workspace deployment modes
 - Compatibility rules, this changelog, and the upgrade guide
 - Development stack in `compose.dev.yaml` with hot reload and Mailpit
