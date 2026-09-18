@@ -48,7 +48,7 @@ export function databaseUrlOf(scenario: Scenario) {
 // may reach a test server or the bridge, so both run with --env-file=/dev/null
 // and an environment without NUXT_ values.
 export function cleanEnv() {
-  return Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('NUXT_'))) as Record<string, string>;
+  return Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('NUXT_') && !key.startsWith('SENTRY_'))) as Record<string, string>;
 }
 
 export function serverEnv(scenario: Scenario): Record<string, string> {

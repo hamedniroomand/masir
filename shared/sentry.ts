@@ -33,6 +33,6 @@ export function sentryDsn(env: Record<string, string | undefined> = process.env)
 export function sentryTracesSampleRate(value: unknown) {
   const rate = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(rate))
-    return 1;
+    return 0;
   return Math.min(1, Math.max(0, rate));
 }

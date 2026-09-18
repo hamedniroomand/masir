@@ -10,7 +10,6 @@ ARG NUXT_PUBLIC_SENTRY_RELEASE
 ARG SENTRY_DSN
 ARG SENTRY_ENVIRONMENT
 ARG SENTRY_RELEASE
-ARG SENTRY_AUTH_TOKEN
 ARG SENTRY_ORG
 ARG SENTRY_PROJECT
 ARG SENTRY_URL
@@ -21,7 +20,6 @@ ENV NUXT_PUBLIC_SENTRY_RELEASE=$NUXT_PUBLIC_SENTRY_RELEASE
 ENV SENTRY_DSN=$SENTRY_DSN
 ENV SENTRY_ENVIRONMENT=$SENTRY_ENVIRONMENT
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
-ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 ENV SENTRY_ORG=$SENTRY_ORG
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
 ENV SENTRY_URL=$SENTRY_URL
@@ -30,7 +28,10 @@ COPY docs/package.json ./docs/
 # --filter keeps the docs site's toolchain out of the app image.
 RUN bun install --frozen-lockfile --filter masir
 COPY . .
-RUN bun run build
+# The token is a build secret, not an ARG. An ARG would stay in the layer
+# history and the build cache.
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" bun run build
 # The runtime image has no source or node_modules, so the operator scripts
 # ship as bundles next to the server.
 RUN bun build scripts/migrate.ts scripts/seed-admin.ts --target bun --outdir .output/scripts

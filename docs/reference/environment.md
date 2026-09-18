@@ -168,7 +168,7 @@ Sentry stays off until at least one of these is set.
 |---|---|---|
 | `NUXT_PUBLIC_SENTRY_DSN` | — | Project DSN. The browser reads this one |
 | `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | — | `production`, `staging`, or your own label |
-| `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `1` | Fraction of requests to trace, from 0 to 1 |
+| `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `0` | Fraction of requests to trace, from 0 to 1. `0` sends errors only |
 | `NUXT_PUBLIC_SENTRY_RELEASE` | — | Release name. Empty lets the SDK pick |
 | `SENTRY_AUTH_TOKEN` | — | Build only. Uploads source maps |
 | `SENTRY_ORG` | — | Build only. Organisation slug |
@@ -182,7 +182,9 @@ because the module is compiled in only when at least one of them is set.
 
 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are read at **build**.
 Set them in the environment that runs `nuxt build` if you want readable client
-stack traces. `SENTRY_URL` points the upload at a self-hosted Sentry; leave it
+stack traces. The Docker build takes the token as a build secret named
+`sentry_auth_token`, never as a build argument, so it stays out of the image
+layers. Compose fills it from `SENTRY_AUTH_TOKEN` in your shell or `.env`. `SENTRY_URL` points the upload at a self-hosted Sentry; leave it
 empty for sentry.io.
 
 The Docker start command does not change. Server-side Sentry loads through a

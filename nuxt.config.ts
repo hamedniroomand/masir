@@ -125,7 +125,7 @@ export default defineNuxtConfig({
       sentry: {
         dsn: '',
         environment: '',
-        tracesSampleRate: 1,
+        tracesSampleRate: 0,
         release: '',
       },
     },

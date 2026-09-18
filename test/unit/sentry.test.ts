@@ -32,9 +32,10 @@ describe('sentryDsn', () => {
 });
 
 describe('sentryTracesSampleRate', () => {
-  it('clamps a number to 0..1 and falls back to 1', () => {
+  it('clamps a number to 0..1 and falls back to 0', () => {
     expect(sentryTracesSampleRate(0.2)).toBe(0.2);
     expect(sentryTracesSampleRate('0')).toBe(0);
-    expect(sentryTracesSampleRate('nope')).toBe(1);
+    expect(sentryTracesSampleRate('nope')).toBe(0);
+    expect(sentryTracesSampleRate(undefined)).toBe(0);
   });
 });
