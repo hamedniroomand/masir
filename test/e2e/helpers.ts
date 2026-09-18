@@ -113,6 +113,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   workspaceId: string;
   createdBy?: string;
   slug: string;
+  title?: string;
   destinationUrl?: string;
   isEnabled?: boolean;
   expiresAt?: Date | null;
@@ -130,6 +131,7 @@ export async function insertTestLink(databaseUrl: string, input: {
     workspaceId: input.workspaceId,
     createdBy: input.createdBy ?? null,
     slug: input.slug,
+    title: input.title ?? null,
     destinationUrl: input.destinationUrl ?? 'https://example.com/target',
     destinationHost: 'example.com',
     isEnabled: input.isEnabled ?? true,

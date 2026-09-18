@@ -23,6 +23,7 @@
     "typecheck": "nuxt typecheck",
     "pretest": "sh scripts/test-db.sh",
     "test": "bun --bun vitest run",
+    "pretest:browser": "sh scripts/test-db.sh && sh scripts/stop-browser-servers.sh",
     "pretest:browser:run": "sh scripts/test-db.sh",
     "test:browser": "bun run build && playwright test",
     "test:browser:run": "playwright test",

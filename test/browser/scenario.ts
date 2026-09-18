@@ -6,7 +6,12 @@ export type Scenario = 'single' | 'multi' | 'cloud';
 
 export const SESSION_PASSWORD = '01234567890123456789012345678901';
 
-const PORTS: Record<Scenario, number> = { single: 3101, multi: 3102, cloud: 3103 };
+// Two checkouts of this repository would otherwise share a port and a database,
+// and one run would truncate the other's rows. MASIR_TEST_SLOT moves one aside.
+// Keep it in step with scripts/stop-browser-servers.sh.
+const SLOT = Number(process.env.MASIR_TEST_SLOT) || 0;
+
+const PORTS: Record<Scenario, number> = { single: 3101 + SLOT * 10, multi: 3102 + SLOT * 10, cloud: 3103 + SLOT * 10 };
 
 // Chromium stores a cookie for `localhost` as host-only and ignores a Domain
 // of `.localhost`, so a session set on the root host never reaches
@@ -33,7 +38,7 @@ export function hostUrl(scenario: Scenario, slug: string) {
 
 export function databaseUrlOf(scenario: Scenario) {
   const url = new URL(process.env.TEST_DATABASE_URL ?? 'postgres://masir:masir@127.0.0.1:5432/masir_test');
-  url.pathname = `/masir_test_browser_${scenario}`;
+  url.pathname = `/masir_test_browser_${scenario}${SLOT ? `_${SLOT}` : ''}`;
   return url.toString();
 }
 
@@ -55,6 +60,10 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     NUXT_ROOT_DOMAIN: origin,
     NUXT_PUBLIC_SHORT_DOMAIN: origin,
     NUXT_MAIL_DRIVER: 'outbox',
+    // One worker drives every test in order, and most of them sign in. Ten
+    // sign-ins a minute would refuse the eleventh test in a file. The HTTP
+    // suite tests the limit itself.
+    NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '1000',
   };
   const multi = {
     NUXT_MULTI_WORKSPACE: 'true',

@@ -25,8 +25,14 @@ export default defineConfig<{ scenario: Scenario }>({
   reporter: process.env.CI
     ? [['list'], ['html', { open: 'never' }]]
     : 'list',
+  // Three servers and a browser share one machine, and the pages fetch their
+  // data after they load. The 5s default reads that as a missing element.
+  expect: { timeout: 10_000 },
   use: {
     ...devices['Desktop Chrome'],
+    // Taller than the 720 of Desktop Chrome. A date popover on a long settings
+    // page puts its buttons below that fold, where a click never lands.
+    viewport: { width: 1280, height: 1024 },
     trace: 'on-first-retry',
     // See TEST_DOMAIN: the multi-workspace hosts resolve inside Chromium only.
     launchOptions: { args: [`--host-resolver-rules=MAP *.${TEST_DOMAIN} 127.0.0.1, MAP ${TEST_DOMAIN} 127.0.0.1`] },

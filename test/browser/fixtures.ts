@@ -26,12 +26,49 @@ export type TestServer = {
   hostUrl: (slug: string) => string;
 };
 
+export type LinkSeed = {
+  workspaceId: string;
+  slug: string;
+  createdBy?: string;
+  title?: string;
+  destinationUrl?: string;
+  startsAt?: string;
+  expiresAt?: string;
+  isEnabled?: boolean;
+  password?: string;
+  maximumVisits?: number;
+  expirationDestination?: string;
+  clickCount?: number;
+  campaignId?: string;
+  utmSource?: string;
+  tags?: string[];
+};
+
+export type ClickSeed = {
+  workspaceId: string;
+  linkId: string;
+  count?: number;
+  outcome?: 'redirect_success' | 'bot_request' | 'password_failed';
+  device?: 'desktop' | 'mobile' | 'tablet' | 'other';
+  browser?: 'chrome' | 'firefox' | 'safari' | 'edge' | 'other';
+  country?: string;
+  referrer?: string;
+  visitor?: number;
+  minutesAgo?: number;
+};
+
 export type Db = {
   reset: () => { userId: string; workspaceId: string };
   insertUser: (input: { email: string; password: string; verified?: boolean }) => string;
   insertWorkspace: (input: { slug: string; ownerUserId: string; name?: string }) => string;
-  insertLink: (input: { workspaceId: string; slug: string; destinationUrl?: string; startsAt?: string; expiresAt?: string; isEnabled?: boolean }) => string;
+  insertLink: (input: LinkSeed) => string;
+  insertLinks: (input: Omit<LinkSeed, 'slug'> & { slugs: string[] }) => string[];
+  insertCampaign: (input: { workspaceId: string; utmCampaign: string; name?: string }) => string;
+  insertMember: (input: { workspaceId: string; userId: string; role?: 'owner' | 'member'; deactivated?: boolean }) => void;
+  insertIdentity: (input: { userId: string; provider?: 'google' | 'microsoft' }) => void;
+  insertClicks: (input: ClickSeed) => void;
   lastToken: (to: string) => string | null;
+  mailCount: (to: string) => number;
 };
 
 // Worker-scoped so a beforeAll can seed with them.
@@ -42,7 +79,7 @@ type WorkerFixtures = {
 };
 
 type TestFixtures = {
-  login: (email?: string, password?: string) => Promise<void>;
+  login: (email?: string, password?: string, options?: { allowFailure?: boolean }) => Promise<void>;
 };
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -59,22 +96,36 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       insertUser: input => bridge('insert-user', { url, ...input }),
       insertWorkspace: input => bridge('insert-workspace', { url, ...input }),
       insertLink: input => bridge('insert-link', { url, ...input }),
+      insertLinks: input => bridge('insert-links', { url, ...input }),
+      insertCampaign: input => bridge('insert-campaign', { url, ...input }),
+      insertMember: input => bridge('insert-member', { url, ...input }),
+      insertIdentity: input => bridge('insert-identity', { url, ...input }),
+      insertClicks: input => bridge('insert-clicks', { url, ...input }),
       lastToken: to => bridge('last-token', { url, to }),
+      mailCount: to => bridge('mail-count', { url, to }),
     });
   }, { scope: 'worker' }],
 
   login: async ({ page }, use) => {
-    await use(async (email = OWNER_EMAIL, password = OWNER_PASSWORD) => {
+    await use(async (email = OWNER_EMAIL, password = OWNER_PASSWORD, options = {}) => {
       await page.goto('/login');
       // With a sign-in provider configured the password form hides behind a link.
+      // The page renders on the client, so wait for one of the two before the
+      // choice, or a cold server reads as "no link" and the form never fills.
       const emailLink = page.getByRole('button', { name: 'Sign in with email instead' });
+      await expect(emailLink.or(page.getByLabel('Password'))).toBeVisible();
       if (await emailLink.isVisible())
         await emailLink.click();
       await page.getByLabel('Email').fill(email);
       await page.getByLabel('Password').fill(password);
       await page.getByRole('button', { name: 'Sign in' }).click();
-      // A wrong password stays on /login; the caller asserts that itself.
-      await page.waitForURL(url => !url.pathname.startsWith('/login') || url.searchParams.has('redirect'), { timeout: 10_000 }).catch(() => {});
+      // A sign-in that never leaves /login is an error, unless the caller tests
+      // exactly that. Report it here, not as a timeout in a later step.
+      const left = page.waitForURL(url => !url.pathname.startsWith('/login') || url.searchParams.has('redirect'), { timeout: 10_000 });
+      if (options.allowFailure)
+        await left.catch(() => {});
+      else
+        await left;
     });
   },
 });

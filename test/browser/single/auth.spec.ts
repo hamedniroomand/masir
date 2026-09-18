@@ -28,7 +28,7 @@ test('shows field errors on an empty submit and clears them as the user types', 
 });
 
 test('answers a wrong password with one generic error', async ({ page, login }) => {
-  await login('test@example.com', 'not-the-password');
+  await login('test@example.com', 'not-the-password', { allowFailure: true });
   await expect(page.getByRole('alert')).toHaveText('Invalid email or password.');
   await expect(page).toHaveURL(/\/login$/);
 });
