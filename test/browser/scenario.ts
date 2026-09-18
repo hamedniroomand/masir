@@ -65,8 +65,10 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     // Every test signs in from one loopback address inside one minute. The
     // default of 10 refuses the eleventh test.
     NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '100',
-    // Logo uploads go to a scratch directory, not into the repository.
+    // Logo uploads go to a scratch directory, not into the repository. The
+    // public base must name this server, or every logo points at port 3000.
     NUXT_STORAGE_LOCAL_ROOT: join(tmpdir(), 'masir-browser-uploads'),
+    NUXT_STORAGE_PUBLIC_BASE_URL: `${origin}/uploads`,
   };
   const multi = {
     NUXT_MULTI_WORKSPACE: 'true',

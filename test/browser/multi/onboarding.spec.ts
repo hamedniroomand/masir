@@ -3,7 +3,9 @@ import { expect, test } from '../fixtures';
 
 const EMAIL = 'founder@example.com';
 const PASSWORD = 'founder-password-12345';
-const PNG = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, ...Array.from({ length: 24 }).fill(0) as number[]]);
+// A real 1x1 image. A signature with padding passes the byte check, but the
+// browser cannot decode it, and the avatar then falls back to the initial.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 test.beforeAll(({ db }) => {
   db.reset();
