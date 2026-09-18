@@ -102,6 +102,17 @@ test('adds a tag that exists and a tag the user names', async ({ page, login }) 
   await expect(page.getByRole('button', { name: 'docs' })).toBeVisible();
 });
 
+test('clears the tag input after Enter creates a tag', async ({ page, login }) => {
+  await login();
+  const dialog = await openCreateForm(page);
+  await dialog.getByRole('button', { name: 'Tags' }).click();
+  const tags = dialog.getByRole('combobox', { name: 'Tags' });
+  await tags.fill('brand-new');
+  await tags.press('Enter');
+  await expect(tags).toHaveValue('');
+  await expect(dialog.getByText('brand-new')).toBeVisible();
+});
+
 test('refuses a destination that is not http or https', async ({ page, login }) => {
   await login();
   const dialog = await openCreateForm(page);
