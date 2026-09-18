@@ -11,6 +11,7 @@ block. Read them for every version between yours and the one you install.
 
 ### Added
 
+- The sign-in pages link to the project on GitHub, and the account menu links to the documentation and to GitHub
 - Optional Sentry error and trace reporting. Leave every `NUXT_PUBLIC_SENTRY_*` and `SENTRY_*` variable empty to keep it off; set at least one to turn it on
 - Optional Cloudflare Turnstile check on the email sign-in and sign-up forms; `NUXT_PUBLIC_TURNSTILE_SITE_KEY` and `NUXT_TURNSTILE_SECRET_KEY` turn it on
 - Links with slugs, destinations, tags, schedules, passwords, and expiry

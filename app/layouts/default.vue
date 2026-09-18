@@ -31,7 +31,11 @@ const accountMenu = computed(() => {
         }))],
       }]]
     : [];
-  return [...switcher, [{ label: 'Sign out', icon: 'i-lucide-log-out', onSelect: signOut }]];
+  const help = [
+    { label: 'Documentation', icon: 'i-lucide-book-open', to: 'https://hamedniroomand.github.io/masir/', target: '_blank' },
+    { label: 'GitHub', icon: 'i-simple-icons-github', to: 'https://github.com/hamedniroomand/masir', target: '_blank' },
+  ];
+  return [...switcher, help, [{ label: 'Sign out', icon: 'i-lucide-log-out', onSelect: signOut }]];
 });
 const route = useRoute();
 const config = useRuntimeConfig();

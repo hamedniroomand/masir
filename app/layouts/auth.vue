@@ -22,6 +22,10 @@ defineProps<{ plain?: boolean }>();
     </main>
     <footer class="flex items-center justify-center gap-2 px-6 py-6 text-xs text-muted">
       <UIcon name="i-lucide-link-2" class="size-3.5" />Masir<span class="mx-1 text-dimmed">/</span>Every link has a destination.
+      <span class="mx-1 text-dimmed">/</span>
+      <ULink to="https://github.com/hamedniroomand/masir" target="_blank" rel="noopener" aria-label="Masir on GitHub" class="inline-flex items-center">
+        <UIcon name="i-simple-icons-github" class="size-3.5" />
+      </ULink>
     </footer>
   </div>
 </template>
