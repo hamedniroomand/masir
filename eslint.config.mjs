@@ -29,6 +29,14 @@ export default antfu({
     }],
   },
 }, {
+  files: ['app/**/*.{ts,vue}'],
+  ignores: ['app/pages/login.vue', 'app/pages/register.vue', 'app/pages/forgot-password.vue', 'app/pages/reset-password.vue', 'app/pages/verify-email.vue', 'app/pages/report.vue', 'app/pages/p/**', 'app/components/VerifyEmailNotice.vue', 'app/composables/useSignOut.ts', 'app/plugins/api.ts', 'app/composables/useApi.ts'],
+  rules: {
+    // A signed-in call goes through the api plugin so a 401 sends the user to
+    // sign in. Public and auth pages keep the plain fetch on purpose.
+    'no-restricted-globals': ['error', { name: 'useFetch', message: 'Use useApi so a 401 redirects to login.' }, { name: '$fetch', message: 'Use useNuxtApp().$api so a 401 redirects to login.' }],
+  },
+}, {
   files: ['scripts/**/*.ts'],
   rules: {
     // A command line script reports its result on stdout.

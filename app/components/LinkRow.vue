@@ -2,7 +2,10 @@
 import type { LinkItem } from '~/composables/useLinks';
 
 const props = defineProps<{ link: LinkItem }>();
+
 const emit = defineEmits<{ refresh: [] }>();
+
+const { $api } = useNuxtApp();
 
 const { copy, copied } = useClipboard();
 const showError = useErrorToast();
@@ -26,7 +29,7 @@ async function toggleEnabled() {
 async function remove() {
   deleting.value = true;
   try {
-    await $fetch(`/api/links/${props.link.id}`, { method: 'DELETE' });
+    await $api(`/api/links/${props.link.id}`, { method: 'DELETE' });
     modal.value = false;
     emit('refresh');
   }

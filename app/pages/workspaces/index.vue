@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' });
 
-const { data } = await useFetch<{ items: { id: string; name: string; slug: string; url: string }[] }>('/api/workspaces');
+const { data } = await useApi<{ items: { id: string; name: string; slug: string; url: string }[] }>('/api/workspaces');
 </script>
 
 <template>

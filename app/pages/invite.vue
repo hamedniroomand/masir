@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' });
 
+const { $api } = useNuxtApp();
+
 const route = useRoute();
 const { loggedIn } = useUserSession();
 const token = computed(() => typeof route.query.token === 'string' ? route.query.token : '');
@@ -16,16 +18,16 @@ onMounted(async () => {
   }
   // The token survives the sign-in round trip in the redirect query.
   if (!loggedIn.value) {
-    await navigateTo(`/login?redirect=${encodeURIComponent(`/invite?token=${token.value}`)}`);
+    await navigateTo(loginPath(`/invite?token=`));
     return;
   }
   try {
-    const res = await $fetch<{ workspace: { slug: string } | null }>('/api/workspaces/invitations/accept', {
+    const res = await $api<{ workspace: { slug: string } | null }>('/api/workspaces/invitations/accept', {
       method: 'POST',
       body: { token: token.value },
     });
     state.value = 'done';
-    const workspaces = await $fetch<{ items: { slug: string; url: string }[] }>('/api/workspaces');
+    const workspaces = await $api<{ items: { slug: string; url: string }[] }>('/api/workspaces');
     const joined = workspaces.items.find(item => item.slug === res.workspace?.slug);
     window.location.href = joined?.url ?? '/';
   }

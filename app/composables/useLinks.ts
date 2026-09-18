@@ -61,7 +61,7 @@ export function useLinksList() {
     }),
   });
 
-  const { data, pending, refresh, error } = useFetch(() => '/api/links', {
+  const { data, pending, refresh, error } = useApi(() => '/api/links', {
     query: computed(() => ({
       q: search.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
@@ -72,7 +72,7 @@ export function useLinksList() {
     })),
   });
 
-  const { data: tagList } = useFetch<{ items: { name: string }[] }>(() => '/api/tags');
+  const { data: tagList } = useApi<{ items: { name: string }[] }>(() => '/api/tags');
 
   function toggleTag(name: string) {
     const set = new Set(selectedTags.value);

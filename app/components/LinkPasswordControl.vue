@@ -2,7 +2,10 @@
 import type { LinkItem } from '~/composables/useLinks';
 
 const props = defineProps<{ link: LinkItem }>();
+
 const emit = defineEmits<{ updated: [] }>();
+
+const { $api } = useNuxtApp();
 
 const showError = useErrorToast();
 const password = ref('');
@@ -10,7 +13,7 @@ const saving = ref(false);
 const removing = ref(false);
 
 async function patchPassword(value: string | null) {
-  await $fetch(`/api/links/${props.link.id}`, { method: 'PATCH', body: { password: value } });
+  await $api(`/api/links/${props.link.id}`, { method: 'PATCH', body: { password: value } });
   password.value = '';
   emit('updated');
 }

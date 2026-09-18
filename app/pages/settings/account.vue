@@ -1,8 +1,10 @@
 <script setup lang="ts">
 type Identity = { id: string; provider: string; createdAt: string };
 
-const { data, refresh } = await useFetch<{ items: Identity[] }>('/api/auth/identities');
-const { data: providers } = await useFetch('/api/auth/providers');
+const { $api } = useNuxtApp();
+
+const { data, refresh } = await useApi<{ items: Identity[] }>('/api/auth/identities');
+const { data: providers } = await useApi('/api/auth/providers');
 const error = ref('');
 
 const connected = computed(() => new Set((data.value?.items ?? []).map(i => i.provider)));
@@ -10,7 +12,7 @@ const connected = computed(() => new Set((data.value?.items ?? []).map(i => i.pr
 async function disconnect(id: string) {
   error.value = '';
   try {
-    await $fetch(`/api/auth/identities/${id}`, { method: 'DELETE' });
+    await $api(`/api/auth/identities/${id}`, { method: 'DELETE' });
     await refresh();
   }
   catch (failure) {

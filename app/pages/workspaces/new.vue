@@ -2,6 +2,8 @@
 import * as v from 'valibot';
 import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-slug';
 
+const { $api } = useNuxtApp();
+
 definePageMeta({ layout: 'auth' });
 
 const { user } = useUserSession();
@@ -37,7 +39,7 @@ async function uploadLogo(workspaceId: string, file: File) {
   body.set('workspaceId', workspaceId);
   body.set('file', file);
   try {
-    await $fetch('/api/workspaces/logo', { method: 'POST', body });
+    await $api('/api/workspaces/logo', { method: 'POST', body });
   }
   catch (failure) {
     showError(failure);
@@ -48,7 +50,7 @@ async function onSubmit() {
   error.value = '';
   loading.value = true;
   try {
-    const workspace = await $fetch<{ id: string; slug: string }>('/api/workspaces', {
+    const workspace = await $api<{ id: string; slug: string }>('/api/workspaces', {
       method: 'POST',
       body: { name: state.name, slug: state.slug },
     });

@@ -15,7 +15,7 @@ const tab = computed({
 const tabIcons = { overview: 'i-lucide-chart-no-axes-combined', settings: 'i-lucide-sliders-horizontal', history: 'i-lucide-history' };
 const tabItems = LINK_TABS.map(value => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1), icon: tabIcons[value] }));
 
-const { data: link, error, refresh: refreshLink } = await useFetch<LinkItem>(() => `/api/links/${id.value}`);
+const { data: link, error, refresh: refreshLink } = await useApi<LinkItem>(() => `/api/links/${id.value}`);
 
 useHead({ title: () => `${link.value?.title || link.value?.slug || 'Link'} · Masir` });
 

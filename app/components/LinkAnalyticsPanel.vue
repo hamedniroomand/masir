@@ -4,7 +4,7 @@ const props = defineProps<{ linkId: string }>();
 const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
 const traffic = ref<'human' | 'bot' | 'all'>('human');
 
-const { data: analytics } = useFetch(() => `/api/links/${props.linkId}/analytics`, {
+const { data: analytics } = useApi(() => `/api/links/${props.linkId}/analytics`, {
   query: computed(() => ({ period: period.value, traffic: traffic.value })),
   watch: [period, traffic],
 });

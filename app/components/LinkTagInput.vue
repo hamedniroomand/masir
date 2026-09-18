@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const model = defineModel<string[]>({ default: () => [] });
 
-const { data } = useFetch<{ items: { name: string }[] }>(() => '/api/tags');
+const { data } = useApi<{ items: { name: string }[] }>(() => '/api/tags');
 
 const items = computed(() => data.value?.items.map(tag => tag.name) ?? []);
 

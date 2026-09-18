@@ -2,8 +2,10 @@
 type Member = { userId: string; email: string; role: string; isActive: boolean };
 type Invitation = { id: string; email: string; expiresAt: string };
 
-const { data: members, refresh: refreshMembers } = await useFetch<{ items: Member[] }>('/api/workspaces/members');
-const { data: invites, refresh: refreshInvites } = await useFetch<{ items: Invitation[] }>('/api/workspaces/invitations');
+const { $api } = useNuxtApp();
+
+const { data: members, refresh: refreshMembers } = await useApi<{ items: Member[] }>('/api/workspaces/members');
+const { data: invites, refresh: refreshInvites } = await useApi<{ items: Invitation[] }>('/api/workspaces/invitations');
 
 const inviteEmail = ref('');
 const error = ref('');
@@ -26,42 +28,42 @@ async function run(action: () => Promise<unknown>, fallback: string) {
 
 function invite() {
   return run(async () => {
-    await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email: inviteEmail.value } });
+    await $api('/api/workspaces/invitations', { method: 'POST', body: { email: inviteEmail.value } });
     inviteEmail.value = '';
   }, 'We could not send the invitation.');
 }
 
 function revoke(id: string) {
   return run(
-    () => $fetch(`/api/workspaces/invitations/${id}`, { method: 'DELETE' }),
+    () => $api(`/api/workspaces/invitations/${id}`, { method: 'DELETE' }),
     'We could not revoke the invitation.',
   );
 }
 
 function resend(id: string) {
   return run(
-    () => $fetch(`/api/workspaces/invitations/${id}/resend`, { method: 'POST' }),
+    () => $api(`/api/workspaces/invitations/${id}/resend`, { method: 'POST' }),
     'We could not resend the invitation.',
   );
 }
 
 function setActive(userId: string, isActive: boolean) {
   return run(
-    () => $fetch(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { isActive } }),
+    () => $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { isActive } }),
     'We could not change this member.',
   );
 }
 
 function removeMember(userId: string) {
   return run(
-    () => $fetch(`/api/workspaces/members/${userId}`, { method: 'DELETE' }),
+    () => $api(`/api/workspaces/members/${userId}`, { method: 'DELETE' }),
     'We could not remove this member.',
   );
 }
 
 function transfer(userId: string) {
   return run(
-    () => $fetch('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } }),
+    () => $api('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } }),
     'We could not transfer ownership.',
   );
 }

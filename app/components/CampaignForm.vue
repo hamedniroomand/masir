@@ -4,7 +4,10 @@ import type { CampaignItem } from '~/composables/useCampaigns';
 import * as v from 'valibot';
 
 const props = defineProps<{ campaign?: CampaignItem }>();
+
 const emit = defineEmits<{ saved: [campaign: CampaignItem] }>();
+
+const { $api } = useNuxtApp();
 
 const schema = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a campaign name.')),
@@ -29,7 +32,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
   loading.value = true;
   form.value?.clear();
   try {
-    const saved = await $fetch<CampaignItem>(
+    const saved = await $api<CampaignItem>(
       props.campaign ? `/api/campaigns/${props.campaign.id}` : '/api/campaigns',
       {
         method: props.campaign ? 'PATCH' : 'POST',

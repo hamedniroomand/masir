@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { CampaignItem } from '~/composables/useCampaigns';
 
+const { $api } = useNuxtApp();
+
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
@@ -11,9 +13,9 @@ const deleting = ref(false);
 const deleteOpen = ref(false);
 const showError = useErrorToast();
 
-const { data: campaign, error, refresh: refreshCampaign } = await useFetch<CampaignItem>(() => `/api/campaigns/${id.value}`);
+const { data: campaign, error, refresh: refreshCampaign } = await useApi<CampaignItem>(() => `/api/campaigns/${id.value}`);
 
-const { data: analytics, refresh: refreshAnalytics } = useFetch(() => `/api/campaigns/${id.value}/analytics`, {
+const { data: analytics, refresh: refreshAnalytics } = useApi(() => `/api/campaigns/${id.value}/analytics`, {
   query: computed(() => ({ period: period.value })),
   watch: [period],
 });
@@ -30,7 +32,7 @@ async function onSaved() {
 async function removeCampaign() {
   deleting.value = true;
   try {
-    await $fetch(`/api/campaigns/${id.value}`, { method: 'DELETE' });
+    await $api(`/api/campaigns/${id.value}`, { method: 'DELETE' });
     await navigateTo('/campaigns');
   }
   catch (error: unknown) {

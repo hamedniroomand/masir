@@ -1,7 +1,9 @@
 <script setup lang="ts">
 type Workspace = { id: string; name: string; slug: string; logoUrl: string | null; role: string; url: string };
 
-const { data, refresh } = await useFetch<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
+const { $api } = useNuxtApp();
+
+const { data, refresh } = await useApi<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces');
 const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
@@ -28,7 +30,7 @@ async function save() {
   message.value = '';
   saving.value = true;
   try {
-    await $fetch('/api/workspaces', { method: 'PATCH', body: { name: name.value } });
+    await $api('/api/workspaces', { method: 'PATCH', body: { name: name.value } });
     message.value = 'Saved.';
   }
   catch (failure) {
@@ -65,20 +67,20 @@ watch(logoFile, (file) => {
   const body = new FormData();
   body.set('workspaceId', current.value.id);
   body.set('file', file);
-  saveLogo(() => $fetch('/api/workspaces/logo', { method: 'POST', body }), 'Logo saved.', 'We could not save the logo.');
+  saveLogo(() => $api('/api/workspaces/logo', { method: 'POST', body }), 'Logo saved.', 'We could not save the logo.');
 });
 
 function removeLogo() {
   if (!current.value?.logoUrl)
     return;
   const body = { workspaceId: current.value.id };
-  saveLogo(() => $fetch('/api/workspaces/logo', { method: 'DELETE', body }), 'Logo removed.', 'We could not remove the logo.');
+  saveLogo(() => $api('/api/workspaces/logo', { method: 'DELETE', body }), 'Logo removed.', 'We could not remove the logo.');
 }
 
 async function remove() {
   error.value = '';
   try {
-    await $fetch('/api/workspaces', { method: 'DELETE' });
+    await $api('/api/workspaces', { method: 'DELETE' });
     // Still signed in, so /login would bounce back to the deleted workspace.
     await navigateTo('/workspaces');
   }

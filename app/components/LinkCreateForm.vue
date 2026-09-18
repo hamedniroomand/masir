@@ -7,6 +7,8 @@ import { normalizeSlug, slugSchema } from '#shared/slug';
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 
+const { $api } = useNuxtApp();
+
 const fields = v.object({
   destinationUrl: v.pipe(
     v.string(),
@@ -142,7 +144,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     if (state.tags.length)
       body.tags = state.tags;
 
-    const link = await $fetch<LinkItem>('/api/links', { method: 'POST', body });
+    const link = await $api<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
     emit('created', link);
     reset();

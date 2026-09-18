@@ -38,6 +38,7 @@ block. Read them for every version between yours and the one you install.
 
 ### Changed
 
+- A signed-in API call that answers 401 sends the user to the login page and back after sign-in; the session is checked once per page load instead of on every route change
 - Postgres 18 is the minimum. Every primary key defaults to the native
   `uuidv7()`.
 - Member routes address a member by user id. `PATCH` and `DELETE` on

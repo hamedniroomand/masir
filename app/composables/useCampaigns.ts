@@ -10,7 +10,7 @@ export type CampaignItem = {
 };
 
 export function useCampaignsList() {
-  return useFetch<{ items: CampaignItem[]; total: number }>('/api/campaigns');
+  return useApi<{ items: CampaignItem[]; total: number }>('/api/campaigns');
 }
 
 export function useCampaignOptions() {

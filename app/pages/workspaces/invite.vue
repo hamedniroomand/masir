@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' });
 
+const { $api } = useNuxtApp();
+
 const emails = ref<string[]>(['']);
 const sent = ref<string[]>([]);
 const error = ref('');
@@ -17,7 +19,7 @@ async function send() {
   const wanted = emails.value.map(entry => entry.trim()).filter(Boolean);
   try {
     for (const email of wanted) {
-      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email } });
+      await $api('/api/workspaces/invitations', { method: 'POST', body: { email } });
       sent.value.push(email);
     }
     await navigateTo('/');

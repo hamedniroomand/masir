@@ -9,7 +9,7 @@ type HistoryEvent = {
 
 const props = defineProps<{ linkId: string }>();
 
-const { data, pending, error } = await useFetch<{ items: HistoryEvent[] }>(() => `/api/links/${props.linkId}/history`);
+const { data, pending, error } = await useApi<{ items: HistoryEvent[] }>(() => `/api/links/${props.linkId}/history`);
 
 const FIELD_LABELS: Record<string, string> = {
   destinationUrl: 'destination',

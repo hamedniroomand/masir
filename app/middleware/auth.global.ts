@@ -17,7 +17,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isPublic = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
 
   if (!loggedIn.value && !isPublic)
-    return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`);
+    return navigateTo(loginPath(to.fullPath));
 
   if (loggedIn.value && to.path === '/login')
     return navigateTo('/');

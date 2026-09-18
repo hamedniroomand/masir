@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { user } = useUserSession();
-const { data: workspaces } = await useFetch<{ currentId: string | null; items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
+const { data: workspaces } = await useApi<{ currentId: string | null; items: { id: string; name: string; slug: string; role: string; url: string }[] }>('/api/workspaces');
 const current = computed(() => workspaces.value?.items.find(workspace => workspace.id === workspaces.value?.currentId) ?? null);
 
 // Every page in this layout is workspace-scoped, so without one the person sits

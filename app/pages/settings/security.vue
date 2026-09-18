@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 useHead({ title: 'Security log · Masir' });
 
 const type = ref('');
-const { data, pending, error, refresh } = await useFetch('/api/admin/audit-events', {
+const { data, pending, error, refresh } = await useApi('/api/admin/audit-events', {
   query: computed(() => ({ type: type.value || undefined })),
   watch: [type],
 });
