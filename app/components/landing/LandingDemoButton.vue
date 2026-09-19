@@ -67,10 +67,10 @@ async function start() {
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-2">
+  <div class="flex flex-col items-center">
     <UButton label="Try the demo" icon="i-lucide-play" size="lg" :loading="loading" @click="start" />
     <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" execution="execute" />
-    <p v-if="error" class="text-sm text-error">
+    <p v-if="error" class="mt-2 text-sm text-error">
       {{ error }}
     </p>
     <LandingDemoOverlay v-if="running" :steps="STEPS" :current="step" />
