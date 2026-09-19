@@ -113,6 +113,22 @@ test('saves a password, a schedule, and a visit cap from the access card', async
   await expect(page.getByRole('button', { name: 'Remove limit' })).toHaveCount(0);
 });
 
+test('reveals the visit cap fallback once a cap is set and keeps it', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/prize', slug: 'capped', title: 'Capped' });
+  await page.goto(`/links/${link.id}?tab=settings`);
+
+  await expect(page.getByLabel('After the visit cap')).toHaveCount(0);
+  await page.getByLabel('Maximum visits').fill('5');
+  await expect(page.getByLabel('After the visit cap')).toBeVisible();
+
+  await page.getByLabel('After the visit cap').fill('https://example.com/sold-out');
+  await page.getByRole('button', { name: 'Save access settings' }).click();
+
+  await page.reload();
+  await expect(page.getByLabel('After the visit cap')).toHaveValue('https://example.com/sold-out');
+});
+
 test('shows the password badge on the link header', async ({ page, login }) => {
   await login();
   await page.goto('/');

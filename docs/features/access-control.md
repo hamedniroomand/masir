@@ -34,6 +34,10 @@ the time passes, with no job to run and nothing to remember.
 Useful for a launch announcement that goes into a printed programme weeks
 early.
 
+Set a **before the start time** destination and the link redirects there
+instead of answering 404. Send people to a "coming soon" page while they wait.
+The redirect is recorded as its own outcome and does not count as a click.
+
 ## Expiry
 
 An **expiry date** retires a link. What happens next depends on whether you set
@@ -70,6 +74,10 @@ no window between reading the count and writing it.
 A **one-time link** is a cap of one. You can raise or remove the cap later. The
 count of visits already used does not reset when you do.
 
+Set an **after the visit cap** destination and a visitor who arrives too late
+goes there instead of a 404. The redirect is recorded as its own outcome, does
+not count as a click, and does not use a visit, so the cap stays where it is.
+
 ## Disable
 
 A switch. The link answers 404 while it is off and keeps its analytics, its
@@ -79,9 +87,13 @@ Prefer disabling over deleting when you are not certain.
 
 ## What visitors see
 
-Every blocked state answers **404** on purpose. A visitor cannot tell a
-disabled link from an expired one from a slug that was never created, so the
-error page leaks nothing about what a workspace holds.
+Every blocked state answers **404** on purpose, **unless you set a fallback**.
+A visitor cannot tell a disabled link from an expired one from a slug that was
+never created, so the error page leaks nothing about what a workspace holds.
+
+Expiry, the start time, and the visit cap each take a fallback destination. A
+disabled link always answers 404, because switching a link off is the way to
+stop it completely.
 
 Your team sees the real reason in the dashboard, and the
 [outcome breakdown](/features/analytics#outcomes) shows how often each block

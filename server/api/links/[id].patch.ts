@@ -9,7 +9,7 @@ import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
-import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
+import { validateDestination, validateFallbackDestination } from '#server/utils/url';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -20,6 +20,8 @@ const bodySchema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
+  limitDestination: v.optional(v.nullable(v.string())),
+  scheduledDestination: v.optional(v.nullable(v.string())),
   maximumVisits: maximumVisitsSchema,
   password: v.optional(v.nullable(v.string())),
   tags: tagsSchema,
@@ -58,6 +60,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const body = await readValidBody(event, bodySchema);
+  const { slug } = existing;
 
   const patch: Parameters<typeof updateLink>[2] = {};
   if (body.title !== undefined)
@@ -70,25 +73,27 @@ export default defineEventHandler(async (event) => {
     patch.expiresAt = body.expiresAt == null ? null : new Date(body.expiresAt);
   if (body.startsAt !== undefined)
     patch.startsAt = body.startsAt == null ? null : new Date(body.startsAt);
-  if (body.expirationDestination !== undefined) {
-    if (body.expirationDestination == null) {
-      patch.expirationDestination = null;
-    }
-    else {
-      const dest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
-      if (!dest.ok) {
-        throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
-      }
-      if (shortLinkMatchesDestination(config.public.shortDomain, existing.slug, dest.url)) {
-        throw createError({
-          statusCode: 422,
-          statusMessage: 'Expiration destination cannot point to this short link.',
-          data: { reason: 'Expiration destination cannot point to this short link.' },
-        });
-      }
-      patch.expirationDestination = dest.url;
-    }
+  function fallback(value: string | null | undefined, label: string) {
+    if (!value)
+      return null;
+    const dest = validateFallbackDestination({
+      value,
+      label,
+      allowPrivate: config.allowPrivateDestinations,
+      shortDomain: config.public.shortDomain,
+      slug,
+    });
+    if (!dest.ok)
+      throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
+    return dest.url;
   }
+
+  if (body.expirationDestination !== undefined)
+    patch.expirationDestination = fallback(body.expirationDestination, 'Expiration destination');
+  if (body.limitDestination !== undefined)
+    patch.limitDestination = fallback(body.limitDestination, 'Limit destination');
+  if (body.scheduledDestination !== undefined)
+    patch.scheduledDestination = fallback(body.scheduledDestination, 'Scheduled destination');
   if (body.maximumVisits !== undefined) {
     if (body.maximumVisits != null && body.maximumVisits < existing.clickCount)
       throw visitLimitBelowUsage();

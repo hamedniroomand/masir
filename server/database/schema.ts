@@ -172,6 +172,8 @@ export const links = pgTable('links', {
   startsAt: timestampTz('starts_at'),
   expiresAt: timestampTz('expires_at'),
   expirationDestination: text('expiration_destination'),
+  limitDestination: text('limit_destination'),
+  scheduledDestination: text('scheduled_destination'),
   passwordHash: text('password_hash'),
   maximumVisits: bigint('maximum_visits', { mode: 'number' }),
   // One counter. It totals the successful human redirects and it is the number

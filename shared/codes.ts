@@ -10,6 +10,8 @@ export const OUTCOME = {
   expired_block: 6,
   expired_redirect: 7,
   limit_reached: 8,
+  limit_redirect: 9,
+  scheduled_redirect: 10,
 } as const;
 
 export const DEVICE = {

@@ -18,6 +18,8 @@ export type LinkItem = {
   expiresAt: string | null;
   startsAt: string | null;
   expirationDestination: string | null;
+  limitDestination: string | null;
+  scheduledDestination: string | null;
   maximumVisits: number | null;
   successfulVisitCount: number;
   tags: string[];

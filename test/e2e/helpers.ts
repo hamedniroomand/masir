@@ -126,6 +126,8 @@ export async function insertTestLink(databaseUrl: string, input: {
   passwordHash?: string | null;
   startsAt?: Date | null;
   expirationDestination?: string | null;
+  limitDestination?: string | null;
+  scheduledDestination?: string | null;
   maximumVisits?: number | null;
   clickCount?: number;
 }) {
@@ -142,6 +144,8 @@ export async function insertTestLink(databaseUrl: string, input: {
     passwordHash: input.passwordHash ?? null,
     startsAt: input.startsAt ?? null,
     expirationDestination: input.expirationDestination ?? null,
+    limitDestination: input.limitDestination ?? null,
+    scheduledDestination: input.scheduledDestination ?? null,
     maximumVisits: input.maximumVisits ?? null,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,

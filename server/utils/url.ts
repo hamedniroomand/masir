@@ -72,6 +72,23 @@ export function destinationHostFromUrl(urlString: string): string {
   return new URL(urlString).hostname.toLowerCase();
 }
 
+// Every fallback destination follows the same two rules as the main one, and
+// may never point back at the short link that would send the visitor there.
+export function validateFallbackDestination(input: {
+  value: string;
+  label: string;
+  allowPrivate: boolean;
+  shortDomain: string;
+  slug?: string;
+}): Ok | Fail {
+  const dest = validateDestination(input.value, input.allowPrivate);
+  if (!dest.ok)
+    return dest;
+  if (input.slug && shortLinkMatchesDestination(input.shortDomain, input.slug, dest.url))
+    return { ok: false, reason: `${input.label} cannot point to this short link.` };
+  return dest;
+}
+
 export function shortLinkMatchesDestination(shortDomain: string, slug: string, destinationUrl: string): boolean {
   const base = shortDomain.replace(/\/$/, '');
   const short = new URL(`${base}/${slug}`);

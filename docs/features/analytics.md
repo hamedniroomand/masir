@@ -64,7 +64,9 @@ Every request records why it ended the way it did:
 | `disabled_block` | Link switched off |
 | `expired_block` | Past expiry, no fallback |
 | `expired_redirect` | Past expiry, sent to the fallback |
-| `limit_reached` | Visit cap used up |
+| `limit_reached` | Visit cap used up, no fallback |
+| `limit_redirect` | Visit cap used up, sent to the fallback |
+| `scheduled_redirect` | Before the start date, sent to the fallback |
 
 This turns "the link is broken" into an answer. If `password_failed` dominates,
 people do not have the password. If `bot_request` dominates, the number you

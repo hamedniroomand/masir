@@ -14,6 +14,8 @@ the notes for every version between the one you run and the one you install.
 - Read-only **Viewer** role. A viewer reads links, campaigns, and analytics and
   changes nothing. Invitations and the member row carry the role.
 - Private notes on a link, at most 2000 characters. Link search matches them.
+- Fallback destinations for a used-up visit cap and for a link that has not
+  started. Both are recorded as their own outcome and count no click.
 
 ### Changed
 

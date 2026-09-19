@@ -30,6 +30,8 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
     expiresAt: link.expiresAt,
     startsAt: link.startsAt,
     expirationDestination: link.expirationDestination,
+    limitDestination: link.limitDestination,
+    scheduledDestination: link.scheduledDestination,
     maximumVisits: link.maximumVisits,
     // One column serves both names. successfulVisitCount stays in the API so
     // the frontend does not change.
@@ -100,6 +102,8 @@ export async function createLink(input: {
   expiresAt?: Date | null;
   startsAt?: Date | null;
   expirationDestination?: string | null;
+  limitDestination?: string | null;
+  scheduledDestination?: string | null;
   maximumVisits?: number | null;
   passwordHash?: string | null;
   campaignId?: string | null;
@@ -128,6 +132,8 @@ export async function createLink(input: {
         expiresAt: input.expiresAt ?? null,
         startsAt: input.startsAt ?? null,
         expirationDestination: input.expirationDestination ?? null,
+        limitDestination: input.limitDestination ?? null,
+        scheduledDestination: input.scheduledDestination ?? null,
         maximumVisits: input.maximumVisits ?? null,
         passwordHash: input.passwordHash ?? null,
         campaignId: input.campaignId ?? null,
@@ -277,6 +283,8 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   expiresAt?: Date | null;
   startsAt?: Date | null;
   expirationDestination?: string | null;
+  limitDestination?: string | null;
+  scheduledDestination?: string | null;
   maximumVisits?: number | null;
   passwordHash?: string | null;
   isEnabled?: boolean;
@@ -306,6 +314,10 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.startsAt = patch.startsAt;
   if (patch.expirationDestination !== undefined)
     values.expirationDestination = patch.expirationDestination;
+  if (patch.limitDestination !== undefined)
+    values.limitDestination = patch.limitDestination;
+  if (patch.scheduledDestination !== undefined)
+    values.scheduledDestination = patch.scheduledDestination;
   if (patch.maximumVisits !== undefined)
     values.maximumVisits = patch.maximumVisits;
   if (patch.passwordHash !== undefined)

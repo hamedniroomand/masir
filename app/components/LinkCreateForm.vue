@@ -20,6 +20,8 @@ const fields = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.pipe(v.string(), v.trim())),
+  limitDestination: v.optional(v.pipe(v.string(), v.trim())),
+  scheduledDestination: v.optional(v.pipe(v.string(), v.trim())),
   maximumVisits: v.optional(v.nullable(v.union([v.number(), v.literal('')]))),
   password: v.optional(v.pipe(v.string(), v.trim())),
   campaignId: v.optional(v.nullable(v.string())),
@@ -42,6 +44,8 @@ const state = reactive({
   expiresAt: null as number | null,
   startsAt: null as number | null,
   expirationDestination: '',
+  limitDestination: '',
+  scheduledDestination: '',
   maximumVisits: null as number | null,
   password: '',
   campaignId: null as string | null,
@@ -67,6 +71,8 @@ const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
   maximumVisits: 'access',
   password: 'access',
   expirationDestination: 'access',
+  limitDestination: 'access',
+  scheduledDestination: 'access',
   tags: 'tags',
 };
 
@@ -100,6 +106,8 @@ function reset() {
   state.expiresAt = null;
   state.startsAt = null;
   state.expirationDestination = '';
+  state.limitDestination = '';
+  state.scheduledDestination = '';
   state.maximumVisits = null;
   state.password = '';
   state.campaignId = null;
@@ -134,6 +142,10 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.password = state.password;
     if (state.expirationDestination.trim())
       body.expirationDestination = state.expirationDestination.trim();
+    if (state.limitDestination.trim())
+      body.limitDestination = state.limitDestination.trim();
+    if (state.scheduledDestination.trim())
+      body.scheduledDestination = state.scheduledDestination.trim();
     if (state.campaignId)
       body.campaignId = state.campaignId;
     if (state.utmSource)
@@ -258,8 +270,14 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         <template #content>
           <div class="space-y-4 px-2 pb-2 pt-4">
             <LinkScheduleFields v-model:starts-at="state.startsAt" v-model:expires-at="state.expiresAt" />
+            <UFormField v-if="state.startsAt" label="Before the start time" name="scheduledDestination" description="Optional. Send visitors here until the link opens.">
+              <UInput v-model="state.scheduledDestination" type="url" inputmode="url" placeholder="https://example.com/coming-soon" />
+            </UFormField>
             <UFormField label="Maximum visits" name="maximumVisits" description="Optional. Stop the link after this many redirects.">
               <LinkVisitLimitField v-model="state.maximumVisits" />
+            </UFormField>
+            <UFormField v-if="state.maximumVisits" label="After the visit cap" name="limitDestination" description="Optional. Send visitors here when the cap is used up.">
+              <UInput v-model="state.limitDestination" type="url" inputmode="url" placeholder="https://example.com/sold-out" />
             </UFormField>
             <UFormField label="Password" name="password" description="Optional. Visitors must enter it before the redirect.">
               <UInput v-model="state.password" type="password" autocomplete="new-password" placeholder="No password" />

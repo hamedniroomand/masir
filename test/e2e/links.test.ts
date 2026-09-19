@@ -220,6 +220,37 @@ describe('links API', async () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('keeps both fallback destinations and refuses one that points at the short link', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; limitDestination: string | null; scheduledDestination: string | null }>('/api/links', {
+      method: 'POST',
+      body: {
+        destinationUrl: 'https://example.com/offer',
+        slug: 'fallbacks',
+        limitDestination: 'https://example.com/sold-out',
+        scheduledDestination: 'https://example.com/coming-soon',
+      },
+      headers: { cookie },
+    });
+    expect(link.limitDestination).toBe('https://example.com/sold-out');
+    expect(link.scheduledDestination).toBe('https://example.com/coming-soon');
+
+    const read = await $fetch<{ limitDestination: string | null }>(`/api/links/${link.id}`, { headers: { cookie } });
+    expect(read.limitDestination).toBe('https://example.com/sold-out');
+
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/other', slug: 'self-limit', limitDestination: 'http://localhost:3000/self-limit' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+
+    await expect($fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { scheduledDestination: 'http://localhost:3000/fallbacks' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
   it('rejects javascript destinations with 422', async () => {
     const cookie = await loginCookie();
     await expect($fetch('/api/links', {

@@ -10,7 +10,7 @@ import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
-import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
+import { validateDestination, validateFallbackDestination } from '#server/utils/url';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
@@ -23,6 +23,8 @@ const bodySchema = v.object({
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
+  limitDestination: v.optional(v.nullable(v.string())),
+  scheduledDestination: v.optional(v.nullable(v.string())),
   maximumVisits: maximumVisitsSchema,
   password: v.optional(v.nullable(v.string())),
   campaignId: v.optional(v.nullable(v.string())),
@@ -87,21 +89,24 @@ export default defineEventHandler(async (event) => {
     slug = parsed.output;
   }
 
-  let expirationDestination: string | null = null;
-  if (body.expirationDestination) {
-    const expDest = validateDestination(body.expirationDestination, config.allowPrivateDestinations);
-    if (!expDest.ok) {
-      throw createError({ statusCode: 422, statusMessage: expDest.reason, data: { reason: expDest.reason } });
-    }
-    if (slug && shortLinkMatchesDestination(config.public.shortDomain, slug, expDest.url)) {
-      throw createError({
-        statusCode: 422,
-        statusMessage: 'Expiration destination cannot point to this short link.',
-        data: { reason: 'Expiration destination cannot point to this short link.' },
-      });
-    }
-    expirationDestination = expDest.url;
+  function fallback(value: string | null | undefined, label: string) {
+    if (!value)
+      return null;
+    const dest = validateFallbackDestination({
+      value,
+      label,
+      allowPrivate: config.allowPrivateDestinations,
+      shortDomain: config.public.shortDomain,
+      slug,
+    });
+    if (!dest.ok)
+      throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
+    return dest.url;
   }
+
+  const expirationDestination = fallback(body.expirationDestination, 'Expiration destination');
+  const limitDestination = fallback(body.limitDestination, 'Limit destination');
+  const scheduledDestination = fallback(body.scheduledDestination, 'Scheduled destination');
 
   try {
     const link = await createLink({
@@ -114,6 +119,8 @@ export default defineEventHandler(async (event) => {
       expiresAt,
       startsAt,
       expirationDestination,
+      limitDestination,
+      scheduledDestination,
       maximumVisits,
       passwordHash: body.password ? await hashSecret(body.password) : null,
       campaignId,

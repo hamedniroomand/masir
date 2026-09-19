@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3';
+import type { ResolvedLink } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
@@ -19,6 +20,18 @@ function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outco
     ? visitorHashForLink(event, linkId)
     : null;
   event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(() => {}));
+}
+
+// Both the derived status and a lost race with consumeVisit end here. A
+// fallback never counts as a click and never uses a visit.
+async function sendLimitFallback(event: H3Event, workspaceId: string, link: ResolvedLink, meta: RequestMeta) {
+  if (link.limitDestination) {
+    logLinkEvent(event, workspaceId, link.id, 'limit_redirect', meta);
+    await sendRedirect(event, link.limitDestination, 302);
+    return;
+  }
+  logLinkEvent(event, workspaceId, link.id, 'limit_reached', meta);
+  throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
 }
 
 export default defineEventHandler(async (event) => {
@@ -96,10 +109,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Link expired', data: { linkState: 'expired' } });
   }
   if (status === 'limit_reached') {
-    logLinkEvent(event, workspace.id, link.id, 'limit_reached', meta);
-    throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
+    await sendLimitFallback(event, workspace.id, link, meta);
+    return;
   }
   if (status === 'scheduled') {
+    if (link.scheduledDestination) {
+      logLinkEvent(event, workspace.id, link.id, 'scheduled_redirect', meta);
+      await sendRedirect(event, link.scheduledDestination, 302);
+      return;
+    }
     logLinkEvent(event, workspace.id, link.id, 'scheduled_block', meta);
     throw createError({
       statusCode: 404,
@@ -122,8 +140,10 @@ export default defineEventHandler(async (event) => {
   else {
     const consumed = await consumeVisit(link.id);
     if (!consumed) {
-      logLinkEvent(event, workspace.id, link.id, 'limit_reached', meta);
-      throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
+      // A visit between the status check above and this statement used the last
+      // one, so the fallback applies here too.
+      await sendLimitFallback(event, workspace.id, link, meta);
+      return;
     }
     logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
   }

@@ -51,6 +51,15 @@ describe('zero code', () => {
   });
 });
 
+describe('fallback outcomes', () => {
+  it('appends the two redirect outcomes', () => {
+    expect(OUTCOME.limit_redirect).toBe(9);
+    expect(OUTCOME.scheduled_redirect).toBe(10);
+    expect(outcomeLabel(9)).toBe('limit_redirect');
+    expect(outcomeLabel(10)).toBe('scheduled_redirect');
+  });
+});
+
 describe.each(lookups)('%s reverse lookup', (_name, map, label) => {
   it('returns the label of every code', () => {
     for (const [name, code] of Object.entries(map))

@@ -90,6 +90,71 @@ describe('redirect middleware', async () => {
     expect(body.data?.linkState).toBe('expired');
   });
 
+  it('sends a used-up link to its limit destination without a new click', async () => {
+    const linkId = await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'one-shot',
+      destinationUrl: 'https://example.com/prize',
+      maximumVisits: 1,
+      limitDestination: 'https://example.com/sold-out',
+    });
+
+    const first = await fetch('/one-shot', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(first.status).toBe(302);
+    expect(first.headers.get('location')).toBe('https://example.com/prize');
+
+    const second = await fetch('/one-shot', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(second.status).toBe(302);
+    expect(second.headers.get('location')).toBe('https://example.com/sold-out');
+
+    const third = await fetch('/one-shot', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(third.headers.get('location')).toBe('https://example.com/sold-out');
+
+    const link = await readTestLink(TEST_DB, linkId);
+    expect(link.clickCount).toBe(1);
+
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.filter(row => row.outcome === OUTCOME.limit_redirect).length >= 2,
+    );
+    expect(events.filter(row => row.outcome === OUTCOME.limit_redirect).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('sends a bot on a used-up link to the limit destination and counts no click', async () => {
+    const linkId = await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'bot-limit',
+      destinationUrl: 'https://example.com/prize',
+      maximumVisits: 1,
+      clickCount: 1,
+      limitDestination: 'https://example.com/sold-out',
+    });
+    const res = await fetch('/bot-limit', { redirect: 'manual', headers: { 'user-agent': 'Slackbot-LinkExpanding 1.0' } });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('https://example.com/sold-out');
+    const link = await readTestLink(TEST_DB, linkId);
+    expect(link.clickCount).toBe(1);
+  });
+
+  it('sends a scheduled link to its fallback and answers 404 without one', async () => {
+    const soon = new Date(Date.now() + 86_400_000);
+    await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'soon-with',
+      startsAt: soon,
+      scheduledDestination: 'https://example.com/coming-soon',
+    });
+    await insertTestLink(TEST_DB, { workspaceId, slug: 'soon-without', startsAt: soon });
+
+    const withFallback = await fetch('/soon-with', { redirect: 'manual' });
+    expect(withFallback.status).toBe(302);
+    expect(withFallback.headers.get('location')).toBe('https://example.com/coming-soon');
+
+    const withoutFallback = await fetch('/soon-without', { redirect: 'manual' });
+    expect(withoutFallback.status).toBe(404);
+  });
+
   it('does not handle /login', async () => {
     const res = await fetch('/login');
     expect(res.status).toBe(200);
