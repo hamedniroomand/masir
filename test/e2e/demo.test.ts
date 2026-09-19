@@ -71,6 +71,21 @@ describe('demo access', async () => {
     expect(DEMO_LINK_CAP).toBe(9);
   });
 
+  // A visitor who comes back must land in the demo they already have. A second
+  // one would strand the first for 24 hours with its subdomain live.
+  it('returns the live demo again instead of making a second one', async () => {
+    const res = await fetch('/api/auth/demo', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: '{}',
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json() as { url: string }).url).toBe(`http://${slug}.masir.test:3000`);
+
+    const db = openTestDatabase(TEST_DB);
+    expect(await db.select().from(workspaces)).toHaveLength(1);
+  });
+
   it('lists the demo workspace with its expiry for the signed-in visitor', async () => {
     const list = await $fetch<{ items: { slug: string; expiresAt: string | null }[] }>('/api/workspaces', { headers: { cookie } });
     expect(list.items).toHaveLength(1);

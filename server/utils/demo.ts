@@ -1,6 +1,6 @@
 import type { User, Workspace } from '#server/database/schema';
 import { randomBytes } from 'node:crypto';
-import { and, eq, inArray, lt } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import { ensureClickEventPartitions } from '#server/database/migrate';
 import { clickEvents, links, users, workspaceMembers, workspaces } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
@@ -112,6 +112,22 @@ export async function createDemoWorkspace(): Promise<{ user: User; workspace: Wo
     }
     return { user, workspace };
   });
+}
+
+// The demo this user still owns, or null. A swept user owns nothing, so an old
+// cookie falls through to a fresh demo.
+export async function findLiveDemo(userId: string): Promise<Workspace | null> {
+  const db = await getDb();
+  const rows = await db.select({ workspace: workspaces })
+    .from(workspaces)
+    .innerJoin(workspaceMembers, eq(workspaceMembers.workspaceId, workspaces.id))
+    .where(and(
+      eq(workspaceMembers.userId, userId),
+      isNull(workspaces.deletedAt),
+      gt(workspaces.expiresAt, new Date()),
+    ))
+    .limit(1);
+  return rows[0]?.workspace ?? null;
 }
 
 // Deletes every demo whose time has passed. links, campaigns, tags, aliases,

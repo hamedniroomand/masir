@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { readValidBody } from '#server/utils/body';
-import { createDemoWorkspace, DEMO_CREATES_PER_HOUR } from '#server/utils/demo';
+import { createDemoWorkspace, DEMO_CREATES_PER_HOUR, findLiveDemo } from '#server/utils/demo';
 import { setSessionUser } from '#server/utils/identity-repo';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { requireHuman } from '#server/utils/turnstile';
@@ -16,6 +16,17 @@ export default defineEventHandler(async (event) => {
   // it gives nothing away.
   if (!config.demoEnabled)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
+  // A visitor who comes back with a live demo gets that one. A second demo
+  // would strand the first for its whole lifetime with its subdomain live.
+  // The cookie is sealed, so this needs no robot check and no new rows.
+  const session = await getUserSession(event);
+  const current = session.user as { id?: string; demo?: boolean } | undefined;
+  if (current?.demo && current.id) {
+    const live = await findLiveDemo(current.id);
+    if (live)
+      return { url: workspaceUrl(live.slug, config as never) };
+  }
 
   const body = await readValidBody(event, bodySchema);
   await requireHuman(event, body.turnstileToken);

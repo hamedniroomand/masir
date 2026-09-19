@@ -49,7 +49,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 |---|---|---|
 | `GET` | `/api/auth/providers` | Which sign-in methods are on, and whether registration is open |
 | `POST` | `/api/auth/register` | `email`, `password`. Sends a verification link |
-| `POST` | `/api/auth/demo` | Optional `turnstileToken`. Makes a seeded demo workspace and a session for it. Answers `201 { "url": "..." }`, `404` unless `NUXT_DEMO_ENABLED` is on, `429` after 3 calls an hour |
+| `POST` | `/api/auth/demo` | Optional `turnstileToken`. Makes a seeded demo workspace and a session for it. Answers `201 { "url": "..." }`, `200` with the same shape when the session already holds a live demo, `404` unless `NUXT_DEMO_ENABLED` is on, `429` after 3 calls an hour |
 | `POST` | `/api/auth/verify` | `token` from the email |
 | `POST` | `/api/auth/verify/resend` | Send a new verification link |
 | `POST` | `/api/auth/login` | `email`, `password`. Sets the session cookie |
