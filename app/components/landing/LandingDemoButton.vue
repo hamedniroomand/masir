@@ -14,6 +14,16 @@ const STEP_MS = 650;
 
 const running = computed(() => step.value >= 0);
 
+// Back from the workspace restores this page from the bfcache with its state
+// frozen, which would show the overlay and the spinner over a page nobody is
+// leaving.
+useEventListener('pageshow', (event: PageTransitionEvent) => {
+  if (!event.persisted)
+    return;
+  step.value = -1;
+  loading.value = false;
+});
+
 function wait(milliseconds: number) {
   return new Promise(done => setTimeout(done, milliseconds));
 }
