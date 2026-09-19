@@ -134,8 +134,9 @@ only.
 | `NUXT_TURNSTILE_SECRET_KEY` | |
 
 Set both and the email sign-in and sign-up forms show a Cloudflare Turnstile
-check. Leave both empty and the forms work without it. The OAuth buttons never
-show the check.
+check. The "Try the demo" button runs the same check while it loads and shows
+a box only when Cloudflare asks the visitor to click. Leave both empty and the
+forms work without it. The OAuth buttons never show the check.
 
 Create the keys in the Cloudflare dashboard under Turnstile, add a widget, and
 list every hostname that serves the login page. With multi-workspace on, that

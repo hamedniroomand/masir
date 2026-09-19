@@ -41,6 +41,10 @@ async function start() {
   loading.value = true;
 
   try {
+    // The robot check runs while the button spins, before the overlay, so a
+    // box Cloudflare opens is never hidden behind it.
+    if (turnstileSiteKey)
+      await turnstile.value?.execute();
     // A visitor who holds a live demo gets it back at once. The steps would
     // claim work the server does not do.
     await fetchSession();
@@ -65,7 +69,7 @@ async function start() {
 <template>
   <div class="flex flex-col items-center gap-2">
     <UButton label="Try the demo" icon="i-lucide-play" size="lg" :loading="loading" @click="start" />
-    <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" />
+    <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" execution="execute" />
     <p v-if="error" class="text-sm text-error">
       {{ error }}
     </p>
