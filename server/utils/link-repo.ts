@@ -383,6 +383,8 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   limitDestination?: string | null;
   scheduledDestination?: string | null;
   targeting?: LinkTargeting | null;
+  capAlertSentAt?: Date | null;
+  expiryAlertSentAt?: Date | null;
   maximumVisits?: number | null;
   passwordHash?: string | null;
   isEnabled?: boolean;
@@ -418,6 +420,10 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.scheduledDestination = patch.scheduledDestination;
   if (patch.targeting !== undefined)
     values.targeting = patch.targeting;
+  if (patch.capAlertSentAt !== undefined)
+    values.capAlertSentAt = patch.capAlertSentAt;
+  if (patch.expiryAlertSentAt !== undefined)
+    values.expiryAlertSentAt = patch.expiryAlertSentAt;
   if (patch.maximumVisits !== undefined)
     values.maximumVisits = patch.maximumVisits;
   if (patch.passwordHash !== undefined)
@@ -506,7 +512,9 @@ export async function deleteLink(id: string, workspaceId: string) {
   return true;
 }
 
-export async function consumeVisit(linkId: string): Promise<boolean> {
+// Null means the visit was refused. A number is the new count, which the
+// caller needs for the cap alert without reading the row again.
+export async function consumeVisit(linkId: string): Promise<number | null> {
   const db = await getDb();
   const updated = await db.update(links)
     .set({ clickCount: sql`${links.clickCount} + 1` })
@@ -515,8 +523,8 @@ export async function consumeVisit(linkId: string): Promise<boolean> {
       isNull(links.deletedAt),
       or(isNull(links.maximumVisits), sql`${links.clickCount} < ${links.maximumVisits}`),
     ))
-    .returning({ id: links.id });
-  return updated.length > 0;
+    .returning({ clickCount: links.clickCount });
+  return updated[0]?.clickCount ?? null;
 }
 
 export async function countClickEvents(linkId: string) {

@@ -74,8 +74,11 @@ export default defineEventHandler(async (event) => {
     patch.notes = body.notes;
   if (body.isEnabled !== undefined)
     patch.isEnabled = body.isEnabled;
-  if (body.expiresAt !== undefined)
+  if (body.expiresAt !== undefined) {
     patch.expiresAt = body.expiresAt == null ? null : new Date(body.expiresAt);
+    if (patch.expiresAt == null || (existing.expiresAt != null && patch.expiresAt > existing.expiresAt))
+      patch.expiryAlertSentAt = null;
+  }
   if (body.startsAt !== undefined)
     patch.startsAt = body.startsAt == null ? null : new Date(body.startsAt);
   function fallback(value: string | null | undefined, label: string) {
@@ -116,6 +119,10 @@ export default defineEventHandler(async (event) => {
     if (body.maximumVisits != null && body.maximumVisits < existing.clickCount)
       throw visitLimitBelowUsage();
     patch.maximumVisits = body.maximumVisits;
+    // A raised or removed cap gives the link room again, so the alert may fire
+    // a second time.
+    if (body.maximumVisits == null || (existing.maximumVisits != null && body.maximumVisits > existing.maximumVisits))
+      patch.capAlertSentAt = null;
   }
   if (body.password !== undefined) {
     if (body.password == null) {

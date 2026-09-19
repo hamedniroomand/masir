@@ -99,6 +99,11 @@ export default defineNuxtConfig({
       endpoint: '',
       maxUploadBytes: 2_097_152,
     },
+    // 0 turns the in-process sweep off. A serverless deployment leaves it off
+    // and points a cron at POST /api/jobs/alerts instead.
+    alertsIntervalMinutes: 15,
+    // Empty makes the jobs route answer 404.
+    jobsSecret: '',
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,

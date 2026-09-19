@@ -176,6 +176,8 @@ export const links = pgTable('links', {
   limitDestination: text('limit_destination'),
   scheduledDestination: text('scheduled_destination'),
   targeting: jsonb('targeting').$type<LinkTargeting>(),
+  capAlertSentAt: timestampTz('cap_alert_sent_at'),
+  expiryAlertSentAt: timestampTz('expiry_alert_sent_at'),
   passwordHash: text('password_hash'),
   maximumVisits: bigint('maximum_visits', { mode: 'number' }),
   // One counter. It totals the successful human redirects and it is the number
@@ -196,6 +198,8 @@ export const links = pgTable('links', {
   index('links_workspace_clicks_idx').on(table.workspaceId, table.clickCount.desc()).where(sql`deleted_at is null`),
   index('links_campaign_idx').on(table.campaignId).where(sql`deleted_at is null`),
   index('links_workspace_destination_idx').on(table.workspaceId, table.destinationUrl).where(sql`deleted_at is null`),
+  // The sweep reads only the links that could still need an expiry alert.
+  index('links_expiry_alert_idx').on(table.expiresAt).where(sql`expiry_alert_sent_at is null and deleted_at is null and expires_at is not null`),
   check('links_slug_format_check', sql`${table.slug} ~ '^[a-z0-9_-]{1,64}$'`),
   check('links_maximum_visits_check', sql`${table.maximumVisits} > 0`),
   check('links_click_count_check', sql`${table.clickCount} >= 0`),

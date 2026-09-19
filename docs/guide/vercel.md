@@ -79,3 +79,31 @@ period pays a cold start. Turn autosuspend off, or accept it.
 ## Geolocation
 
 Nothing to configure. Masir reads `x-vercel-ip-country` on its own.
+
+## Cron
+
+Expiry alerts need something to run them. A Vercel function stops between
+requests, so the in-process sweep never fires there. Leave
+`NUXT_ALERTS_INTERVAL_MINUTES` at `0`, set `NUXT_JOBS_SECRET` to a long random
+string, and let Vercel Cron call the jobs route.
+
+Add this to `vercel.json`:
+
+```json
+{
+  "crons": [{ "path": "/api/jobs/alerts", "schedule": "0 * * * *" }]
+}
+```
+
+Vercel Cron sends its own `Authorization` header only when you set
+`CRON_SECRET`. Set `CRON_SECRET` to the same value as `NUXT_JOBS_SECRET` and the
+route accepts the call.
+
+Any other scheduler works the same way:
+
+```sh
+curl -X POST https://links.example.com/api/jobs/alerts \
+  -H "Authorization: Bearer $NUXT_JOBS_SECRET"
+```
+
+The route answers `{ "sent": 3 }`. With no secret set it answers `404`.

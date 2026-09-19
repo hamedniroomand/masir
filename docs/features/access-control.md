@@ -78,6 +78,30 @@ Set an **after the visit cap** destination and a visitor who arrives too late
 goes there instead of a 404. The redirect is recorded as its own outcome, does
 not count as a click, and does not use a visit, so the cap stays where it is.
 
+## Alerts
+
+Masir mails a warning before a link stops working.
+
+**Visit cap.** One mail when a click takes the count to 90 percent of the cap,
+or to the cap itself, whichever it reaches first.
+
+**Expiry.** One mail when the link expires within **3 days**. A disabled or
+deleted link sends none.
+
+The mail goes to the person who made the link. When that account is gone, it
+goes to the workspace owner.
+
+Each alert fires **once**. Raise or remove the cap and the cap alert can fire
+again. Move the expiry later or remove it and the expiry alert can fire again.
+Both resets happen the moment you save.
+
+The History tab records every alert that went out.
+
+Expiry alerts need a scheduler. A long-running instance sweeps every
+`NUXT_ALERTS_INTERVAL_MINUTES` minutes. A serverless deployment points a cron at
+`POST /api/jobs/alerts`. See
+[Environment](/reference/environment#alerts).
+
 ## Disable
 
 A switch. The link answers 404 while it is off and keeps its analytics, its

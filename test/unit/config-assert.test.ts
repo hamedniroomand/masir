@@ -85,4 +85,20 @@ describe('assertRuntimeConfig', () => {
       public: { shortDomain: 'http://localhost:3000', sentry: { tracesSampleRate: 2 } },
     })).toThrow(/NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE/);
   });
+
+  it('throws for an alerts interval that is not a whole number of minutes', () => {
+    const base = {
+      sessionPassword: '01234567890123456789012345678901',
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000' },
+    };
+    expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: -1 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);
+    expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 1.5 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);
+    expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 0 })).not.toThrow();
+    expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 15 })).not.toThrow();
+  });
 });

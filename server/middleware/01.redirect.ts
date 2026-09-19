@@ -4,6 +4,7 @@ import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
 import { recordEvent } from '#server/utils/analytics';
+import { meetsCapThreshold, sendCapAlert } from '#server/utils/link-alerts';
 import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { consumeVisit, findLinkBySlug } from '#server/utils/link-repo';
 import { hasValidPasswordGrant } from '#server/utils/password-grant';
@@ -140,13 +141,15 @@ export default defineEventHandler(async (event) => {
   }
   else {
     const consumed = await consumeVisit(link.id);
-    if (!consumed) {
+    if (consumed == null) {
       // A visit between the status check above and this statement used the last
       // one, so the fallback applies here too.
       await sendLimitFallback(event, workspace.id, link, meta);
       return;
     }
     logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
+    if (meetsCapThreshold(consumed, link.maximumVisits))
+      event.waitUntil(sendCapAlert(link.id).catch(() => {}));
   }
 
   const destination = buildDestination(resolveDestination(link, meta), utmParamsFor(link), inboundQuery);

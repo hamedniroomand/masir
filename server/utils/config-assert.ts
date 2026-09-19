@@ -6,6 +6,7 @@ const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i;
 export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
   databaseUrl: string;
+  alertsIntervalMinutes?: number | string;
   oauth?: { microsoft?: { clientId?: string; tenant?: string } };
   public: {
     shortDomain: string;
@@ -37,6 +38,10 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   catch {
     throw new Error('Missing or invalid NUXT_PUBLIC_SHORT_DOMAIN (must be a valid http(s) URL)');
   }
+
+  const interval = Number(config.alertsIntervalMinutes ?? 15);
+  if (!Number.isInteger(interval) || interval < 0)
+    throw new Error('Missing or invalid NUXT_ALERTS_INTERVAL_MINUTES (must be a whole number of minutes, 0 to turn the sweep off)');
 
   const googleAnalyticsId = config.public.scripts?.googleAnalytics?.id;
   if (googleAnalyticsId && !GA4_MEASUREMENT_ID.test(googleAnalyticsId))

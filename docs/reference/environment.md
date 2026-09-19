@@ -178,6 +178,18 @@ takes the token as a build secret named `sentry_auth_token`, never as a build
 argument, so it stays out of the image layers. Compose fills it from
 `SENTRY_AUTH_TOKEN` in your shell or `.env`.
 
+## Alerts
+
+| Variable | Default | Notes |
+|---|---|---|
+| `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | How often the instance sweeps for links that expire soon. `0` turns the sweep off |
+| `NUXT_JOBS_SECRET` | | Bearer token for `POST /api/jobs/alerts`. Empty makes the route answer `404` |
+
+A long-running instance runs the sweep itself on the interval. A serverless
+deployment stops between requests, so it leaves the interval at `0`, sets
+`NUXT_JOBS_SECRET`, and points an external cron at the jobs route. See
+[Vercel](/guide/vercel#cron).
+
 ## Requests
 
 | Variable | Default | Notes |

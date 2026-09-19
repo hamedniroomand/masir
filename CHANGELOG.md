@@ -23,6 +23,9 @@ the notes for every version between the one you run and the one you install.
 - The create form warns when a destination already has a link. It never blocks
   the second one.
 - Quick create at `/links/new`, with a bookmarklet in the workspace settings.
+- Email alerts before a link reaches its visit cap or expires, with
+  `NUXT_ALERTS_INTERVAL_MINUTES`, `NUXT_JOBS_SECRET`, and
+  `POST /api/jobs/alerts` for a serverless deployment.
 
 ### Changed
 

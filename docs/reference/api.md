@@ -135,6 +135,14 @@ These are used by the pages a visitor sees. They need no session.
 | `POST` | `/api/links/verify-password` | `slug`, `password`. Sets the unlock cookie |
 | `POST` | `/api/report` | `slug`, `reason`. Abuse report, always acknowledged |
 
+## Jobs
+
+This route carries a bearer token, not a session. A scheduler calls it.
+
+| Method | Route | Notes |
+|---|---|---|
+| `POST` | `/api/jobs/alerts` | Run the expiry alert sweep. Needs `Authorization: Bearer <NUXT_JOBS_SECRET>`. Answers `404` with no secret set, `401` with a wrong one, and `{ "sent": n }` otherwise |
+
 ## Tags
 
 | Method | Route | Notes |
