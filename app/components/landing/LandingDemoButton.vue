@@ -4,6 +4,8 @@ const turnstileToken = ref('');
 const turnstile = useTemplateRef('turnstile');
 const error = ref('');
 const step = ref(-1);
+const loading = ref(false);
+const { user, fetch: fetchSession } = useUserSession();
 
 // The server builds the whole demo in one transaction, so these steps pace the
 // wait rather than report it. The last one is real: it ends when the URL lands.
@@ -16,18 +18,23 @@ function wait(milliseconds: number) {
   return new Promise(done => setTimeout(done, milliseconds));
 }
 
+async function paceSteps() {
+  step.value = 0;
+  for (let index = 1; index < STEPS.length; index++) {
+    await wait(STEP_MS);
+    step.value = index;
+  }
+}
+
 async function start() {
   error.value = '';
-  step.value = 0;
-
-  const pacing = (async () => {
-    for (let index = 1; index < STEPS.length; index++) {
-      await wait(STEP_MS);
-      step.value = index;
-    }
-  })();
+  loading.value = true;
 
   try {
+    // A visitor who holds a live demo gets it back at once. The steps would
+    // claim work the server does not do.
+    await fetchSession();
+    const pacing = user.value?.demo ? Promise.resolve() : paceSteps();
     const [{ url }] = await Promise.all([
       $fetch<{ url: string }>('/api/auth/demo', { method: 'POST', body: { turnstileToken: turnstileToken.value } }),
       pacing,
@@ -38,6 +45,7 @@ async function start() {
   }
   catch (failure) {
     step.value = -1;
+    loading.value = false;
     error.value = errorReason(failure, 'We could not start the demo. Try again.');
     turnstile.value?.reset();
   }
@@ -46,7 +54,7 @@ async function start() {
 
 <template>
   <div class="flex flex-col items-center gap-2">
-    <UButton label="Try the demo" icon="i-lucide-play" size="lg" :loading="running" @click="start" />
+    <UButton label="Try the demo" icon="i-lucide-play" size="lg" :loading="loading" @click="start" />
     <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" />
     <p v-if="error" class="text-sm text-error">
       {{ error }}
