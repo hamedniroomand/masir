@@ -58,14 +58,13 @@ async function save() {
 
 // The logo route takes the workspace id, because it also serves the onboarding
 // page on the root domain, where the host names no workspace.
-async function saveLogo(request: () => Promise<unknown>, done: string, fallback: string) {
+async function saveLogo(request: () => Promise<unknown>, fallback: string) {
   error.value = '';
   message.value = '';
   logoBusy.value = true;
   try {
     await request();
     await refresh();
-    message.value = done;
   }
   catch (failure) {
     error.value = reasonOf(failure) ?? fallback;
@@ -82,14 +81,14 @@ watch(logoFile, (file) => {
   const body = new FormData();
   body.set('workspaceId', current.value.id);
   body.set('file', file);
-  saveLogo(() => $api('/api/workspaces/logo', { method: 'POST', body }), 'Logo saved.', 'We could not save the logo.');
+  saveLogo(() => $api('/api/workspaces/logo', { method: 'POST', body }), 'We could not save the logo.');
 });
 
 function removeLogo() {
   if (!current.value?.logoUrl)
     return;
   const body = { workspaceId: current.value.id };
-  saveLogo(() => $api('/api/workspaces/logo', { method: 'DELETE', body }), 'Logo removed.', 'We could not remove the logo.');
+  saveLogo(() => $api('/api/workspaces/logo', { method: 'DELETE', body }), 'We could not remove the logo.');
 }
 
 async function remove() {
@@ -142,10 +141,12 @@ async function remove() {
       <p v-if="error" role="alert" class="text-sm text-error">
         {{ error }}
       </p>
-      <p v-else-if="message" class="text-sm text-muted">
-        {{ message }}
-      </p>
-      <UButton label="Save" :loading="saving" @click="save" />
+      <div class="flex items-center gap-3">
+        <UButton label="Save" :loading="saving" @click="save" />
+        <p v-if="message" role="status" class="flex items-center gap-1.5 text-xs text-success">
+          <UIcon name="i-lucide-circle-check" class="size-3.5" />{{ message }}
+        </p>
+      </div>
     </div>
 
     <USeparator />

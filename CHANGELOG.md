@@ -45,6 +45,9 @@ the notes for every version between the one you run and the one you install.
 
 - The nine workspace read routes ask for the new `links.read` permission
   instead of `links.manage`. Owners and members keep both.
+- The workspace settings page shows **Saved.** beside the Save button, not
+  above it, so the button no longer moves after a save. The logo field drops
+  its message, because the new logo appears on the page.
 - The security log is now the **Activity log**. It groups events into Links,
   Campaigns, Members, and Security, names the actor, links to the link, and
   pages with a cursor. The route stays at `/settings/security`.
