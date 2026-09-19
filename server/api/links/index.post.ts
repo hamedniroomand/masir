@@ -5,8 +5,9 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
+import { DEMO_LINK_CAP, demoRefusal } from '#server/utils/demo';
 import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
-import { createLink, isSlugTaken, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { countLiveLinks, createLink, isSlugTaken, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
@@ -41,7 +42,8 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as ShortUrlWorkspace;
+  // event.context.workspace is the full workspace row from 00.workspace.ts.
+  const workspace = event.context.workspace as ShortUrlWorkspace & { expiresAt: Date | null };
   const config = useRuntimeConfig();
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
   const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
@@ -50,6 +52,12 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
   }
+
+  // ponytail: count then insert, so two requests can both pass at the cap.
+  // NUXT_RATE_LIMIT_CREATE_PER_HOUR bounds the overshoot. A unique count
+  // constraint or a row lock would close it.
+  if (workspace.expiresAt != null && await countLiveLinks(workspaceId) >= DEMO_LINK_CAP)
+    throw demoRefusal(`The demo allows ${DEMO_LINK_CAP} links.`);
 
   const body = await readValidBody(event, bodySchema);
   const dest = validateDestination(body.destinationUrl, config.allowPrivateDestinations);

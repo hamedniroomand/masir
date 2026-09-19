@@ -4,6 +4,7 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { isUniqueViolation } from '#server/utils/db';
+import { demoRefusal } from '#server/utils/demo';
 import { createInvitation, isAlreadyMember } from '#server/utils/invitation-repo';
 import { sendMail } from '#server/utils/mail';
 import { rateLimitCheck } from '#server/utils/rate-limit';
@@ -18,7 +19,9 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'members.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as { slug: string; name: string };
+  const workspace = event.context.workspace as { slug: string; name: string; expiresAt: Date | null };
+  if (workspace.expiresAt != null)
+    throw demoRefusal('A demo workspace cannot invite members.');
   const config = useRuntimeConfig();
 
   const limit = Number(config.rateLimitInvitePerHour) || 30;

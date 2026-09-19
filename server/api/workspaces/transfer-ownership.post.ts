@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
+import { demoRefusal } from '#server/utils/demo';
 import { findMember, listMembers, transferOwnership } from '#server/utils/workspace-repo';
 
 const bodySchema = v.object({
@@ -11,6 +12,10 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'members.manage');
   const user = await requireUser(event);
+  const workspace = event.context.workspace as { expiresAt: Date | null };
+  if (workspace.expiresAt != null)
+    throw demoRefusal('A demo workspace cannot change owner.');
+
   const body = await readValidBody(event, bodySchema);
 
   const target = await findMember(workspaceId, body.userId);

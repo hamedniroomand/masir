@@ -3,6 +3,7 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { isUniqueViolation } from '#server/utils/db';
+import { demoRefusal } from '#server/utils/demo';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import {
   countWorkspaces,
@@ -32,6 +33,11 @@ export default defineEventHandler(async (event) => {
     const reason = 'Verify your email before you make a workspace.';
     throw createError({ statusCode: 403, statusMessage: reason, data: { reason } });
   }
+
+  // A demo account gets one workspace. A second one would sit outside the
+  // sweep and the link cap.
+  if (user.demo)
+    throw demoRefusal('A demo account cannot make a workspace.');
 
   // Link limits are keyed by workspace, so a caller who makes workspaces freely
   // resets them. Key this one on the user.
