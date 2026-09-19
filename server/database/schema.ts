@@ -92,6 +92,9 @@ export const workspaces = pgTable('workspaces', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   logoUrl: text('logo_url'),
+  // Null keeps the slugs at the root. A value moves every link under
+  // host/{link_prefix}/{slug} and stops the root paths resolving.
+  linkPrefix: text('link_prefix'),
   plan: workspacePlanEnum('plan').notNull().default('active'),
   trialStartedAt: timestampTz('trial_started_at'),
   trialEndsAt: timestampTz('trial_ends_at'),
@@ -103,6 +106,7 @@ export const workspaces = pgTable('workspaces', {
   updatedAt: timestampTz('updated_at').notNull().defaultNow(),
 }, table => [
   check('workspaces_slug_format_check', sql`${table.slug} ~ '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'`),
+  check('workspaces_link_prefix_format_check', sql`${table.linkPrefix} is null or ${table.linkPrefix} ~ '^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$'`),
 ]);
 
 export const workspaceMembers = pgTable('workspace_members', {

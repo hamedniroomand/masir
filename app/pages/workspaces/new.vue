@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as v from 'valibot';
+import { linkPrefixSchema } from '#shared/link-prefix';
 import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-slug';
 
 const { $api } = useNuxtApp();
@@ -14,9 +15,14 @@ const rootHost = computed(() => new URL(config.public.shortDomain).host);
 const schema = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a workspace name.')),
   slug: workspaceSlugSchema,
+  linkPrefix: linkPrefixSchema,
 });
 
-const state = reactive({ name: '', slug: '' });
+const state = reactive({ name: '', slug: '', linkPrefix: '' });
+const linkExample = computed(() => {
+  const path = state.linkPrefix.trim().replace(/^\/+|\/+$/g, '');
+  return `${state.slug || 'acme'}.${rootHost.value}/${path ? `${path}/` : ''}abc123`;
+});
 const form = useTemplateRef('form');
 useFormRevalidation(form, state);
 const error = ref('');
@@ -52,7 +58,7 @@ async function onSubmit() {
   try {
     const workspace = await $api<{ id: string; slug: string }>('/api/workspaces', {
       method: 'POST',
-      body: { name: state.name, slug: state.slug },
+      body: { name: state.name, slug: state.slug, linkPrefix: state.linkPrefix },
     });
     if (logo.value)
       await uploadLogo(workspace.id, logo.value);
@@ -99,6 +105,12 @@ async function onSubmit() {
         </UInput>
         <template #help>
           <span class="text-xs text-muted">You cannot change this later.</span>
+        </template>
+      </UFormField>
+      <UFormField label="Link path" name="linkPrefix">
+        <UInput v-model="state.linkPrefix" icon="i-lucide-route" placeholder="go" />
+        <template #help>
+          <span class="text-xs text-muted">Optional. Links look like {{ linkExample }}. Changing it later breaks links you have shared.</span>
         </template>
       </UFormField>
       <p v-if="error" role="alert" class="text-sm text-error">

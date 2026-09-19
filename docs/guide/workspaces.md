@@ -89,6 +89,22 @@ The form suggests a slug from the workspace name as you type, but it never
 rewrites what you typed yourself. An invalid value gets an error, not a silent
 correction.
 
+## Link path
+
+By default a short link sits at the root of the workspace host:
+`acme.example.com/abc123`. A workspace can put one path segment in front of
+every slug instead, for example `acme.example.com/go/abc123`. Set it on the
+create form or later in **Settings → Workspace**. Leave it empty to keep the
+root.
+
+The path is 1 to 32 characters of lowercase letters, numbers, and hyphens.
+Names the application uses itself, such as `api`, `links`, and `p`, are
+refused.
+
+Once a path is set, the root paths stop resolving. Changing or clearing the
+path breaks every link and QR code you have already shared, and the settings
+page says so next to the field.
+
 ## Name and logo
 
 The owner can rename the workspace and upload a logo from

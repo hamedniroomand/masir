@@ -1,0 +1,2 @@
+ALTER TABLE "workspaces" ADD COLUMN "link_prefix" text;--> statement-breakpoint
+ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_link_prefix_format_check" CHECK ("link_prefix" is null or "link_prefix" ~ '^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$');

@@ -9,12 +9,14 @@ import {
   createWorkspaceWithOwner,
   isWorkspaceSlugTaken,
 } from '#server/utils/workspace-repo';
+import { linkPrefixSchema } from '#shared/link-prefix';
 import { planName } from '#shared/permissions';
 import { normalizeWorkspaceSlug, workspaceSlugSchema } from '#shared/workspace-slug';
 
 const bodySchema = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1, 'Enter a workspace name.'), v.maxLength(120)),
   slug: v.optional(v.string()),
+  linkPrefix: v.optional(linkPrefixSchema, ''),
 });
 
 const SLUG_TAKEN = 'This workspace address is taken.';
@@ -65,6 +67,7 @@ export default defineEventHandler(async (event) => {
     const workspace = await createWorkspaceWithOwner({
       name: body.name,
       slug: parsed.output,
+      linkPrefix: body.linkPrefix,
       // Only POST /api/workspaces/logo sets a logo, after it checks the bytes.
       logoUrl: null,
       ownerUserId: user.id,
@@ -75,6 +78,7 @@ export default defineEventHandler(async (event) => {
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug,
+      linkPrefix: workspace.linkPrefix,
       logoUrl: workspace.logoUrl,
       plan: planName(workspace.plan),
     };

@@ -1,10 +1,11 @@
+import type { ShortUrlWorkspace } from '#server/utils/link-repo';
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { aliasesForLinks, linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { validateDestination } from '#server/utils/url';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
-  const workspace = event.context.workspace as { slug: string };
+  const workspace = event.context.workspace as ShortUrlWorkspace;
   const query = getQuery(event);
   const page = Math.max(1, Number(query.page ?? 1) || 1);
   let perPage = Number(query.perPage ?? 20) || 20;
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
   const aliasMap = await aliasesForLinks(items.map(i => i.id));
 
   return {
-    items: items.map(link => linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [], aliasMap.get(link.id) ?? [])),
+    items: items.map(link => linkToDto(link, workspace, tagMap.get(link.id) ?? [], aliasMap.get(link.id) ?? [])),
     total,
     page,
     perPage,

@@ -49,18 +49,27 @@ export default defineEventHandler(async (event) => {
   const pathname = queryStart === -1 ? path : path.slice(0, queryStart);
   const inboundQuery = queryStart === -1 ? '' : path.slice(queryStart + 1);
 
-  const segment = pathname.replace(/^\//, '').split('/')[0];
+  const segments = pathname.replace(/^\//, '').split('/');
+  const [first] = segments;
   // Nuxt and Nitro internals start with an underscore (/_nuxt, /__nuxt_error).
-  if (!segment || segment.includes('.') || segment.includes('/') || segment.startsWith('_'))
+  if (!first || first.includes('.') || first.startsWith('_'))
     return;
-  if (RESERVED_SLUGS.has(segment))
+  if (RESERVED_SLUGS.has(first))
     return;
 
   // Short links live only inside a workspace. The root host serves none, and
   // without SSR the Vue app cannot answer 404 itself, so the server does.
-  const workspace = event.context.workspace as { id: string } | undefined;
+  const workspace = event.context.workspace as { id: string; linkPrefix: string | null } | undefined;
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Link not found' });
+
+  // With a prefix the slug is the second segment and the root paths stay
+  // with the app. Without one, only a single segment is a slug.
+  const segment = workspace.linkPrefix
+    ? (first === workspace.linkPrefix && segments.length === 2 ? segments[1] : undefined)
+    : (segments.length === 1 ? first : undefined);
+  if (!segment)
+    return;
 
   const config = useRuntimeConfig();
   const clientKey = await hashClientKey(event);

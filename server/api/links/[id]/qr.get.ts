@@ -68,8 +68,8 @@ export default defineEventHandler(async (event) => {
   if (transparent && format === 'png')
     throw badColour('bg');
   const background = transparent ? 'transparent' : readColour(query.bg, 'bg', 'ffffff');
-  const workspace = event.context.workspace as { slug: string; logoUrl: string | null };
-  const payload = shortUrlFor(workspace.slug, link.slug);
+  const workspace = event.context.workspace as { slug: string; linkPrefix: string | null; logoUrl: string | null };
+  const payload = shortUrlFor(workspace, link.slug);
 
   // A logo covers the middle of the code, so the highest error correction has
   // to carry it. PNG has no compositor here, so the flag applies to SVG only.

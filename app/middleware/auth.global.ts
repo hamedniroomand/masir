@@ -3,10 +3,11 @@ import { RESERVED_SLUGS } from '#shared/slug';
 function isPublicShortLinkPath(path: string): boolean {
   if (/^\/p\/[a-z0-9_-]+$/.test(path))
     return true;
-  const match = path.match(/^\/([a-z0-9_-]+)$/);
+  // A workspace can put one segment in front of every slug.
+  const match = path.match(/^\/(?:([a-z0-9-]+)\/)?([a-z0-9_-]+)$/);
   if (!match)
     return false;
-  return !RESERVED_SLUGS.has(match[1] ?? '');
+  return !RESERVED_SLUGS.has(match[1] ?? match[2] ?? '');
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {

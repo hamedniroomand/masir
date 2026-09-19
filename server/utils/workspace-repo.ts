@@ -92,6 +92,7 @@ export async function isWorkspaceSlugTaken(slug: string) {
 export async function createWorkspaceWithOwner(input: {
   name: string;
   slug: string;
+  linkPrefix: string | null;
   logoUrl: string | null;
   ownerUserId: string;
 }): Promise<Workspace> {
@@ -102,6 +103,7 @@ export async function createWorkspaceWithOwner(input: {
     const [created] = await tx.insert(workspaces).values({
       name: input.name,
       slug: input.slug,
+      linkPrefix: input.linkPrefix,
       logoUrl: input.logoUrl,
     }).returning();
     if (!created)
@@ -185,7 +187,7 @@ export async function transferOwnership(workspaceId: string, fromUserId: string,
   });
 }
 
-export async function updateWorkspace(workspaceId: string, patch: { name?: string; logoUrl?: string | null }) {
+export async function updateWorkspace(workspaceId: string, patch: { name?: string; linkPrefix?: string | null; logoUrl?: string | null }) {
   const db = await getDb();
   await db.update(workspaces).set({ ...patch, updatedAt: new Date() }).where(eq(workspaces.id, workspaceId));
   return findWorkspaceById(workspaceId);

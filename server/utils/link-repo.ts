@@ -14,13 +14,15 @@ import { generateSlug, RESERVED_SLUGS } from '#shared/slug';
 
 const countAll = sql<number>`count(*)::int`;
 
-export function shortUrlFor(workspaceSlug: string, linkSlug: string) {
+export type ShortUrlWorkspace = { slug: string; linkPrefix: string | null };
+
+export function shortUrlFor(workspace: ShortUrlWorkspace, linkSlug: string) {
   const config = useRuntimeConfig();
-  const base = workspaceUrl(workspaceSlug, config as unknown as DeploymentConfig);
-  return `${base}/${linkSlug}`;
+  const base = workspaceUrl(workspace.slug, config as unknown as DeploymentConfig);
+  return workspace.linkPrefix ? `${base}/${workspace.linkPrefix}/${linkSlug}` : `${base}/${linkSlug}`;
 }
 
-export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string, tagNames: string[] = [], aliases: string[] = []) {
+export function linkToDto(link: typeof links.$inferSelect, workspace: ShortUrlWorkspace, tagNames: string[] = [], aliases: string[] = []) {
   return {
     id: link.id,
     slug: link.slug,
@@ -50,7 +52,7 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
     aliases,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
-    shortUrl: shortUrlFor(workspaceSlug, link.slug),
+    shortUrl: shortUrlFor(workspace, link.slug),
     status: deriveLinkStatus({
       isEnabled: link.isEnabled,
       expiresAt: link.expiresAt,

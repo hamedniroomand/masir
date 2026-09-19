@@ -66,14 +66,14 @@ async function recipientFor(link: Link) {
 
 async function addressesFor(link: Link) {
   const db = await getDb();
-  const rows = await db.select({ slug: workspaces.slug }).from(workspaces).where(eq(workspaces.id, link.workspaceId)).limit(1);
-  const workspaceSlug = rows[0]?.slug;
-  if (!workspaceSlug)
+  const rows = await db.select({ slug: workspaces.slug, linkPrefix: workspaces.linkPrefix }).from(workspaces).where(eq(workspaces.id, link.workspaceId)).limit(1);
+  const workspace = rows[0];
+  if (!workspace)
     return null;
   const config = useRuntimeConfig();
   return {
-    shortUrl: shortUrlFor(workspaceSlug, link.slug),
-    linkUrl: `${workspaceUrl(workspaceSlug, config as never)}/links/${link.id}`,
+    shortUrl: shortUrlFor(workspace, link.slug),
+    linkUrl: `${workspaceUrl(workspace.slug, config as never)}/links/${link.id}`,
   };
 }
 

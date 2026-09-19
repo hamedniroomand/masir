@@ -1,3 +1,4 @@
+import type { ShortUrlWorkspace } from '#server/utils/link-repo';
 import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
@@ -57,7 +58,7 @@ function aliasLimitReached() {
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as { slug: string };
+  const workspace = event.context.workspace as ShortUrlWorkspace;
   const config = useRuntimeConfig();
   const updateLimit = Number(config.rateLimitUpdatePerMinute) || 60;
   const rl = await rateLimitCheck(`update:${workspaceId}`, updateLimit, 60_000);
@@ -246,5 +247,5 @@ export default defineEventHandler(async (event) => {
   await writeAuditEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
   const tagMap = await tagNamesByLinkIds([updated.id]);
   const aliasMap = await aliasesForLinks([updated.id]);
-  return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? [], aliasMap.get(updated.id) ?? []);
+  return linkToDto(updated, workspace, tagMap.get(updated.id) ?? [], aliasMap.get(updated.id) ?? []);
 });

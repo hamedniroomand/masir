@@ -1,3 +1,4 @@
+import type { ShortUrlWorkspace } from '#server/utils/link-repo';
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
@@ -40,7 +41,7 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as { slug: string };
+  const workspace = event.context.workspace as ShortUrlWorkspace;
   const config = useRuntimeConfig();
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
   const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
@@ -151,7 +152,7 @@ export default defineEventHandler(async (event) => {
     await writeAuditEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
     setResponseStatus(event, 201);
     const tagMap = await tagNamesByLinkIds([link.id]);
-    return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [], []);
+    return linkToDto(link, workspace, tagMap.get(link.id) ?? [], []);
   }
   catch (error) {
     if (error instanceof SlugTakenError) {

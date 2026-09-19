@@ -1,7 +1,7 @@
 import { fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { clickEvents, hosts } from '#server/database/schema';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { clickEvents, hosts, workspaces } from '#server/database/schema';
 import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
 import {
   CHROME_UA,
@@ -257,5 +257,42 @@ describe('redirect middleware', async () => {
     );
     const row = await readTestLink(TEST_DB, linkId);
     expect(row.clickCount).toBe(0);
+  });
+
+  describe('with a link prefix', () => {
+    async function setPrefix(linkPrefix: string | null) {
+      const db = openTestDatabase(TEST_DB);
+      await db.update(workspaces).set({ linkPrefix }).where(eq(workspaces.id, workspaceId));
+    }
+
+    beforeAll(async () => {
+      await setPrefix('go');
+      await insertTestLink(TEST_DB, { workspaceId, slug: 'prefixed', destinationUrl: 'https://example.com/prefixed' });
+    });
+
+    afterAll(() => setPrefix(null));
+
+    it('redirects the prefixed path', async () => {
+      const res = await fetch('/go/prefixed', { redirect: 'manual' });
+      expect(res.status).toBe(302);
+      expect(res.headers.get('location')).toBe('https://example.com/prefixed');
+    });
+
+    it('no longer answers at the root', async () => {
+      const res = await fetch('/prefixed', { redirect: 'manual' });
+      expect(res.status).toBe(404);
+    });
+
+    // A path the middleware skips falls through to the app, which answers
+    // however it does for any unknown page. Only the destination matters here.
+    it('ignores a different first segment', async () => {
+      const res = await fetch('/other/prefixed', { redirect: 'manual' });
+      expect(res.headers.get('location') ?? '').not.toContain('example.com');
+    });
+
+    it('ignores a third segment', async () => {
+      const res = await fetch('/go/prefixed/extra', { redirect: 'manual' });
+      expect(res.headers.get('location') ?? '').not.toContain('example.com');
+    });
   });
 });

@@ -66,8 +66,8 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 |---|---|---|---|
 | `GET` | `/api/workspaces` | anyone signed in | Your memberships |
 | `GET` | `/api/workspaces/analytics` | `analytics.read` | `period` (`24h`, `7d`, `30d`, `all`). Totals, timeline, top five links, and the attention lists |
-| `POST` | `/api/workspaces` | anyone verified | `name`, optional `slug`. Refused with `409` in single-workspace mode |
-| `PATCH` | `/api/workspaces` | owner | `name` |
+| `POST` | `/api/workspaces` | anyone verified | `name`, optional `slug`, optional `linkPrefix`. Refused with `409` in single-workspace mode |
+| `PATCH` | `/api/workspaces` | owner | `name`, `linkPrefix`. An empty prefix puts the links back at the root. A change breaks every published link |
 | `DELETE` | `/api/workspaces` | owner | Soft delete. The only workspace of an instance is refused |
 | `GET` | `/api/workspaces/slug-available?slug=` | anyone | Whether a workspace address is free |
 | `POST` | `/api/workspaces/logo` | owner | Multipart image. PNG, JPEG, GIF, or WebP |

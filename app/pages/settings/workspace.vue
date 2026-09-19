@@ -15,6 +15,7 @@ const bookmarklet = computed(() => {
   return `javascript:location.href='${base}/links/new?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)`;
 });
 const name = ref('');
+const linkPrefix = ref('');
 const message = ref('');
 const error = ref('');
 const saving = ref(false);
@@ -23,9 +24,16 @@ const logoFile = ref<File | null>(null);
 const logoBusy = ref(false);
 
 watch(current, (workspace) => {
-  if (workspace)
-    name.value = workspace.name;
+  if (!workspace)
+    return;
+  name.value = workspace.name;
+  linkPrefix.value = workspace.linkPrefix ?? '';
 }, { immediate: true });
+
+const linkExample = computed(() => {
+  const path = linkPrefix.value.trim().replace(/^\/+|\/+$/g, '');
+  return `${current.value?.url.replace(/^https?:\/\//, '') ?? ''}/${path ? `${path}/` : ''}abc123`;
+});
 
 function reasonOf(failure: unknown) {
   return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason;
@@ -36,7 +44,7 @@ async function save() {
   message.value = '';
   saving.value = true;
   try {
-    await $api('/api/workspaces', { method: 'PATCH', body: { name: name.value } });
+    await $api('/api/workspaces', { method: 'PATCH', body: { name: name.value, linkPrefix: linkPrefix.value } });
     await refresh();
     message.value = 'Saved.';
   }
@@ -123,6 +131,12 @@ async function remove() {
         </UInput>
         <template #help>
           <span class="text-xs text-muted">Every published short link uses this address.</span>
+        </template>
+      </UFormField>
+      <UFormField label="Link path">
+        <UInput v-model="linkPrefix" icon="i-lucide-route" placeholder="go" />
+        <template #help>
+          <span class="text-xs text-muted">Optional. Links look like {{ linkExample }}. Changing this breaks every link and QR code you have shared.</span>
         </template>
       </UFormField>
       <p v-if="error" role="alert" class="text-sm text-error">

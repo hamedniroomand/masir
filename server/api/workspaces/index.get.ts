@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
       id: row.workspace.id,
       name: row.workspace.name,
       slug: row.workspace.slug,
+      linkPrefix: row.workspace.linkPrefix,
       logoUrl: publicUrlOrNull(row.workspace.logoUrl),
       role: row.role,
       url: workspaceUrl(row.workspace.slug, config as never),
