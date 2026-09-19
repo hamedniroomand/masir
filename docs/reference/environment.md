@@ -191,6 +191,23 @@ deployment stops between requests, so it leaves the interval at `0`, sets
 `NUXT_JOBS_SECRET`, and points an external cron at the jobs route. See
 [Vercel](/guide/vercel#cron).
 
+## Demo
+
+| Variable | Default | Notes |
+|---|---|---|
+| `NUXT_DEMO_ENABLED` | `false` | Lets a visitor open a seeded workspace without an account from the landing page. Needs `NUXT_MULTI_WORKSPACE=true` |
+
+The button sits on the landing page, which the root serves only when
+`NUXT_APP_DOMAIN` points the app somewhere else. Set that too, or the button
+has no page to sit on.
+
+A demo workspace holds 4 sample links with sample analytics and 9 links in
+total, so the visitor can make 5 more. The visitor cannot invite members,
+transfer ownership, or make another workspace. The workspace and its user are deleted 24 hours after creation by
+the same sweep that sends expiry alerts, so a serverless deployment needs the
+jobs cron from the Alerts section. Their click events stay until the monthly
+partition ages out. With the gate off, nothing here runs.
+
 ## Requests
 
 | Variable | Default | Notes |

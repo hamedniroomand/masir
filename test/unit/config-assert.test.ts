@@ -102,4 +102,23 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 0 })).not.toThrow();
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 15 })).not.toThrow();
   });
+
+  it('refuses the demo without multi-workspace', () => {
+    const base = {
+      sessionPassword: '01234567890123456789012345678901',
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://masir.test:3000',
+      allowRegistration: false,
+      public: { shortDomain: 'http://masir.test:3000' },
+    };
+    expect(() => assertRuntimeConfig({ ...base, multiWorkspace: false, demoEnabled: true })).toThrow(/NUXT_DEMO_ENABLED/);
+    expect(() => assertRuntimeConfig({ ...base, multiWorkspace: false, demoEnabled: false })).not.toThrow();
+    expect(() => assertRuntimeConfig({
+      ...base,
+      multiWorkspace: true,
+      demoEnabled: true,
+      session: { cookie: { domain: '.masir.test' } },
+    })).not.toThrow();
+  });
 });

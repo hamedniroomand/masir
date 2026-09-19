@@ -11,6 +11,11 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- `NUXT_DEMO_ENABLED`. A "Try the demo" button on the landing page opens a
+  seeded workspace with no account. The workspace holds 4 sample links and 9
+  links at most, and is deleted after 24 hours. Needs `NUXT_MULTI_WORKSPACE`
+  and `NUXT_APP_DOMAIN`. Off by default.
+
 - `NUXT_APP_DOMAIN`. Set it to an origin such as `https://app.example.com` and
   sign-in, onboarding, and the dashboard move there. The root then serves an
   indexable landing page at `/`, keeps serving short links, and sends every

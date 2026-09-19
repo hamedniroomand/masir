@@ -8,6 +8,8 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
   databaseUrl: string;
   alertsIntervalMinutes?: number | string;
+  demoEnabled?: boolean | string;
+  session?: { cookie?: { domain?: string } };
   oauth?: { microsoft?: { clientId?: string; tenant?: string } };
   public: {
     shortDomain: string;
@@ -21,7 +23,12 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   if (!/^postgres(?:ql)?:\/\//.test(config.databaseUrl ?? ''))
     throw new Error('Missing or invalid NUXT_DATABASE_URL (must be a postgres:// connection string)');
 
-  assertDeploymentConfig({ ...config, sessionCookieDomain: (config as { session?: { cookie?: { domain?: string } } }).session?.cookie?.domain });
+  assertDeploymentConfig({ ...config, sessionCookieDomain: config.session?.cookie?.domain });
+
+  // A demo makes one workspace for each visitor. Single mode has one
+  // workspace and no place to put another.
+  if (config.demoEnabled && !config.multiWorkspace)
+    throw new Error('NUXT_DEMO_ENABLED is true, so NUXT_MULTI_WORKSPACE must be true');
 
   // 'common' accepts every Microsoft tenant in the world, and an identity from
   // any of them links onto a matching local account. A cloud deployment names
