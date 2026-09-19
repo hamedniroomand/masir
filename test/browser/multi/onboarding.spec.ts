@@ -41,8 +41,8 @@ test('registers, verifies the email, creates a workspace, and reaches its subdom
 
   // The session cookie carries the parent domain, so the subdomain is signed in.
   await page.getByRole('link', { name: 'Skip for now' }).click();
-  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
-  await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/dashboard`);
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   await page.goto(`${server.hostUrl('zeta-corp')}/settings/workspace`);
   await expect(page.getByRole('img', { name: 'Zeta Corp logo' })).toHaveAttribute('src', /\/uploads\/logos\//);
@@ -67,9 +67,9 @@ test('shows the inbox notice to an unverified sign-in and resends the link', asy
 
 test('sends the root host straight to the only workspace', async ({ page, login, server }) => {
   await login(EMAIL, PASSWORD);
-  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/dashboard`);
   await page.goto('/');
-  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/`);
+  await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/dashboard`);
 });
 
 test('offers no sign-in provider when the operator configured none', async ({ page }) => {

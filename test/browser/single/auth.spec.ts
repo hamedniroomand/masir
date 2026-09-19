@@ -33,9 +33,10 @@ test('answers a wrong password with one generic error', async ({ page, login }) 
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test('signs in, lands on the links dashboard, and cannot reopen the login page', async ({ page, login }) => {
+test('signs in, lands on the overview, and cannot reopen the login page', async ({ page, login }) => {
   await login();
-  await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   await page.goto('/login');
   await expect(page).toHaveURL(/\/$/);

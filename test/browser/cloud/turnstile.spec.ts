@@ -14,7 +14,7 @@ test('holds the sign-in button until Turnstile issues a token, then signs in', a
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeEnabled();
 
   await login();
-  await expect(page).toHaveURL(/\/workspaces$|\/$/);
+  await expect(page).toHaveURL(/\/workspaces$|\/dashboard$/);
 });
 
 // Node resolves nothing under masir.test, so the call goes to localhost and

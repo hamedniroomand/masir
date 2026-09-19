@@ -28,7 +28,7 @@ test('sets a new password from the emailed link and signs in with it', async ({ 
   await expect(page).toHaveURL(/\/login$/);
 
   await login(OWNER_EMAIL, NEW_PASSWORD);
-  await expect(page.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   // A recovery link is spent once it is used.
   await page.goto(`/reset-password?token=${token}`);

@@ -1,8 +1,8 @@
 import type { SQL } from 'drizzle-orm';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
-import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
-import { campaigns, clickEvents, hosts, links } from '#server/database/schema';
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { campaigns, clickEvents, hosts, links, workspaces } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { hostId } from '#server/utils/host-repo';
 import { BOT_CATEGORY, BROWSER, browserLabel, DEVICE, deviceLabel, OUTCOME } from '#shared/codes';
@@ -134,6 +134,86 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
       }))
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
     ...await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human'),
+  };
+}
+
+const ATTENTION_ROWS = 10;
+const TOP_LINKS = 5;
+const EXPIRING_DAYS = 7;
+const NEAR_CAP_RATIO = 0.8;
+const STOPPED_WINDOW_MS = 7 * 86_400_000;
+
+const linkSummary = {
+  id: links.id,
+  slug: links.slug,
+  title: links.title,
+  clickCount: links.clickCount,
+  maximumVisits: links.maximumVisits,
+  expiresAt: links.expiresAt,
+};
+
+// One page that answers "how is the workspace doing" and "what needs
+// attention". Totals and the timeline reuse buildAnalytics with the workspace
+// as the scope, so there is no second implementation of either.
+export async function getWorkspaceAnalytics(workspaceId: string, period: Period) {
+  const db = await getDb();
+  const workspaceRows = await db.select({ createdAt: workspaces.createdAt }).from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1);
+  const createdAt = workspaceRows[0]?.createdAt;
+  if (!createdAt)
+    return null;
+
+  const scope = eq(clickEvents.workspaceId, workspaceId);
+  const analytics = await buildAnalytics(scope, period, createdAt.getTime(), 'human');
+
+  const windowStart = periodStart(period, Date.now());
+  const topRows = await db.select({
+    id: clickEvents.linkId,
+    slug: links.slug,
+    title: links.title,
+    clicks: countAll,
+  })
+    .from(clickEvents)
+    .innerJoin(links, eq(clickEvents.linkId, links.id))
+    .where(and(scope, windowFilter(windowStart), humanFilter, isNull(links.deletedAt)))
+    .groupBy(clickEvents.linkId, links.slug, links.title)
+    .orderBy(desc(countAll))
+    .limit(TOP_LINKS);
+
+  const now = new Date();
+  const live = and(eq(links.workspaceId, workspaceId), isNull(links.deletedAt));
+
+  const expiringSoon = await db.select(linkSummary).from(links).where(and(
+    live,
+    eq(links.isEnabled, true),
+    gte(links.expiresAt, now),
+    lte(links.expiresAt, new Date(now.getTime() + EXPIRING_DAYS * 86_400_000)),
+  )).orderBy(links.expiresAt).limit(ATTENTION_ROWS);
+
+  const nearCap = await db.select(linkSummary).from(links).where(and(
+    live,
+    eq(links.isEnabled, true),
+    sql`${links.maximumVisits} is not null`,
+    sql`${links.clickCount} >= ceil(${NEAR_CAP_RATIO} * ${links.maximumVisits})`,
+    sql`${links.clickCount} < ${links.maximumVisits}`,
+  )).orderBy(desc(links.clickCount)).limit(ATTENTION_ROWS);
+
+  const stopped = await db.select(linkSummary).from(links).where(and(
+    live,
+    eq(links.isEnabled, true),
+    gte(links.updatedAt, new Date(now.getTime() - STOPPED_WINDOW_MS)),
+    sql`(
+      (${links.expiresAt} is not null and ${links.expiresAt} <= ${now})
+      or (${links.maximumVisits} is not null and ${links.clickCount} >= ${links.maximumVisits})
+    )`,
+  )).orderBy(desc(links.updatedAt)).limit(ATTENTION_ROWS);
+
+  return {
+    clicks: analytics.periodClicks,
+    uniqueVisitors: analytics.uniqueVisitors,
+    botRequests: analytics.botRequests,
+    timeline: analytics.series,
+    topLinks: topRows.map(row => ({ id: row.id, slug: row.slug, title: row.title, clicks: Number(row.clicks) })),
+    attention: { expiringSoon, nearCap, stopped },
   };
 }
 

@@ -65,6 +65,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 | Method | Route | Who | Notes |
 |---|---|---|---|
 | `GET` | `/api/workspaces` | anyone signed in | Your memberships |
+| `GET` | `/api/workspaces/analytics` | `analytics.read` | `period` (`24h`, `7d`, `30d`, `all`). Totals, timeline, top five links, and the attention lists |
 | `POST` | `/api/workspaces` | anyone verified | `name`, optional `slug`. Refused with `409` in single-workspace mode |
 | `PATCH` | `/api/workspaces` | owner | `name` |
 | `DELETE` | `/api/workspaces` | owner | Soft delete. The only workspace of an instance is refused |

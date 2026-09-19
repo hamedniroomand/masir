@@ -43,6 +43,7 @@ const mobileOpen = ref(false);
 const domain = computed(() => new URL(config.public.shortDomain).host);
 
 const workspaceNav = computed(() => [
+  { label: 'Overview', icon: 'i-lucide-layout-dashboard', to: '/dashboard', active: route.path === '/dashboard' },
   { label: 'All links', icon: 'i-lucide-link', to: '/', active: route.path === '/' || route.path.startsWith('/links/') },
   { label: 'Campaigns', icon: 'i-lucide-megaphone', to: '/campaigns', active: route.path.startsWith('/campaigns') },
 ]);

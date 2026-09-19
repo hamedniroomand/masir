@@ -17,6 +17,20 @@ This matters more than it sounds. Because links belong to the workspace and
 not to the person who made them, someone leaving the company does not take
 their links with them. You remove the person. The links stay where they were.
 
+## Overview
+
+**Overview** is the first page after you sign in. It answers two questions for
+the whole workspace at once:
+
+- **How is it doing.** Clicks, unique visitors, and bot requests for the period
+  you pick, with the same chart the link page uses, and the five links that got
+  the most clicks.
+- **What needs attention.** Links that expire within 7 days, links at 80 percent
+  of their visit cap or more, and links that stopped working in the last 7 days.
+
+Every row opens the link it names. The link list stays at `/`, so every bookmark
+and every saved search keeps working.
+
 ## One workspace or many
 
 Masir runs in two shapes. One environment variable decides.

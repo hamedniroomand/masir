@@ -10,8 +10,8 @@ export function landInWorkspace(items: WorkspaceLanding[]) {
   const url = items[0]?.url ?? '/';
   // A workspace lives on its own host, so this is a navigation, not a route.
   if (new URL(url, window.location.origin).origin !== window.location.origin) {
-    window.location.href = url;
+    window.location.href = `${url.replace(/\/$/, '')}/dashboard`;
     return;
   }
-  return navigateTo('/');
+  return navigateTo('/dashboard');
 }

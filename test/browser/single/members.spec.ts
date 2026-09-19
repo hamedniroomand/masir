@@ -102,7 +102,7 @@ test('transfers ownership after a confirmation and sends the former owner to the
   await newOwner.getByLabel('Email').fill(HEIR);
   await newOwner.getByLabel('Password').fill(MATE_PASSWORD);
   await newOwner.getByRole('button', { name: 'Sign in' }).click();
-  await expect(newOwner.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await expect(newOwner.getByRole('heading', { name: 'Overview' })).toBeVisible();
   await newOwner.goto('/settings/members');
   await expect(memberRow(newOwner, HEIR)).toContainText('Owner');
   await newOwner.close();
