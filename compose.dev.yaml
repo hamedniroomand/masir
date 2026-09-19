@@ -7,6 +7,9 @@ name: masir-dev
 services:
   db:
     image: postgres:18-alpine
+    # Each e2e test file runs its own server and its own client. Twenty files
+    # pass the default limit of 100.
+    command: postgres -c max_connections=400
     environment:
       POSTGRES_USER: masir
       POSTGRES_DB: masir

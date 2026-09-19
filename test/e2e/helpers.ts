@@ -11,6 +11,9 @@ const sharedEnv = {
   NUXT_PUBLIC_SHORT_DOMAIN: 'http://127.0.0.1:3000',
   NUXT_ALLOW_REGISTRATION: 'true',
   NUXT_MAIL_DRIVER: 'outbox',
+  // A test file signs in once for each case. The default of 10 refuses the
+  // eleventh. rate-limit.test.ts sets its own value and is not affected.
+  NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '200',
   // Test files run together. A pool of 10 for each would exhaust Postgres.
   NUXT_DATABASE_POOL_MAX: '2',
 };

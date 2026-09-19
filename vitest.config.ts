@@ -17,6 +17,11 @@ export default defineConfig({
       'bun:test': `${root}test/stubs/bun-test.ts`,
     },
   },
+  // @nuxt/test-utils dynamically import("vitest"). Bun's runtime would
+  // intercept that from node_modules and throw outside `bun test`.
+  ssr: {
+    noExternal: ['@nuxt/test-utils'],
+  },
   test: {
     environment: 'node',
     testTimeout: 60_000,
