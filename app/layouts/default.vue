@@ -54,7 +54,7 @@ const adminNav = computed(() => (isOwner.value
   ? [
       { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
       { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
-      { label: 'Security log', icon: 'i-lucide-shield-check', to: '/settings/security', active: route.path === '/settings/security' },
+      { label: 'Activity log', icon: 'i-lucide-scroll-text', to: '/settings/security', active: route.path === '/settings/security' },
     ]
   : []));
 

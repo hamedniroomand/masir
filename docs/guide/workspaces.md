@@ -31,6 +31,18 @@ the whole workspace at once:
 Every row opens the link it names. The link list stays at `/`, so every bookmark
 and every saved search keeps working.
 
+## Activity log
+
+**Settings → Activity log** lists what happened in the workspace, newest first.
+Only the owner can open it.
+
+Four tabs split the rows: **Links**, **Campaigns**, **Members**, and
+**Security**. Each row names who did it, what they did, and when. A row about a
+link carries a chip that opens that link. **Load more** reads the next page.
+
+Sign-in failures, OAuth errors, and abuse reports belong to an account or to the
+operator, not to a workspace, so they are not listed here.
+
 ## One workspace or many
 
 Masir runs in two shapes. One environment variable decides.

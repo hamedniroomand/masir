@@ -14,6 +14,9 @@ import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('audit_events');
 
+type Row = { id: number; type: string; actorEmail: string | null; linkId: string | null; linkSlug: string | null };
+type Page = { items: Row[]; nextBefore: number | null };
+
 async function loginCookie() {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
@@ -70,6 +73,51 @@ describe('audit events', async () => {
 
   it('refuses a caller with no session', async () => {
     await expect($fetch('/api/admin/audit-events')).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('names the actor and the link on each row', async () => {
+    const cookie = await loginCookie();
+    const created = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/audited', slug: 'audited' },
+      headers: { cookie },
+    });
+
+    const body = await $fetch<{ items: Row[] }>('/api/admin/audit-events', { query: { group: 'links' }, headers: { cookie } });
+    const row = body.items.find(item => item.linkId === created.id);
+    expect(row).toBeDefined();
+    expect(row!.actorEmail).toBe(TEST_EMAIL);
+    expect(row!.linkSlug).toBe('audited');
+  });
+
+  it('returns only link and alias events for the links group', async () => {
+    const cookie = await loginCookie();
+    const body = await $fetch<{ items: Row[] }>('/api/admin/audit-events', { query: { group: 'links' }, headers: { cookie } });
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const item of body.items)
+      expect(item.type.startsWith('link_') || item.type === 'slug_generation_exhausted').toBe(true);
+  });
+
+  it('pages with a cursor and never repeats a row', async () => {
+    const cookie = await loginCookie();
+    for (let i = 0; i < 4; i++) {
+      await $fetch('/api/links', {
+        method: 'POST',
+        body: { destinationUrl: `https://example.com/page-${i}` },
+        headers: { cookie },
+      });
+    }
+
+    const first = await $fetch<Page>('/api/admin/audit-events', { query: { limit: 2 }, headers: { cookie } });
+    expect(first.items).toHaveLength(2);
+    expect(first.nextBefore).toBe(first.items[1]!.id);
+
+    const second = await $fetch<Page>('/api/admin/audit-events', { query: { limit: 2, before: first.nextBefore }, headers: { cookie } });
+    expect(second.items).toHaveLength(2);
+    for (const item of second.items)
+      expect(item.id).toBeLessThan(first.nextBefore!);
+    const ids = new Set([...first.items, ...second.items].map(item => item.id));
+    expect(ids.size).toBe(4);
   });
 
   it('stores the detail as a json document', async () => {

@@ -168,7 +168,7 @@ This route carries a bearer token, not a session. A scheduler calls it.
 
 | Method | Route | Who | Notes |
 |---|---|---|---|
-| `GET` | `/api/admin/audit-events` | owner | The last 200 events in the workspace. Optional `type` filter |
+| `GET` | `/api/admin/audit-events` | owner | Workspace events, newest first, with `actorEmail` and `linkSlug`. Takes `group` (`links`, `campaigns`, `members`, `security`), `type`, `limit` (default 50, max 200), and `before` for the next page. Answers `nextBefore`, or `null` on the last page |
 
 Rows carry `type`, `actorId`, `linkId`, a JSON `detail`, and `createdAt`.
 Events with no workspace, such as sign-in failures and abuse reports, never
