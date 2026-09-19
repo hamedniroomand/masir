@@ -71,8 +71,10 @@ function onMove(event: PointerEvent) {
 </script>
 
 <template>
-  <div ref="wrap" class="relative w-full">
-    <svg :width="width || 320" :height="HEIGHT" role="img" :aria-label="`Clicks over time, peak ${peak?.count ?? 0}`" class="overflow-visible">
+  <!-- The SVG needs a pixel width. The server has none, so it sends the box
+       at its final height and the client draws the chart after the first measure. -->
+  <div ref="wrap" class="relative w-full" :style="{ height: `${HEIGHT}px` }">
+    <svg v-if="width" :width="width" :height="HEIGHT" role="img" :aria-label="`Clicks over time, peak ${peak?.count ?? 0}`" class="overflow-visible">
       <g class="text-muted">
         <line
           v-for="tick in ticks"
@@ -146,7 +148,7 @@ function onMove(event: PointerEvent) {
     <div
       v-if="active"
       class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-default bg-default px-2.5 py-1.5 text-xs shadow-lg"
-      :style="{ left: `${Math.min(Math.max(active.x, 56), (width || 320) - 56)}px`, top: `${active.y - 12}px` }"
+      :style="{ left: `${Math.min(Math.max(active.x, 56), width - 56)}px`, top: `${active.y - 12}px` }"
     >
       <p class="font-medium tabular-nums text-highlighted">
         {{ active.count }} {{ active.count === 1 ? 'click' : 'clicks' }}

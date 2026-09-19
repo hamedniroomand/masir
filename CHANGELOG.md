@@ -65,6 +65,9 @@ the notes for every version between the one you run and the one you install.
   error before it sends a signed-in person to their workspace. Pages that
   render on the client show a loader while they start, instead of a blank
   page.
+- The clicks chart no longer renders at 320px on the server and jumps to its
+  real width after hydration. The box keeps its height and the chart draws
+  once the width is known.
 
 ### Upgrade notes
 
