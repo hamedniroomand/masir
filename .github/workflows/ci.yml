@@ -1,6 +1,10 @@
 name: ci
 
-on: push
+# Tag pushes run through release.yml, which calls this workflow.
+on:
+  push:
+    branches: ['**']
+  workflow_call:
 
 jobs:
   ci:

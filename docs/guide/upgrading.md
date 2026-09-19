@@ -22,8 +22,18 @@ table, says so there.
 
 ## Upgrade
 
-Pin to a tag rather than tracking `main`, so an upgrade is something you do on
-purpose.
+Pin to a version rather than tracking `latest` or `main`, so an upgrade is
+something you do on purpose.
+
+With the published image, set `MASIR_VERSION` in `.env` and pull:
+
+```sh
+docker compose -f compose.image.yaml pull
+docker compose -f compose.image.yaml up -d
+```
+
+The quick install script writes the stack as `compose.yaml`, so drop the `-f`
+there. With a build of your own, check out the tag and rebuild:
 
 ```sh
 git fetch --tags

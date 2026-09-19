@@ -278,6 +278,7 @@ Read by Docker Compose from `.env`, never by the server.
 |---|---|---|
 | `POSTGRES_PASSWORD` | | production, **required** |
 | `MASIR_APP_PORT` | `3000` | both |
+| `MASIR_VERSION` | `latest` | image |
 | `MASIR_DB_PORT` | `5432` | development |
 | `MASIR_MAIL_SMTP_PORT` | `1025` | development |
 | `MASIR_MAIL_UI_PORT` | `8025` | development |
@@ -285,6 +286,9 @@ Read by Docker Compose from `.env`, never by the server.
 `POSTGRES_PASSWORD` goes into a connection string unescaped, so use letters and
 digits only: `openssl rand -hex 24`. Changing it after the first start does not
 change the password inside the existing volume.
+
+`MASIR_VERSION` picks the tag of `ghcr.io/hamedniroomand/masir` that
+`compose.image.yaml` runs, such as `1.2.0`, `1.2`, or `1`.
 
 The port variables set the host port of a published service. The port inside
 the container never changes. The production stack publishes only the app. The

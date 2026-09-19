@@ -11,6 +11,11 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- A tag `v*` now publishes `ghcr.io/hamedniroomand/masir` for `amd64` and
+  `arm64` and creates a GitHub release with the changelog section. New
+  `compose.image.yaml` runs the image, `MASIR_VERSION` pins its tag, and
+  `scripts/install.sh` sets a fresh server up in one command.
+
 - `NUXT_DEMO_ENABLED`. A "Try the demo" button on the landing page opens a
   seeded workspace with no account. The workspace holds 4 sample links and 9
   links at most, and is deleted after 24 hours. Needs `NUXT_MULTI_WORKSPACE`

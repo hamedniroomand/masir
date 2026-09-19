@@ -1,0 +1,47 @@
+# Production stack from the published image. Use compose.yaml instead to build
+# the image yourself, for example to compile Sentry in.
+#   cp .env.example .env    # set POSTGRES_PASSWORD and NUXT_SESSION_PASSWORD
+#   docker compose -f compose.image.yaml up -d
+name: masir
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: masir
+      POSTGRES_DB: masir
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # No published port. The app reaches Postgres over the compose network, and
+    # a database on a public interface is the first thing a scanner finds.
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U masir -d masir]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  app:
+    image: ghcr.io/hamedniroomand/masir:${MASIR_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - '${MASIR_APP_PORT:-3000}:3000'
+    env_file: .env
+    environment:
+      NUXT_DATABASE_URL: postgres://masir:${POSTGRES_PASSWORD}@db:5432/masir
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # The image has no curl. Bun exits 1 on a refused connection or a non-2xx.
+      test: [CMD, bun, -e, "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db-data:
+  uploads:

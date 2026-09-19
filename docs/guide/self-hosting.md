@@ -75,6 +75,36 @@ Getting this wrong costs you either way. Too low and every visitor shares one
 rate-limit bucket, so one noisy client blocks everyone. Too high and a caller
 can write their own address into the header and reset every limit.
 
+**Point the proxy at port 3000.** Masir speaks plain HTTP and needs no special
+headers. Caddy is the shortest path, because it fetches and renews the
+certificate on its own:
+
+```text [Caddyfile]
+go.example.com {
+  reverse_proxy localhost:3000
+}
+```
+
+With nginx, terminate TLS as you normally do and pass the client address:
+
+```nginx [nginx.conf]
+server {
+  server_name go.example.com;
+  listen 443 ssl;
+  # ssl_certificate and ssl_certificate_key from certbot or your CA
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+In multi-workspace mode, or with `NUXT_APP_DOMAIN` set, list every hostname
+in the same block. Masir routes on the `Host` header.
+
 **Pass a country header if you want the country breakdown.** Masir never
 geolocates an IP itself, because that would mean handling the address it has
 decided not to store. It reads a header your proxy sets instead. Cloudflare's
@@ -161,7 +191,8 @@ NUXT_PUBLIC_SENTRY_ENVIRONMENT=production
 Tracing is off by default. Set `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` to a
 fraction between 0 and 1 to turn it on. Turning Sentry on for the first time
 needs a rebuild, because the module is only compiled in when at least one of
-its variables is set.
+its variables is set. The published image is built without them, so Sentry
+needs the [build path](/guide/installation#build-it-yourself).
 
 ## Backups
 

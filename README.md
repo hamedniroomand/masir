@@ -34,24 +34,25 @@ Masir turns long URLs into short ones on your own domain, and keeps them under y
 
 ## Quick start
 
-You need Docker and a machine that can run it. Postgres comes with the stack.
+On a Linux server, one command installs Docker if needed, pulls the image, and starts Masir with Postgres:
 
 ```sh
-git clone https://github.com/hamedniroomand/masir.git
-cd masir
-cp .env.example .env
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/install.sh | sh
 ```
 
-Open `.env` and set `POSTGRES_PASSWORD`, `NUXT_SESSION_PASSWORD` (32 or more characters), and `NUXT_ROOT_DOMAIN`. Then:
+Or run the published image yourself:
 
 ```sh
-docker compose up -d --build
+docker pull ghcr.io/hamedniroomand/masir:latest
+```
+
+Then create the first account and sign in at `/login`:
+
+```sh
 docker compose exec app bun run db:seed:admin
 ```
 
-Sign in at `/login` with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` from your `.env`.
-
-The [installation guide](https://hamedniroomand.github.io/masir/guide/installation) covers running from source, Vercel, and multi-workspace mode.
+The [installation guide](https://hamedniroomand.github.io/masir/guide/installation) covers the image, building it yourself, running from source, Vercel, and multi-workspace mode.
 
 ## Documentation
 

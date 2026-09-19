@@ -13,10 +13,54 @@ source, that works too.
 - **A domain** pointed at the server. Masir needs to know the address people
   will type, and browsers need HTTPS before they accept the session cookie.
 
-## Docker Compose
+## Quick install
 
-This is the recommended path. Compose starts Postgres and Masir together and
-keeps the data on named volumes.
+One command on a fresh Linux server. The script installs Docker when the
+machine has none, pulls the published image, writes a `.env` with generated
+secrets, and starts the stack in a `masir` folder.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/install.sh | sh
+```
+
+It asks one question, the address people will type. Read the script first if
+you prefer: it is short and does nothing outside that folder.
+
+## Docker image
+
+Every release publishes `ghcr.io/hamedniroomand/masir` for `amd64` and
+`arm64`. Use it when you do not want to build.
+
+<Steps>
+
+### Download the stack
+
+```sh
+mkdir masir && cd masir
+curl -fsSLO https://raw.githubusercontent.com/hamedniroomand/masir/main/compose.image.yaml
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/.env.example -o .env
+```
+
+Open `.env` and set the same three values as below. Set `MASIR_VERSION` too if
+you want to pin a release; it defaults to `latest`.
+
+### Start the stack
+
+```sh
+docker compose -f compose.image.yaml up -d
+docker compose -f compose.image.yaml exec app bun run db:seed:admin
+```
+
+</Steps>
+
+The image is built without Sentry. To report errors, build it yourself with
+the path below.
+
+## Build it yourself
+
+Use this when you want Sentry compiled in, or a change of your own. Compose
+builds the image, starts Postgres and Masir together, and keeps the data on
+named volumes.
 
 <Steps>
 
