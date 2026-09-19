@@ -95,7 +95,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 
 | Method | Route | Notes |
 |---|---|---|
-| `GET` | `/api/links` | `page`, `perPage`, `sort` (`createdAt` or `clicks`), `status`, `search`, `tags` |
+| `GET` | `/api/links` | `page`, `perPage`, `sort` (`createdAt` or `clicks`), `status`, `search`, `tags`, `destination` (exact match after normalisation) |
 | `POST` | `/api/links` | Create. See the fields below |
 | `GET` | `/api/links/:id` | One link, with its `creator` |
 | `PATCH` | `/api/links/:id` | Update any field. `slug` renames the link and, unless `keepOldSlug` is `false`, keeps the old address as an alias |

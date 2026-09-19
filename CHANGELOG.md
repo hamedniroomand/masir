@@ -20,6 +20,8 @@ the notes for every version between the one you run and the one you install.
   to 20 countries to their own destination.
 - Slug rename and up to 10 extra addresses for each link. An address that once
   worked stays reserved, even after a rename or a delete.
+- The create form warns when a destination already has a link. It never blocks
+  the second one.
 
 ### Changed
 

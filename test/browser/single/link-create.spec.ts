@@ -122,3 +122,22 @@ test('refuses a destination that is not http or https', async ({ page, login }) 
   expect((await answer).status()).toBe(422);
   await expect(dialog.getByText('Only http and https URLs are allowed.')).toBeVisible();
 });
+
+test('warns about a destination that already has a link and still creates it', async ({ page, login }) => {
+  await login();
+  const first = await openCreateForm(page);
+  await first.getByLabel('Destination URL').fill('https://example.com/twice');
+  await first.getByLabel('Short address').fill('twice-one');
+  await first.getByRole('button', { name: 'Create link' }).click();
+  await expect(first.getByText('twice-one')).toBeVisible();
+
+  const second = await openCreateForm(page);
+  await second.getByLabel('Destination URL').fill('https://example.com/twice');
+  await second.getByLabel('Title').click();
+  await expect(second.getByText('This destination already has a link')).toBeVisible();
+  await expect(second.getByRole('link', { name: '/twice-one' })).toBeVisible();
+
+  await second.getByLabel('Short address').fill('twice-two');
+  await second.getByRole('button', { name: 'Create link' }).click();
+  await expect(second.getByText('twice-two')).toBeVisible();
+});

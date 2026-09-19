@@ -1,0 +1,1 @@
+CREATE INDEX "links_workspace_destination_idx" ON "links" ("workspace_id","destination_url") WHERE deleted_at is null;

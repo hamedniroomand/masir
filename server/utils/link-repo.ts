@@ -288,6 +288,7 @@ export async function tagNamesByLinkIds(linkIds: string[]) {
 
 export async function listLinks(workspaceId: string, query: {
   q?: string;
+  destination?: string;
   status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   tags?: string[];
   page: number;
@@ -310,6 +311,9 @@ export async function listLinks(workspaceId: string, query: {
       like(sql`lower(${links.notes})`, term),
     ));
   }
+
+  if (query.destination)
+    filters.push(eq(links.destinationUrl, query.destination));
 
   if (query.tags?.length) {
     for (const raw of query.tags) {

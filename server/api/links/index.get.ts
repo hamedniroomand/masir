@@ -1,5 +1,6 @@
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { aliasesForLinks, linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { validateDestination } from '#server/utils/url';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
@@ -22,8 +23,15 @@ export default defineEventHandler(async (event) => {
       ? [rawTags]
       : [];
 
+  // The same normalisation the create route applies, so a stored URL and the
+  // one the form sends compare equal.
+  const config = useRuntimeConfig();
+  const rawDestination = typeof query.destination === 'string' ? query.destination : '';
+  const destination = rawDestination ? validateDestination(rawDestination, config.allowPrivateDestinations) : null;
+
   const { items, total } = await listLinks(workspaceId, {
     q: typeof query.q === 'string' ? query.q : undefined,
+    destination: destination?.ok ? destination.url : undefined,
     status: statusFilter,
     tags: tagFilters.length ? tagFilters : undefined,
     page,

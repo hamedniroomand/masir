@@ -57,6 +57,30 @@ const state = reactive({
   notes: '',
 });
 
+// A warning, never a block. Two links to one destination is a normal thing to
+// want, so the submit button stays enabled.
+const duplicate = ref<{ id: string; slug: string } | null>(null);
+
+const checkDuplicate = useDebounceFn(async () => {
+  duplicate.value = null;
+  const value = state.destinationUrl.trim();
+  if (!value || !URL.canParse(value.includes('://') ? value : `https://${value}`))
+    return;
+  try {
+    const found = await $api<{ items: { id: string; slug: string }[] }>('/api/links', {
+      query: { destination: value, limit: 1, perPage: 1 },
+    });
+    duplicate.value = found.items[0] ?? null;
+  }
+  catch {
+    duplicate.value = null;
+  }
+}, 300);
+
+watch(() => state.destinationUrl, () => {
+  duplicate.value = null;
+});
+
 const groups = reactive({ tracking: false, access: false, tags: false });
 
 const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
@@ -101,6 +125,7 @@ function setErrors(errors: { name: string; message: string }[]) {
 
 function reset() {
   state.destinationUrl = '';
+  duplicate.value = null;
   state.slug = '';
   state.title = '';
   state.expiresAt = null;
@@ -217,7 +242,22 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           autocomplete="url"
           icon="i-lucide-globe"
           placeholder="https://example.com/page"
+          @blur="checkDuplicate"
         />
+        <UAlert
+          v-if="duplicate"
+          color="warning"
+          variant="soft"
+          icon="i-lucide-info"
+          class="mt-2"
+          title="This destination already has a link"
+        >
+          <template #description>
+            <NuxtLink :to="`/links/${duplicate.id}`" class="underline">
+              /{{ duplicate.slug }}
+            </NuxtLink> already points here. You can still create another one.
+          </template>
+        </UAlert>
       </UFormField>
       <UFormField label="Title" name="title" description="A name to help you find this link.">
         <UInput v-model="state.title" placeholder="Product launch" />

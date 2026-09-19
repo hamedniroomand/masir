@@ -195,6 +195,7 @@ export const links = pgTable('links', {
   index('links_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()).where(sql`deleted_at is null`),
   index('links_workspace_clicks_idx').on(table.workspaceId, table.clickCount.desc()).where(sql`deleted_at is null`),
   index('links_campaign_idx').on(table.campaignId).where(sql`deleted_at is null`),
+  index('links_workspace_destination_idx').on(table.workspaceId, table.destinationUrl).where(sql`deleted_at is null`),
   check('links_slug_format_check', sql`${table.slug} ~ '^[a-z0-9_-]{1,64}$'`),
   check('links_maximum_visits_check', sql`${table.maximumVisits} > 0`),
   check('links_click_count_check', sql`${table.clickCount} >= 0`),

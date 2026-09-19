@@ -278,6 +278,40 @@ describe('links API', async () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('filters the list by destination and skips deleted links', async () => {
+    const cookie = await loginCookie();
+    const shared = 'https://example.com/shared-target';
+    const live = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: shared },
+      headers: { cookie },
+    });
+    const gone = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: shared },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${gone.id}`, { method: 'DELETE', headers: { cookie } });
+
+    const found = await $fetch<{ items: { id: string }[] }>('/api/links', {
+      query: { destination: shared },
+      headers: { cookie },
+    });
+    expect(found.items.map(item => item.id)).toEqual([live.id]);
+
+    // The stored URL keeps its trailing slash, so a bare origin still matches.
+    const origin = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://trailing.example.com' },
+      headers: { cookie },
+    });
+    const byOrigin = await $fetch<{ items: { id: string }[] }>('/api/links', {
+      query: { destination: 'https://trailing.example.com/' },
+      headers: { cookie },
+    });
+    expect(byOrigin.items.map(item => item.id)).toEqual([origin.id]);
+  });
+
   it('rejects javascript destinations with 422', async () => {
     const cookie = await loginCookie();
     await expect($fetch('/api/links', {
