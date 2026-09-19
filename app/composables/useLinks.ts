@@ -2,6 +2,7 @@ export type LinkItem = {
   id: string;
   slug: string;
   title: string | null;
+  notes: string | null;
   destinationUrl: string;
   destinationHost: string;
   shortUrl: string;

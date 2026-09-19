@@ -29,6 +29,18 @@ Destinations must be `http` or `https`. Private and local addresses are refused
 by default, and a link cannot point back at itself. See
 [Destination validation](/project/security#destination-validation).
 
+## Notes
+
+Each link holds a private note of at most 2000 characters. Use it for why the
+link exists, who asked for it, or where it is printed.
+
+Write the note in the **Notes** card on the Settings tab, or in the **Tags and
+notes** group of the create form. The Overview tab shows it above the
+analytics.
+
+The note never reaches a visitor. Only your workspace reads it. Link search
+matches the note, so you can find a link by a word that appears nowhere else.
+
 ## Query passthrough
 
 Whatever a visitor appends to the short link is merged into the destination:

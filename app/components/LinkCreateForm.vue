@@ -2,7 +2,7 @@
 import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui';
 import type { LinkItem } from '~/composables/useLinks';
 import * as v from 'valibot';
-import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, toVisitLimit } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_NOTES_LENGTH, notesSchema, toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
@@ -28,6 +28,7 @@ const fields = v.object({
   utmTerm: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
   tags: v.optional(v.array(v.string())),
+  notes: notesSchema,
 });
 
 const schema = v.pipe(fields, v.check(input => !hasCampaignUtmConflict(input), CAMPAIGN_UTM_CONFLICT));
@@ -49,11 +50,13 @@ const state = reactive({
   utmTerm: '',
   utmContent: '',
   tags: [] as string[],
+  notes: '',
 });
 
 const groups = reactive({ tracking: false, access: false, tags: false });
 
 const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
+  notes: 'tags',
   campaignId: 'tracking',
   utmSource: 'tracking',
   utmCampaign: 'tracking',
@@ -143,6 +146,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.utmContent = state.utmContent;
     if (state.tags.length)
       body.tags = state.tags;
+    if (state.notes.trim())
+      body.notes = state.notes.trim();
 
     const link = await $api<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
@@ -275,12 +280,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           class="w-full"
           :trailing-icon="groups.tags ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
           :ui="{ trailingIcon: 'ms-auto' }"
-          label="Tags"
+          label="Tags and notes"
           icon="i-lucide-tags"
         />
         <template #content>
           <UFormField name="tags" description="Group links for your dashboard." class="px-2 pb-2 pt-4">
             <LinkTagInput v-model="state.tags" />
+          </UFormField>
+          <UFormField name="notes" label="Notes" description="Only your workspace reads this." class="px-2 pb-2">
+            <UTextarea v-model="state.notes" :rows="3" :maxlength="MAX_NOTES_LENGTH" autoresize class="w-full" />
           </UFormField>
         </template>
       </UCollapsible>

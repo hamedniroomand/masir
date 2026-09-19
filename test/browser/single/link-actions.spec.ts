@@ -77,6 +77,18 @@ test('changes the destination on the settings tab and redirects to the new targe
   expect(response.headers().location).toBe('https://example.com/new-home');
 });
 
+test('saves a note on the settings tab and shows it on the overview tab', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/noted', slug: 'noted', title: 'Noted link' });
+  await page.goto(`/links/${link.id}?tab=settings`);
+  await page.getByLabel('Notes').fill('Printed on the spring flyer.');
+  await page.getByRole('button', { name: 'Save notes' }).click();
+  await expect(page.getByText('Notes saved')).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Overview' }).click();
+  await expect(page.getByText('Printed on the spring flyer.')).toBeVisible();
+});
+
 test('saves a password, a schedule, and a visit cap from the access card', async ({ page, login }) => {
   await login();
   const link = await createLink(page, { destinationUrl: 'https://example.com/locked', slug: 'locked', title: 'Locked' });

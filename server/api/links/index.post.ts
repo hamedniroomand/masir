@@ -11,7 +11,7 @@ import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
-import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, tagsSchema } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -19,6 +19,7 @@ const bodySchema = v.object({
   destinationUrl: v.pipe(v.string(), v.minLength(1)),
   slug: v.optional(v.string()),
   title: v.optional(v.nullable(v.string())),
+  notes: notesSchema,
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
   expirationDestination: v.optional(v.nullable(v.string())),
@@ -108,6 +109,7 @@ export default defineEventHandler(async (event) => {
       createdBy: user.id,
       destinationUrl: dest.url,
       title: body.title,
+      notes: body.notes,
       slug,
       expiresAt,
       startsAt,

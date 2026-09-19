@@ -1,7 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { clickEvents } from '#server/database/schema';
+import { auditEvents, clickEvents } from '#server/database/schema';
 import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
 import {
   e2eSetupOptions,
@@ -176,6 +176,46 @@ describe('links API', async () => {
         startsAt: start,
         expiresAt: end,
       },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('keeps notes on a link and finds them in a search', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; notes: string | null }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/noted', notes: 'Printed on the conference flyer.' },
+      headers: { cookie },
+    });
+    expect(link.notes).toBe('Printed on the conference flyer.');
+
+    const read = await $fetch<{ notes: string | null }>(`/api/links/${link.id}`, { headers: { cookie } });
+    expect(read.notes).toBe('Printed on the conference flyer.');
+
+    const found = await $fetch<{ items: { id: string }[] }>('/api/links', {
+      query: { q: 'flyer' },
+      headers: { cookie },
+    });
+    expect(found.items.map(item => item.id)).toContain(link.id);
+  });
+
+  it('names notes in the audit fields and refuses a note that is too long', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/audited' },
+      headers: { cookie },
+    });
+
+    await $fetch(`/api/links/${link.id}`, { method: 'PATCH', body: { notes: 'Asked for by sales.' }, headers: { cookie } });
+    const db = openTestDatabase(TEST_DB);
+    const rows = await db.select().from(auditEvents).where(eq(auditEvents.linkId, link.id));
+    const updated = rows.find(row => row.type === 'link_updated');
+    expect((updated!.detail as { fields: string[] }).fields).toContain('notes');
+
+    await expect($fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { notes: 'x'.repeat(2001) },
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 422 });
   });

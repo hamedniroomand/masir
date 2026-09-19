@@ -23,6 +23,7 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
     id: link.id,
     slug: link.slug,
     title: link.title,
+    notes: link.notes,
     destinationUrl: link.destinationUrl,
     destinationHost: link.destinationHost,
     isEnabled: link.isEnabled,
@@ -94,6 +95,7 @@ export async function createLink(input: {
   createdBy: string;
   destinationUrl: string;
   title?: string | null;
+  notes?: string | null;
   slug?: string;
   expiresAt?: Date | null;
   startsAt?: Date | null;
@@ -120,6 +122,7 @@ export async function createLink(input: {
         createdBy: input.createdBy,
         slug,
         title: input.title ?? null,
+        notes: input.notes ?? null,
         destinationUrl: input.destinationUrl,
         destinationHost,
         expiresAt: input.expiresAt ?? null,
@@ -205,6 +208,7 @@ export async function listLinks(workspaceId: string, query: {
       like(sql`lower(${links.title})`, term),
       like(sql`lower(${links.slug})`, term),
       like(sql`lower(${links.destinationHost})`, term),
+      like(sql`lower(${links.notes})`, term),
     ));
   }
 
@@ -268,6 +272,7 @@ export async function listLinks(workspaceId: string, query: {
 
 export async function updateLink(id: string, workspaceId: string, patch: {
   title?: string | null;
+  notes?: string | null;
   destinationUrl?: string;
   expiresAt?: Date | null;
   startsAt?: Date | null;
@@ -289,6 +294,8 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   const values: Partial<typeof links.$inferInsert> = { updatedAt: new Date() };
   if (patch.title !== undefined)
     values.title = patch.title;
+  if (patch.notes !== undefined)
+    values.notes = patch.notes;
   if (patch.destinationUrl !== undefined) {
     values.destinationUrl = patch.destinationUrl;
     values.destinationHost = destinationHostFromUrl(patch.destinationUrl);

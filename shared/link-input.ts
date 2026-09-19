@@ -19,6 +19,13 @@ export const maximumVisitsSchema = v.optional(v.nullable(v.pipe(
   v.minValue(1, 'Maximum visits must be at least 1.'),
 )));
 
+export const MAX_NOTES_LENGTH = 2000;
+
+export const notesSchema = v.optional(v.nullable(v.pipe(
+  v.string(),
+  v.maxLength(MAX_NOTES_LENGTH, `Use at most ${MAX_NOTES_LENGTH} characters for notes.`),
+)));
+
 export const tagNameSchema = v.pipe(
   v.string(),
   v.trim(),

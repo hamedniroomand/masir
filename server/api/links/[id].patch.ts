@@ -10,11 +10,12 @@ import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination } from '#server/utils/url';
-import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, tagsSchema } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
   title: v.optional(v.nullable(v.string())),
+  notes: notesSchema,
   destinationUrl: v.optional(v.string()),
   expiresAt: v.optional(v.nullable(v.number())),
   startsAt: v.optional(v.nullable(v.number())),
@@ -61,6 +62,8 @@ export default defineEventHandler(async (event) => {
   const patch: Parameters<typeof updateLink>[2] = {};
   if (body.title !== undefined)
     patch.title = body.title;
+  if (body.notes !== undefined)
+    patch.notes = body.notes;
   if (body.isEnabled !== undefined)
     patch.isEnabled = body.isEnabled;
   if (body.expiresAt !== undefined)

@@ -91,10 +91,21 @@ onMounted(() => {
       <template #content="{ item }">
         <template v-if="!visited.has(item.value)" />
 
-        <LinkAnalyticsPanel v-else-if="item.value === 'overview'" :link-id="link.id" />
+        <template v-else-if="item.value === 'overview'">
+          <div v-if="link.notes" class="mb-5 rounded-lg border border-default bg-muted/40 px-4 py-3">
+            <h2 class="text-xs font-medium text-muted">
+              Notes
+            </h2>
+            <p class="mt-1 whitespace-pre-line text-sm text-toned">
+              {{ link.notes }}
+            </p>
+          </div>
+          <LinkAnalyticsPanel :link-id="link.id" />
+        </template>
 
         <div v-else-if="item.value === 'settings'" class="max-w-4xl space-y-5">
           <LinkDestinationForm :link="link" @updated="refreshLink()" />
+          <LinkNotesForm :link="link" @updated="refreshLink()" />
           <LinkTrackingForm :link="link" @updated="refreshLink()" />
           <UCard>
             <template #header>

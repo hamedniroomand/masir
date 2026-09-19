@@ -164,6 +164,8 @@ export const links = pgTable('links', {
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   slug: text('slug').notNull(),
   title: text('title'),
+  // Private to the workspace. The valibot schema caps the length.
+  notes: text('notes'),
   destinationUrl: text('destination_url').notNull(),
   destinationHost: text('destination_host').notNull(),
   isEnabled: boolean('is_enabled').notNull().default(true),
