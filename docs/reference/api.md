@@ -49,6 +49,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 |---|---|---|
 | `GET` | `/api/auth/providers` | Which sign-in methods are on, and whether registration is open |
 | `POST` | `/api/auth/register` | `email`, `password`. Sends a verification link |
+| `POST` | `/api/auth/demo` | Optional `turnstileToken`. Makes a seeded demo workspace and a session for it. Answers `201 { "url": "..." }`, `404` unless `NUXT_DEMO_ENABLED` is on, `429` after 3 calls an hour |
 | `POST` | `/api/auth/verify` | `token` from the email |
 | `POST` | `/api/auth/verify/resend` | Send a new verification link |
 | `POST` | `/api/auth/login` | `email`, `password`. Sets the session cookie |
@@ -64,7 +65,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 
 | Method | Route | Who | Notes |
 |---|---|---|---|
-| `GET` | `/api/workspaces` | anyone signed in | Your memberships |
+| `GET` | `/api/workspaces` | anyone signed in | Your memberships. Each item carries `expiresAt`, set only on a demo workspace |
 | `GET` | `/api/workspaces/analytics` | `analytics.read` | `period` (`24h`, `7d`, `30d`, `all`). Totals, timeline, top five links, and the attention lists |
 | `POST` | `/api/workspaces` | anyone verified | `name`, optional `slug`, optional `linkPrefix`. Refused with `409` in single-workspace mode |
 | `PATCH` | `/api/workspaces` | owner | `name`, `linkPrefix`. An empty prefix puts the links back at the root. A change breaks every published link |
@@ -142,7 +143,7 @@ This route carries a bearer token, not a session. A scheduler calls it.
 
 | Method | Route | Notes |
 |---|---|---|
-| `POST` | `/api/jobs/alerts` | Run the expiry alert sweep. Needs `Authorization: Bearer <NUXT_JOBS_SECRET>`. Answers `404` with no secret set, `401` with a wrong one, and `{ "sent": n }` otherwise |
+| `POST` | `/api/jobs/alerts` | Run the expiry alert sweep. Needs `Authorization: Bearer <NUXT_JOBS_SECRET>`. Answers `404` with no secret set, `401` with a wrong one, and `{ "sent": n, "demosDeleted": n }` otherwise. `demosDeleted` is `0` unless `NUXT_DEMO_ENABLED` is on |
 
 ## Tags
 
