@@ -1,3 +1,4 @@
+import type { LinkTargeting } from '#shared/link-targeting';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -174,6 +175,7 @@ export const links = pgTable('links', {
   expirationDestination: text('expiration_destination'),
   limitDestination: text('limit_destination'),
   scheduledDestination: text('scheduled_destination'),
+  targeting: jsonb('targeting').$type<LinkTargeting>(),
   passwordHash: text('password_hash'),
   maximumVisits: bigint('maximum_visits', { mode: 'number' }),
   // One counter. It totals the successful human redirects and it is the number

@@ -16,6 +16,8 @@ the notes for every version between the one you run and the one you install.
 - Private notes on a link, at most 2000 characters. Link search matches them.
 - Fallback destinations for a used-up visit cap and for a link that has not
   started. Both are recorded as their own outcome and count no click.
+- Device and country targeting. One link can send iOS, Android, desktop, and up
+  to 20 countries to their own destination.
 
 ### Changed
 

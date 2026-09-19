@@ -104,6 +104,7 @@ export default defineConfig({
             link('sparkles', 'Overview', '/features/'),
             link('link', 'Short links', '/features/links'),
             link('shield-check', 'Access control', '/features/access-control'),
+            link('crosshair', 'Targeting', '/features/targeting'),
             link('chart-line', 'Analytics', '/features/analytics'),
             link('megaphone', 'Tags and campaigns', '/features/campaigns'),
           ],

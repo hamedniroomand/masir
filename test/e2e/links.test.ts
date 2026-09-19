@@ -251,6 +251,33 @@ describe('links API', async () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('keeps a targeting map and refuses one with too many countries', async () => {
+    const cookie = await loginCookie();
+    const targeting = { os: { android: 'https://example.com/play' }, country: { US: 'https://example.com/us' } };
+    const link = await $fetch<{ id: string; targeting: typeof targeting | null }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/app', targeting },
+      headers: { cookie },
+    });
+    expect(link.targeting).toEqual(targeting);
+
+    const cleared = await $fetch<{ targeting: unknown }>(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { targeting: { os: {}, country: {} } },
+      headers: { cookie },
+    });
+    expect(cleared.targeting).toBe(null);
+
+    const country: Record<string, string> = {};
+    for (let i = 0; i < 21; i++)
+      country[`X${String.fromCharCode(65 + i)}`] = 'https://example.com/x';
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/many', targeting: { country } },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
   it('rejects javascript destinations with 422', async () => {
     const cookie = await loginCookie();
     await expect($fetch('/api/links', {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { browserFromUa, isBot } from '#server/utils/request-meta';
+import { browserFromUa, isBot, osFromUa } from '#server/utils/request-meta';
 
 describe('isBot', () => {
   it('classifies Googlebot as a search crawler', () => {
@@ -46,5 +46,18 @@ describe('browserFromUa', () => {
     expect(browserFromUa('Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36')).toBe('chrome');
     expect(browserFromUa('Mozilla/5.0 (Macintosh) Version/17.0 Safari/605.1.15')).toBe('safari');
     expect(browserFromUa('curl/8.4.0')).toBe('other');
+  });
+});
+
+describe('osFromUa', () => {
+  it.each([
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15', 'ios'],
+    ['Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15', 'ios'],
+    ['Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36', 'android'],
+    ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'desktop'],
+    ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36', 'desktop'],
+    ['SomethingNobodyKnows/1.0', 'other'],
+  ])('maps %s', (ua, expected) => {
+    expect(osFromUa(ua)).toBe(expected);
   });
 });

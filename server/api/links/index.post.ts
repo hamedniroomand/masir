@@ -10,8 +10,9 @@ import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
-import { validateDestination, validateFallbackDestination } from '#server/utils/url';
+import { validateDestination, validateFallbackDestination, validateTargeting } from '#server/utils/url';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
+import { targetingSchema } from '#shared/link-targeting';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -25,6 +26,7 @@ const bodySchema = v.object({
   expirationDestination: v.optional(v.nullable(v.string())),
   limitDestination: v.optional(v.nullable(v.string())),
   scheduledDestination: v.optional(v.nullable(v.string())),
+  targeting: targetingSchema,
   maximumVisits: maximumVisitsSchema,
   password: v.optional(v.nullable(v.string())),
   campaignId: v.optional(v.nullable(v.string())),
@@ -108,6 +110,16 @@ export default defineEventHandler(async (event) => {
   const limitDestination = fallback(body.limitDestination, 'Limit destination');
   const scheduledDestination = fallback(body.scheduledDestination, 'Scheduled destination');
 
+  const targetingResult = validateTargeting({
+    targeting: body.targeting,
+    allowPrivate: config.allowPrivateDestinations,
+    shortDomain: config.public.shortDomain,
+    slug,
+  });
+  if (!targetingResult.ok)
+    throw createError({ statusCode: 422, statusMessage: targetingResult.reason, data: { reason: targetingResult.reason } });
+  const targeting = targetingResult.targeting;
+
   try {
     const link = await createLink({
       workspaceId,
@@ -121,6 +133,7 @@ export default defineEventHandler(async (event) => {
       expirationDestination,
       limitDestination,
       scheduledDestination,
+      targeting,
       maximumVisits,
       passwordHash: body.password ? await hashSecret(body.password) : null,
       campaignId,

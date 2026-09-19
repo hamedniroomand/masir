@@ -20,6 +20,7 @@ export type LinkItem = {
   expirationDestination: string | null;
   limitDestination: string | null;
   scheduledDestination: string | null;
+  targeting: { os?: Record<string, string>; country?: Record<string, string> } | null;
   maximumVisits: number | null;
   successfulVisitCount: number;
   tags: string[];

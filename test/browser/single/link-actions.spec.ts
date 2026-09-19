@@ -129,6 +129,29 @@ test('reveals the visit cap fallback once a cap is set and keeps it', async ({ p
   await expect(page.getByLabel('After the visit cap')).toHaveValue('https://example.com/sold-out');
 });
 
+test('saves and removes a targeting rule on the settings tab', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/app', slug: 'targeted-ui', title: 'Targeted' });
+  await page.goto(`/links/${link.id}?tab=settings`);
+
+  await page.getByLabel('Android destination').fill('https://example.com/play');
+  await page.getByRole('button', { name: 'Add a country' }).click();
+  await page.getByLabel('Country code 1').fill('US');
+  await page.getByLabel('Country destination 1').fill('https://example.com/us');
+  await page.getByRole('button', { name: 'Save targeting' }).click();
+  await expect(page.getByText('Targeting saved')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByLabel('Android destination')).toHaveValue('https://example.com/play');
+  await expect(page.getByLabel('Country code 1')).toHaveValue('US');
+
+  await page.getByRole('button', { name: 'Remove country rule 1' }).click();
+  await page.getByRole('button', { name: 'Save targeting' }).click();
+  await page.reload();
+  await expect(page.getByLabel('Country code 1')).toHaveCount(0);
+  await expect(page.getByLabel('Android destination')).toHaveValue('https://example.com/play');
+});
+
 test('shows the password badge on the link header', async ({ page, login }) => {
   await login();
   await page.goto('/');

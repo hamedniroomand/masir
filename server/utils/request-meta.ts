@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3';
 import type { BotCategoryLabel, BrowserLabel, DeviceLabel } from '#shared/codes';
+import type { RequestOs } from '#shared/link-targeting';
 import { getRequestHeaders } from 'h3';
 
 export type BotCategory = BotCategoryLabel;
@@ -14,6 +15,9 @@ export type RequestMeta = {
   country: string | null;
   deviceCategory: DeviceLabel;
   browserCategory: BrowserLabel;
+  // Targeting reads this. click_events does not store it, so analytics stay
+  // the same.
+  os: RequestOs;
   isBot: boolean;
   botCategory: BotCategory | null;
 };
@@ -60,6 +64,7 @@ export function parseRequestMeta(event: H3Event): RequestMeta {
   const ua = headers['user-agent'] ?? '';
   const deviceCategory = deviceFromUa(ua);
   const browserCategory = browserFromUa(ua);
+  const requestOs = osFromUa(ua);
   const bot = isBot(ua);
 
   return {
@@ -67,6 +72,7 @@ export function parseRequestMeta(event: H3Event): RequestMeta {
     country,
     deviceCategory,
     browserCategory,
+    os: requestOs,
     isBot: bot.isBot,
     botCategory: bot.botCategory,
   };
@@ -78,6 +84,17 @@ export function deviceFromUa(ua: string): DeviceLabel {
     return 'tablet';
   if (/mobi|iphone|android/.test(text))
     return 'mobile';
+  if (/windows|macintosh|linux|cros/.test(text))
+    return 'desktop';
+  return 'other';
+}
+
+export function osFromUa(ua: string): RequestOs {
+  const text = ua.toLowerCase();
+  if (/iphone|ipad|ipod/.test(text))
+    return 'ios';
+  if (text.includes('android'))
+    return 'android';
   if (/windows|macintosh|linux|cros/.test(text))
     return 'desktop';
   return 'other';

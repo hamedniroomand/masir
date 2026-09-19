@@ -1,3 +1,6 @@
+import type { LinkTargeting } from '#shared/link-targeting';
+import { normalizeTargeting } from '#shared/link-targeting';
+
 type Ok = { ok: true; url: string };
 type Fail = { ok: false; reason: string };
 
@@ -87,6 +90,32 @@ export function validateFallbackDestination(input: {
   if (input.slug && shortLinkMatchesDestination(input.shortDomain, input.slug, dest.url))
     return { ok: false, reason: `${input.label} cannot point to this short link.` };
   return dest;
+}
+
+// Every rule URL follows the same rules as the main destination. The map is
+// normalised first, so an empty map is stored as null.
+export function validateTargeting(input: {
+  targeting: LinkTargeting | null | undefined;
+  allowPrivate: boolean;
+  shortDomain: string;
+  slug?: string;
+}): { ok: true; targeting: LinkTargeting | null } | Fail {
+  const normalized = normalizeTargeting(input.targeting);
+  if (!normalized)
+    return { ok: true, targeting: null };
+
+  const checked: LinkTargeting = {};
+  for (const [group, rules] of Object.entries(normalized) as [keyof LinkTargeting, Record<string, string>][]) {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(rules)) {
+      const dest = validateFallbackDestination({ ...input, value, label: 'Targeting destination' });
+      if (!dest.ok)
+        return dest;
+      out[key] = dest.url;
+    }
+    checked[group] = out;
+  }
+  return { ok: true, targeting: checked };
 }
 
 export function shortLinkMatchesDestination(shortDomain: string, slug: string, destinationUrl: string): boolean {

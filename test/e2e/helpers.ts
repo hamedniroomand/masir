@@ -128,6 +128,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   expirationDestination?: string | null;
   limitDestination?: string | null;
   scheduledDestination?: string | null;
+  targeting?: Record<string, unknown> | null;
   maximumVisits?: number | null;
   clickCount?: number;
 }) {
@@ -146,6 +147,7 @@ export async function insertTestLink(databaseUrl: string, input: {
     expirationDestination: input.expirationDestination ?? null,
     limitDestination: input.limitDestination ?? null,
     scheduledDestination: input.scheduledDestination ?? null,
+    targeting: input.targeting ?? null,
     maximumVisits: input.maximumVisits ?? null,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,

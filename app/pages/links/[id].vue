@@ -107,6 +107,7 @@ onMounted(() => {
           <LinkDestinationForm :link="link" @updated="refreshLink()" />
           <LinkNotesForm :link="link" @updated="refreshLink()" />
           <LinkTrackingForm :link="link" @updated="refreshLink()" />
+          <LinkTargetingForm :link="link" @updated="refreshLink()" />
           <UCard>
             <template #header>
               <h2 class="text-sm font-semibold text-highlighted">

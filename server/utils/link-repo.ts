@@ -1,4 +1,5 @@
 import type { DeploymentConfig } from '#shared/deployment';
+import type { LinkTargeting } from '#shared/link-targeting';
 import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, links, linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
@@ -32,6 +33,7 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
     expirationDestination: link.expirationDestination,
     limitDestination: link.limitDestination,
     scheduledDestination: link.scheduledDestination,
+    targeting: link.targeting,
     maximumVisits: link.maximumVisits,
     // One column serves both names. successfulVisitCount stays in the API so
     // the frontend does not change.
@@ -104,6 +106,7 @@ export async function createLink(input: {
   expirationDestination?: string | null;
   limitDestination?: string | null;
   scheduledDestination?: string | null;
+  targeting?: LinkTargeting | null;
   maximumVisits?: number | null;
   passwordHash?: string | null;
   campaignId?: string | null;
@@ -134,6 +137,7 @@ export async function createLink(input: {
         expirationDestination: input.expirationDestination ?? null,
         limitDestination: input.limitDestination ?? null,
         scheduledDestination: input.scheduledDestination ?? null,
+        targeting: input.targeting ?? null,
         maximumVisits: input.maximumVisits ?? null,
         passwordHash: input.passwordHash ?? null,
         campaignId: input.campaignId ?? null,
@@ -285,6 +289,7 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   expirationDestination?: string | null;
   limitDestination?: string | null;
   scheduledDestination?: string | null;
+  targeting?: LinkTargeting | null;
   maximumVisits?: number | null;
   passwordHash?: string | null;
   isEnabled?: boolean;
@@ -318,6 +323,8 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.limitDestination = patch.limitDestination;
   if (patch.scheduledDestination !== undefined)
     values.scheduledDestination = patch.scheduledDestination;
+  if (patch.targeting !== undefined)
+    values.targeting = patch.targeting;
   if (patch.maximumVisits !== undefined)
     values.maximumVisits = patch.maximumVisits;
   if (patch.passwordHash !== undefined)

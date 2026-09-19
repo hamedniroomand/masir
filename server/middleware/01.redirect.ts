@@ -12,6 +12,7 @@ import { parseRequestMeta } from '#server/utils/request-meta';
 import { visitorHashForLink } from '#server/utils/visitor-hash';
 
 import { deriveLinkStatus } from '#shared/link-status';
+import { resolveDestination } from '#shared/link-targeting';
 import { RESERVED_SLUGS } from '#shared/slug';
 import { buildDestination, utmParamsFor } from '#shared/utm';
 
@@ -148,6 +149,6 @@ export default defineEventHandler(async (event) => {
     logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
   }
 
-  const destination = buildDestination(link.destinationUrl, utmParamsFor(link), inboundQuery);
+  const destination = buildDestination(resolveDestination(link, meta), utmParamsFor(link), inboundQuery);
   await sendRedirect(event, destination, 302);
 });

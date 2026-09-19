@@ -16,6 +16,7 @@ import {
 import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('redirect');
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 describe('redirect middleware', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
@@ -153,6 +154,57 @@ describe('redirect middleware', async () => {
 
     const withoutFallback = await fetch('/soon-without', { redirect: 'manual' });
     expect(withoutFallback.status).toBe(404);
+  });
+
+  it('picks the country rule over the os rule and keeps the utm merge', async () => {
+    await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'targeted',
+      destinationUrl: 'https://example.com/default',
+      utmSource: 'poster',
+      targeting: {
+        os: { ios: 'https://example.com/app-store', android: 'https://example.com/play' },
+        country: { DE: 'https://example.com/de' },
+      },
+    });
+
+    const german = await fetch('/targeted', {
+      redirect: 'manual',
+      headers: { 'user-agent': IPHONE_UA, 'cf-ipcountry': 'DE' },
+    });
+    expect(german.status).toBe(302);
+    const location = new URL(german.headers.get('location')!);
+    expect(location.origin + location.pathname).toBe('https://example.com/de');
+    expect(location.searchParams.get('utm_source')).toBe('poster');
+  });
+
+  it('picks the os rule when no country rule matches and falls back otherwise', async () => {
+    await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'os-only',
+      destinationUrl: 'https://example.com/default',
+      targeting: { os: { ios: 'https://example.com/app-store' } },
+    });
+
+    const iphone = await fetch('/os-only', { redirect: 'manual', headers: { 'user-agent': IPHONE_UA, 'cf-ipcountry': 'US' } });
+    expect(new URL(iphone.headers.get('location')!).pathname).toBe('/app-store');
+
+    const desktop = await fetch('/os-only', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    expect(new URL(desktop.headers.get('location')!).pathname).toBe('/default');
+  });
+
+  it('gives a bot the same targeted destination', async () => {
+    await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'bot-target',
+      destinationUrl: 'https://example.com/default',
+      targeting: { os: { ios: 'https://example.com/app-store' } },
+    });
+    const res = await fetch('/bot-target', {
+      redirect: 'manual',
+      headers: { 'user-agent': 'Twitterbot/1.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' },
+    });
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/app-store');
   });
 
   it('does not handle /login', async () => {
