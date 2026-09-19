@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { can } from '#shared/permissions';
+import { can, roleLabel, roleName } from '#shared/permissions';
 
 describe('can', () => {
   it('lets an owner do everything', () => {
@@ -19,5 +19,36 @@ describe('can', () => {
     expect(can('MEMBER', 'workspace.manage')).toBe(false);
     expect(can('MEMBER', 'workspace.delete')).toBe(false);
     expect(can('MEMBER', 'members.manage')).toBe(false);
+  });
+});
+
+describe('viewer role', () => {
+  it('lets a viewer read links and analytics', () => {
+    expect(can('VIEWER', 'links.read')).toBe(true);
+    expect(can('VIEWER', 'analytics.read')).toBe(true);
+  });
+
+  it('refuses a viewer every write', () => {
+    expect(can('VIEWER', 'links.manage')).toBe(false);
+    expect(can('VIEWER', 'workspace.manage')).toBe(false);
+    expect(can('VIEWER', 'workspace.delete')).toBe(false);
+    expect(can('VIEWER', 'members.manage')).toBe(false);
+  });
+
+  it('lets an owner and a member read links', () => {
+    expect(can('OWNER', 'links.read')).toBe(true);
+    expect(can('MEMBER', 'links.read')).toBe(true);
+  });
+});
+
+describe('role labels', () => {
+  it('round trips every role', () => {
+    for (const role of ['OWNER', 'MEMBER', 'VIEWER'] as const)
+      expect(roleName(roleLabel(role))).toBe(role);
+  });
+
+  it('maps the viewer label', () => {
+    expect(roleLabel('VIEWER')).toBe('viewer');
+    expect(roleName('viewer')).toBe('VIEWER');
   });
 });

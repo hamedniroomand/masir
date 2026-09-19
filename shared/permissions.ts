@@ -1,19 +1,21 @@
-export type WorkspaceRole = 'OWNER' | 'MEMBER';
+export type WorkspaceRole = 'OWNER' | 'MEMBER' | 'VIEWER';
 export type WorkspacePlan = 'TRIAL' | 'ACTIVE' | 'TRIAL_EXPIRED';
 
 // The API keeps its uppercase strings. The database keeps lowercase enum
 // labels. These four maps are the only place the two spellings meet.
-export type MemberRoleLabel = 'owner' | 'member';
+export type MemberRoleLabel = 'owner' | 'member' | 'viewer';
 export type WorkspacePlanLabel = 'trial' | 'active' | 'trial_expired';
 
 const ROLE_LABEL: Record<WorkspaceRole, MemberRoleLabel> = {
   OWNER: 'owner',
   MEMBER: 'member',
+  VIEWER: 'viewer',
 };
 
 const ROLE_NAME: Record<MemberRoleLabel, WorkspaceRole> = {
   owner: 'OWNER',
   member: 'MEMBER',
+  viewer: 'VIEWER',
 };
 
 const PLAN_LABEL: Record<WorkspacePlan, WorkspacePlanLabel> = {
@@ -49,6 +51,7 @@ export type Permission
     | 'workspace.delete'
     | 'members.manage'
     | 'links.manage'
+    | 'links.read'
     | 'analytics.read';
 
 const BY_ROLE: Record<WorkspaceRole, ReadonlySet<Permission>> = {
@@ -57,10 +60,16 @@ const BY_ROLE: Record<WorkspaceRole, ReadonlySet<Permission>> = {
     'workspace.delete',
     'members.manage',
     'links.manage',
+    'links.read',
     'analytics.read',
   ]),
   MEMBER: new Set<Permission>([
     'links.manage',
+    'links.read',
+    'analytics.read',
+  ]),
+  VIEWER: new Set<Permission>([
+    'links.read',
     'analytics.read',
   ]),
 };

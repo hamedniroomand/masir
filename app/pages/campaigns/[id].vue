@@ -12,6 +12,7 @@ const editOpen = ref(false);
 const deleting = ref(false);
 const deleteOpen = ref(false);
 const showError = useErrorToast();
+const { canManageLinks } = useCurrentWorkspace();
 
 const { data: campaign, error, refresh: refreshCampaign } = await useApi<CampaignItem>(() => `/api/campaigns/${id.value}`);
 
@@ -62,8 +63,8 @@ async function removeCampaign() {
         </div>
       </div>
       <div class="flex shrink-0 gap-2">
-        <UButton label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
-        <UButton label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
+        <UButton v-if="canManageLinks" label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
+        <UButton v-if="canManageLinks" label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
       </div>
     </div>
 

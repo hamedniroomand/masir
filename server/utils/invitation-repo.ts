@@ -1,8 +1,10 @@
+import type { MemberRoleLabel } from '#server/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { users, workspaceInvitations, workspaceMembers } from '#server/database/schema';
 import { hashAuthToken, newAuthToken } from '#server/utils/auth-token';
 import { getDb, isUuid } from '#server/utils/db';
 import { normalizeEmail } from '#server/utils/identity-repo';
+import { roleLabel } from '#shared/permissions';
 
 export const INVITE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -44,6 +46,7 @@ export async function createInvitation(input: {
   workspaceId: string;
   email: string;
   invitedBy: string;
+  role?: 'MEMBER' | 'VIEWER';
 }) {
   const db = await getDb();
   const raw = newAuthToken();
@@ -52,6 +55,7 @@ export async function createInvitation(input: {
     email: normalizeEmail(input.email),
     tokenHash: hashAuthToken(raw),
     invitedBy: input.invitedBy,
+    role: input.role ? roleLabel(input.role) : null,
     expiresAt: new Date(Date.now() + INVITE_LIFETIME_MS),
   }).returning();
   if (!created)
@@ -98,7 +102,7 @@ export async function findUsableInvitation(rawToken: string) {
 
 // One statement claims the invitation and one adds the membership. The claim
 // carries its own guard, so two requests with the same token cannot both win.
-export async function acceptInvitation(invitationId: string, workspaceId: string, userId: string) {
+export async function acceptInvitation(invitationId: string, workspaceId: string, userId: string, role?: MemberRoleLabel | null) {
   const db = await getDb();
   const claimed = await db.update(workspaceInvitations)
     .set({ acceptedAt: new Date() })
@@ -114,7 +118,8 @@ export async function acceptInvitation(invitationId: string, workspaceId: string
   await db.insert(workspaceMembers).values({
     workspaceId,
     userId,
-    role: 'member',
+    // An invitation made before the role column carries no role.
+    role: role ?? 'member',
   });
   return true;
 }

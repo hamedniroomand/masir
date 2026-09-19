@@ -2,10 +2,11 @@ import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { findMember, setMemberDeactivated } from '#server/utils/workspace-repo';
+import { findMember, setMemberDeactivated, setMemberRole } from '#server/utils/workspace-repo';
 
 const bodySchema = v.object({
-  isActive: v.boolean(),
+  isActive: v.optional(v.boolean()),
+  role: v.optional(v.picklist(['MEMBER', 'VIEWER'], 'Choose Member or Viewer.')),
 });
 
 export default defineEventHandler(async (event) => {
@@ -20,14 +21,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   // A deactivated owner could never manage the workspace again, and nobody
-  // else may. Transfer first.
+  // else may. The same holds for a demoted owner. Transfer first.
   if (member.role === 'OWNER') {
-    const reason = 'Transfer ownership before you deactivate the owner.';
+    const reason = 'Transfer ownership before you change the owner.';
     throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
   }
 
   const body = await readValidBody(event, bodySchema);
-  await setMemberDeactivated(workspaceId, userId, !body.isActive);
-  await writeAuditEvent('member_activity_changed', { userId, isActive: body.isActive }, { workspaceId, actor: user.id });
+
+  if (body.role) {
+    await setMemberRole(workspaceId, userId, body.role);
+    await writeAuditEvent('member_role_changed', { userId, role: body.role }, { workspaceId, actor: user.id });
+  }
+
+  if (body.isActive !== undefined) {
+    await setMemberDeactivated(workspaceId, userId, !body.isActive);
+    await writeAuditEvent('member_activity_changed', { userId, isActive: body.isActive }, { workspaceId, actor: user.id });
+  }
+
   return { ok: true };
 });

@@ -11,6 +11,8 @@ import { workspaceUrl } from '#shared/deployment';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
+  // A workspace holds one owner, and only transfer changes who that is.
+  role: v.optional(v.picklist(['MEMBER', 'VIEWER'], 'Choose Member or Viewer.')),
 });
 
 export default defineEventHandler(async (event) => {
@@ -40,6 +42,7 @@ export default defineEventHandler(async (event) => {
     workspaceId,
     email: body.email,
     invitedBy: user.id,
+    role: body.role,
   }).catch((error) => {
     if (isUniqueViolation(error)) {
       const reason = 'This address already has an open invitation.';

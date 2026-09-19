@@ -8,3 +8,20 @@ A release that needs an action from you has an **Upgrade notes** block. Read
 the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
+
+### Added
+
+- Read-only **Viewer** role. A viewer reads links, campaigns, and analytics and
+  changes nothing. Invitations and the member row carry the role.
+
+### Changed
+
+- The nine workspace read routes ask for the new `links.read` permission
+  instead of `links.manage`. Owners and members keep both.
+
+### Upgrade notes
+
+- During a rolling deploy an old instance does not know the `viewer` role. A
+  person the new code just made a viewer gets a `500` from an old instance until
+  every instance runs the new version. Wait for the deploy to finish before you
+  add viewers.

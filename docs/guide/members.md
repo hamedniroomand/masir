@@ -1,16 +1,20 @@
 # Members and roles
 
-Masir has two roles. That is a deliberate choice, and most teams never need a
-third.
+Masir has three roles. That is a deliberate choice, and most teams never need a
+fourth.
 
-| | Owner | Member |
-|---|---|---|
-| Links, tags, campaigns | Yes | Yes |
-| Analytics | Yes | Yes |
-| Invite and remove people | Yes | |
-| Workspace name and logo | Yes | |
-| Transfer ownership | Yes | |
-| Delete the workspace | Yes | |
+| | Owner | Member | Viewer |
+|---|---|---|---|
+| Read links, tags, campaigns | Yes | Yes | Yes |
+| Analytics | Yes | Yes | Yes |
+| Create and change links, tags, campaigns | Yes | Yes | |
+| Invite and remove people | Yes | | |
+| Workspace name and logo | Yes | | |
+| Transfer ownership | Yes | | |
+| Delete the workspace | Yes | | |
+
+A viewer reads the workspace and changes nothing. Use it for an analyst, a
+client, or a stakeholder.
 
 Every extra role is another combination that can go wrong. If you find yourself
 wanting one, what you usually want is a second workspace.
@@ -31,10 +35,10 @@ losing control of their workspace.
 
 ## Inviting people
 
-From **Settings → Members**, the owner invites by email address. Every
-invitation:
+From **Settings → Members**, the owner invites by email address and picks the
+role. Every invitation:
 
-- joins the workspace as a **member**
+- joins the workspace with the role on the invitation, **member** by default
 - expires after **7 days**
 - can be resent, which replaces the token and invalidates the previous link
 - can be revoked
@@ -47,6 +51,15 @@ invitation link.
 
 Inviting an address that already has an open invitation answers `409`. Revoke
 the first one, or resend it.
+
+## Changing a role
+
+The owner changes a member between **Member** and **Viewer** from the role
+select on the member row. The change applies at once. The owner row has no role
+select: use **Make owner** to hand the workspace over.
+
+An invitation made before this release carries no role. It still joins as a
+member.
 
 ## Deactivating a member
 
@@ -76,3 +89,10 @@ Removing a member asks for the same confirmation.
 Members get links, tags, campaigns, and analytics. They do not get the
 workspace or member settings, and those pages are not just hidden. The API
 answers `404` for them, the same answer an outsider would get.
+
+## What a viewer sees
+
+Viewers get the link list, the link Overview and History tabs, campaigns, and
+analytics. The create forms, the Settings tab, and the row edit controls are
+hidden. Every write route answers `404` for them, the same answer an outsider
+would get.

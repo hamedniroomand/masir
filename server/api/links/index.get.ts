@@ -2,7 +2,7 @@ import { requireWorkspaceMember } from '#server/utils/auth';
 import { linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
   const workspace = event.context.workspace as { slug: string };
   const query = getQuery(event);
   const page = Math.max(1, Number(query.page ?? 1) || 1);

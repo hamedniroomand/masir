@@ -5,7 +5,7 @@ import { getDb } from '#server/utils/db';
 import { findLinkById } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
-  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });

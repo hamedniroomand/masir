@@ -78,7 +78,7 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 | Method | Route | Who | Notes |
 |---|---|---|---|
 | `GET` | `/api/workspaces/members` | owner | Every membership with `userId`, role, and status |
-| `PATCH` | `/api/workspaces/members/:userId` | owner | `isActive`. Refused on the owner |
+| `PATCH` | `/api/workspaces/members/:userId` | owner | `isActive`, `role` (`MEMBER` or `VIEWER`). Both optional. Refused on the owner |
 | `DELETE` | `/api/workspaces/members/:userId` | owner | Remove. Refused on the owner |
 
 ### Invitations
@@ -86,10 +86,10 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 | Method | Route | Who | Notes |
 |---|---|---|---|
 | `GET` | `/api/workspaces/invitations` | owner | Open invitations |
-| `POST` | `/api/workspaces/invitations` | owner | `email`. An open invitation for the same address answers `409` |
+| `POST` | `/api/workspaces/invitations` | owner | `email`, optional `role` (`MEMBER` or `VIEWER`, default `MEMBER`). An open invitation for the same address answers `409` |
 | `POST` | `/api/workspaces/invitations/:id/resend` | owner | New token, new email. The old link stops working |
 | `DELETE` | `/api/workspaces/invitations/:id` | owner | Revoke |
-| `POST` | `/api/workspaces/invitations/accept` | the invited user | `token`. The email must match the signed-in account |
+| `POST` | `/api/workspaces/invitations/accept` | the invited user | `token`. The email must match the signed-in account. The member joins with the role on the invitation |
 
 ## Links
 

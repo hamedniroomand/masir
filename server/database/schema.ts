@@ -30,7 +30,7 @@ const uuidV7 = sql`uuidv7()`;
 export const authProviderEnum = pgEnum('auth_provider', ['password', 'google', 'microsoft']);
 export const tokenPurposeEnum = pgEnum('token_purpose', ['email_verify', 'password_reset']);
 export const workspacePlanEnum = pgEnum('workspace_plan', ['trial', 'active', 'trial_expired']);
-export const memberRoleEnum = pgEnum('member_role', ['owner', 'member']);
+export const memberRoleEnum = pgEnum('member_role', ['owner', 'member', 'viewer']);
 
 export type AuthProviderLabel = typeof authProviderEnum.enumValues[number];
 export type TokenPurpose = typeof tokenPurposeEnum.enumValues[number];
@@ -121,14 +121,16 @@ export const workspaceMembers = pgTable('workspace_members', {
     .where(sql`role = 'owner'`),
 ]);
 
-// Every invitation joins as a member, so the table carries no role. A workspace
-// holds one owner, and only transfer changes who that is.
+// A null role means member, which keeps every invitation made before the role
+// column working. A workspace holds one owner, and only transfer changes who
+// that is, so an invitation never carries the owner role.
 export const workspaceInvitations = pgTable('workspace_invitations', {
   id: uuid('id').primaryKey().default(uuidV7),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
   tokenHash: bytea('token_hash').notNull().unique(),
   invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  role: memberRoleEnum('role'),
   expiresAt: timestampTz('expires_at').notNull(),
   acceptedAt: timestampTz('accepted_at'),
   revokedAt: timestampTz('revoked_at'),

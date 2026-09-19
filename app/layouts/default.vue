@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { user } = useUserSession();
 const { data: workspaces } = await useWorkspaces();
-const current = computed(() => workspaces.value?.items.find(workspace => workspace.id === workspaces.value?.currentId) ?? null);
+const { current } = useCurrentWorkspace();
 
 // Every page in this layout is workspace-scoped, so without one the person sits
 // on a shell whose every request answers 404. The list is already fetched, so

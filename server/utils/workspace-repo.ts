@@ -1,8 +1,9 @@
 import type { Workspace } from '#server/database/schema';
+import type { WorkspaceRole } from '#shared/permissions';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { users, workspaceMembers, workspaces } from '#server/database/schema';
 import { getDb, isUuid } from '#server/utils/db';
-import { roleName } from '#shared/permissions';
+import { roleLabel, roleName } from '#shared/permissions';
 
 export async function findWorkspaceBySlug(slug: string) {
   const db = await getDb();
@@ -150,6 +151,13 @@ export async function setMemberDeactivated(workspaceId: string, userId: string, 
   // workspace, and that one must not change.
   await db.update(workspaceMembers)
     .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
+}
+
+export async function setMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
+  const db = await getDb();
+  await db.update(workspaceMembers)
+    .set({ role: roleLabel(role), updatedAt: new Date() })
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
 }
 

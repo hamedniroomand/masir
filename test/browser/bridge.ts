@@ -100,7 +100,7 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     await db.insert(workspaceMembers).values({
       workspaceId: String(workspaceId),
       userId: String(userId),
-      role: role === 'owner' ? 'owner' : 'member',
+      role: role === 'owner' || role === 'viewer' ? role : 'member',
       deactivatedAt: deactivated ? new Date() : null,
     });
     return { ok: true };

@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'default' });
 useHead({ title: 'Campaigns · Masir' });
 
+const { canManageLinks } = useCurrentWorkspace();
 const { data, pending, error, refresh } = useCampaignsList();
 const createOpen = ref(false);
 
@@ -21,10 +22,11 @@ async function onCreated() {
           See how the links in each channel perform together.
         </p>
       </div>
-      <UButton label="New campaign" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
+      <UButton v-if="canManageLinks" label="New campaign" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
     </div>
 
     <USlideover
+      v-if="canManageLinks"
       v-model:open="createOpen"
       title="Create a campaign"
       description="Set the utm values every link in this campaign shares."
@@ -54,7 +56,7 @@ async function onCreated() {
         <p class="mx-auto mt-1.5 max-w-sm text-sm leading-6 text-muted">
           A campaign sets utm_campaign and utm_medium once. Each link in it keeps its own utm_source.
         </p>
-        <UButton class="mt-4" label="Create your first campaign" icon="i-lucide-plus" size="sm" @click="createOpen = true" />
+        <UButton v-if="canManageLinks" class="mt-4" label="Create your first campaign" icon="i-lucide-plus" size="sm" @click="createOpen = true" />
       </div>
       <div v-else class="divide-y divide-default">
         <div class="campaign-grid column-heading hidden sm:grid" aria-hidden="true">

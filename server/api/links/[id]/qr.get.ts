@@ -4,7 +4,7 @@ import { findLinkById, shortUrlFor } from '#server/utils/link-repo';
 import { qrResultToPng } from '#server/utils/qr-png';
 
 export default defineEventHandler(async (event) => {
-  const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
+  const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
   const id = getRouterParam(event, 'id');
   if (!id)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });

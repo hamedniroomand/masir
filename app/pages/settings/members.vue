@@ -10,7 +10,14 @@ const { data: invites, refresh: refreshInvites } = await useApi<{ items: Invitat
 // Shares the sidebar's key, so the admin nav follows the role change at once.
 const { refresh: refreshWorkspaces } = await useWorkspaces();
 
+const roleOptions = [
+  { label: 'Member', value: 'MEMBER' },
+  { label: 'Viewer', value: 'VIEWER' },
+];
+const roleLabels: Record<string, string> = { OWNER: 'Owner', MEMBER: 'Member', VIEWER: 'Viewer' };
+
 const inviteEmail = ref('');
+const inviteRole = ref('MEMBER');
 const error = ref('');
 const busy = ref(false);
 
@@ -31,8 +38,9 @@ async function run(action: () => Promise<unknown>, fallback: string) {
 
 function invite() {
   return run(async () => {
-    await $api('/api/workspaces/invitations', { method: 'POST', body: { email: inviteEmail.value } });
+    await $api('/api/workspaces/invitations', { method: 'POST', body: { email: inviteEmail.value, role: inviteRole.value } });
     inviteEmail.value = '';
+    inviteRole.value = 'MEMBER';
   }, 'We could not send the invitation.');
 }
 
@@ -47,6 +55,13 @@ function resend(id: string) {
   return run(
     () => $api(`/api/workspaces/invitations/${id}/resend`, { method: 'POST' }),
     'We could not resend the invitation.',
+  );
+}
+
+function setRole(userId: string, role: string) {
+  return run(
+    () => $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { role } }),
+    'We could not change this role.',
   );
 }
 
@@ -114,7 +129,7 @@ async function confirmPending() {
         Members
       </h1>
       <p class="mt-1 text-sm text-muted">
-        A workspace has one owner. Everyone else is a member.
+        A workspace has one owner. A member works with links. A viewer only reads them.
       </p>
     </div>
 
@@ -124,6 +139,7 @@ async function confirmPending() {
 
     <div class="flex gap-2">
       <UInput v-model="inviteEmail" type="email" icon="i-lucide-mail" placeholder="teammate@example.com" class="flex-1" />
+      <USelect v-model="inviteRole" :items="roleOptions" aria-label="Role for the invitation" class="w-32" />
       <UButton label="Invite" :loading="busy" @click="invite" />
     </div>
 
@@ -134,10 +150,18 @@ async function confirmPending() {
             {{ m.email }}
           </p>
           <p class="text-xs text-muted">
-            {{ m.role === 'OWNER' ? 'Owner' : 'Member' }}<span v-if="!m.isActive"> · Deactivated</span>
+            {{ roleLabels[m.role] ?? m.role }}<span v-if="!m.isActive"> · Deactivated</span>
           </p>
         </div>
-        <div v-if="m.role !== 'OWNER'" class="flex shrink-0 gap-1">
+        <div v-if="m.role !== 'OWNER'" class="flex shrink-0 items-center gap-1">
+          <USelect
+            :model-value="m.role"
+            :items="roleOptions"
+            size="xs"
+            class="w-28"
+            :aria-label="`Role for ${m.email}`"
+            @update:model-value="value => setRole(m.userId, value)"
+          />
           <UButton :label="m.isActive ? 'Deactivate' : 'Reactivate'" size="xs" variant="ghost" @click="setActive(m.userId, !m.isActive)" />
           <UButton label="Make owner" size="xs" variant="ghost" @click="pending = { kind: 'transfer', member: m }" />
           <UButton label="Remove" size="xs" variant="ghost" color="error" @click="pending = { kind: 'remove', member: m }" />

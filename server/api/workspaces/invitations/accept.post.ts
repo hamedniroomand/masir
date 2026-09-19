@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: reason, data: { reason } });
   }
 
-  const joined = await acceptInvitation(invitation.id, invitation.workspaceId, user.id);
+  const joined = await acceptInvitation(invitation.id, invitation.workspaceId, user.id, invitation.role);
   if (!joined)
     throw createError({ statusCode: 400, statusMessage: NOT_VALID, data: { reason: NOT_VALID } });
 

@@ -7,8 +7,13 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const id = computed(() => route.params.id as string);
 
+const { canManageLinks } = useCurrentWorkspace();
+
 const tab = computed({
-  get: () => resolveLinkTab(route.query.tab as string, route.hash),
+  get: () => {
+    const value = resolveLinkTab(route.query.tab as string, route.hash);
+    return value === 'settings' && !canManageLinks.value ? 'overview' : value;
+  },
   set: (value: string) => navigateTo({ query: { ...route.query, tab: value === 'overview' ? undefined : value }, hash: '' }),
 });
 
@@ -18,7 +23,9 @@ const visited = reactive(new Set([tab.value]));
 watch(tab, value => visited.add(value));
 
 const tabIcons = { overview: 'i-lucide-chart-no-axes-combined', settings: 'i-lucide-sliders-horizontal', history: 'i-lucide-history' };
-const tabItems = LINK_TABS.map(value => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1), icon: tabIcons[value] }));
+const tabItems = computed(() => LINK_TABS
+  .filter(value => value !== 'settings' || canManageLinks.value)
+  .map(value => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1), icon: tabIcons[value] })));
 
 const { data: link, error, refresh: refreshLink } = await useApi<LinkItem>(() => `/api/links/${id.value}`);
 

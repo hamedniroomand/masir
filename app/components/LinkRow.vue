@@ -7,6 +7,7 @@ const emit = defineEmits<{ refresh: [] }>();
 
 const { $api } = useNuxtApp();
 
+const { canManageLinks } = useCurrentWorkspace();
 const { copy, copied } = useClipboard();
 const showError = useErrorToast();
 const { saving: togglingEnabled, patch } = useLinkPatch(() => props.link.id);
@@ -15,6 +16,23 @@ const modal = ref(false);
 const qrOpen = ref(false);
 
 const name = computed(() => props.link.title || props.link.slug);
+
+const menuItems = computed(() => {
+  const read = [
+    { label: 'View analytics', icon: 'i-lucide-chart-no-axes-column-increasing', to: `/links/${props.link.id}#analytics` },
+    { label: 'QR code', icon: 'i-lucide-qr-code', onSelect: () => { qrOpen.value = true; } },
+    { label: 'Open link', icon: 'i-lucide-external-link', to: props.link.shortUrl, target: '_blank' },
+  ];
+  if (!canManageLinks.value)
+    return [read];
+  return [
+    [{ label: 'Edit link', icon: 'i-lucide-pencil', to: `/links/${props.link.id}?tab=settings` }, ...read],
+    [
+      { label: props.link.isEnabled ? 'Disable link' : 'Enable link', icon: props.link.isEnabled ? 'i-lucide-pause' : 'i-lucide-play', disabled: togglingEnabled.value, onSelect: toggleEnabled },
+      { label: 'Delete link', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => { modal.value = true; } },
+    ],
+  ];
+});
 
 async function toggleEnabled() {
   try {
@@ -72,12 +90,7 @@ async function remove() {
         <UTooltip :text="copied ? 'Copied' : 'Copy link'">
           <UButton size="sm" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" :aria-label="copied ? 'Copied' : `Copy ${name}`" color="neutral" variant="ghost" @click="copy(link.shortUrl)" />
         </UTooltip>
-        <UDropdownMenu
-          :items="[
-            [{ label: 'Edit link', icon: 'i-lucide-pencil', to: `/links/${link.id}?tab=settings` }, { label: 'View analytics', icon: 'i-lucide-chart-no-axes-column-increasing', to: `/links/${link.id}#analytics` }, { label: 'QR code', icon: 'i-lucide-qr-code', onSelect: () => { qrOpen = true; } }, { label: 'Open link', icon: 'i-lucide-external-link', to: link.shortUrl, target: '_blank' }],
-            [{ label: link.isEnabled ? 'Disable link' : 'Enable link', icon: link.isEnabled ? 'i-lucide-pause' : 'i-lucide-play', disabled: togglingEnabled, onSelect: toggleEnabled }, { label: 'Delete link', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { modal = true; } }],
-          ]"
-        >
+        <UDropdownMenu :items="menuItems">
           <UButton icon="i-lucide-ellipsis" :aria-label="`Actions for ${name}`" size="sm" color="neutral" variant="ghost" />
         </UDropdownMenu>
       </div>
@@ -88,7 +101,7 @@ async function remove() {
       :short-url="link.shortUrl"
       :label="name"
     />
-    <UModal v-model:open="modal" title="Delete link" description="This action cannot be undone.">
+    <UModal v-if="canManageLinks" v-model:open="modal" title="Delete link" description="This action cannot be undone.">
       <template #body>
         <p class="text-sm">
           Delete <strong>{{ name }}</strong>? Anyone with this short link or QR code will no longer reach the destination.
