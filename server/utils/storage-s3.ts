@@ -26,7 +26,10 @@ export function createS3Driver(options: {
       try {
         return { bytes: new Uint8Array(await file.arrayBuffer()), contentType: file.type };
       }
-      catch {
+      catch (error) {
+        // A missing object and a wrong key or endpoint look the same to the
+        // caller, so say which one it was before answering "no object".
+        console.warn(`[storage] could not read "${key}"`, error);
         return null;
       }
     },
