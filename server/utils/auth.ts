@@ -11,6 +11,8 @@ export type SessionUser = {
   email: string;
   emailVerified: boolean;
   sessionVersion: number;
+  // Only POST /api/auth/demo sets it. Older cookies read undefined.
+  demo?: boolean;
 };
 
 export type WorkspaceContext = {

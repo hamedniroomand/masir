@@ -31,6 +31,7 @@ const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   ownership_transferred: 'members',
 
   abuse_report: 'security',
+  demo_created: 'security',
   email_verified: 'security',
   identity_disconnected: 'security',
   login_failed: 'security',

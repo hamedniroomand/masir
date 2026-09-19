@@ -40,6 +40,7 @@ const SENTENCE: Record<string, string> = {
   member_removed: 'removed a member',
   ownership_transferred: 'transferred ownership',
   workspace_created: 'created the workspace',
+  demo_created: 'opened the demo workspace',
   workspace_updated: 'changed the workspace',
   workspace_deleted: 'deleted the workspace',
   rate_limit_exceeded: 'hit a rate limit',

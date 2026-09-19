@@ -154,13 +154,14 @@ export async function markLogin(userId: string) {
   await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, userId));
 }
 
-export async function setSessionUser(event: H3Event, user: User) {
+export async function setSessionUser(event: H3Event, user: User, options: { demo?: boolean } = {}) {
   await setUserSession(event, {
     user: {
       id: user.id,
       email: user.email,
       emailVerified: user.emailVerifiedAt != null,
       sessionVersion: user.sessionVersion,
+      ...(options.demo ? { demo: true } : {}),
     },
   });
   await markLogin(user.id);
