@@ -45,9 +45,9 @@ describe('app host split', async () => {
   });
 
   it('reports the landing host', async () => {
-    expect(await $fetch('/api/host')).toEqual({ landing: true, appUrl: APP, registration: true });
+    expect(await $fetch('/api/host')).toEqual({ landing: true, appUrl: APP, registration: true, demo: false });
     const res = await globalThis.fetch(`${appHost}/api/host`);
-    expect(await res.json()).toEqual({ landing: false, appUrl: APP, registration: true });
+    expect(await res.json()).toEqual({ landing: false, appUrl: APP, registration: true, demo: false });
   });
 
   it('bounces an app page on the root to the app host', async () => {

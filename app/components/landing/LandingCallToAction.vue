@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ appUrl: string; registration: boolean }>();
+defineProps<{ appUrl: string; registration: boolean; demo: boolean }>();
 </script>
 
 <template>
@@ -14,7 +14,8 @@ defineProps<{ appUrl: string; registration: boolean }>();
           Paste a destination, pick a slug or let Masir make one, and share it. Change your mind later without changing the link.
         </p>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <UButton v-if="registration" label="Create your workspace" :to="`${appUrl}/register`" external size="lg" />
+          <LandingDemoButton v-if="demo" />
+          <UButton v-if="registration" label="Create your workspace" :to="`${appUrl}/register`" external size="lg" :variant="demo ? 'outline' : 'solid'" :color="demo ? 'neutral' : 'primary'" />
           <UButton label="Sign in" :to="`${appUrl}/login`" external size="lg" :variant="registration ? 'outline' : 'solid'" :color="registration ? 'neutral' : 'primary'" />
         </div>
       </div>

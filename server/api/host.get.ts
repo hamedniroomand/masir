@@ -7,5 +7,6 @@ export default defineEventHandler((event) => {
     landing: Boolean(event.context.landing),
     appUrl: appUrl(config as never),
     registration: Boolean(config.allowRegistration),
+    demo: Boolean(config.demoEnabled),
   };
 });

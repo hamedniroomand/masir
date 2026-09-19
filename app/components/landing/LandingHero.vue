@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ appUrl: string; registration: boolean }>();
+defineProps<{ appUrl: string; registration: boolean; demo: boolean }>();
 </script>
 
 <template>
@@ -14,7 +14,8 @@ defineProps<{ appUrl: string; registration: boolean }>();
           Masir is a link manager your team runs on its own server. Share a short link once, then change where it goes, decide who can open it and when, and see what happened without storing a single visitor IP.
         </p>
         <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <UButton v-if="registration" label="Create your workspace" :to="`${appUrl}/register`" external size="lg" />
+          <LandingDemoButton v-if="demo" />
+          <UButton v-if="registration" label="Create your workspace" :to="`${appUrl}/register`" external size="lg" :variant="demo ? 'outline' : 'solid'" :color="demo ? 'neutral' : 'primary'" />
           <UButton label="Sign in" :to="`${appUrl}/login`" external size="lg" :variant="registration ? 'outline' : 'solid'" :color="registration ? 'neutral' : 'primary'" />
           <UButton label="Read the install guide" to="https://hamedniroomand.github.io/masir/guide/installation" target="_blank" rel="noopener" size="lg" color="neutral" variant="ghost" />
         </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ appUrl: string; registration: boolean }>();
+defineProps<{ appUrl: string; registration: boolean; demo: boolean }>();
 
 useSeoMeta({
   title: 'Masir · Every link has a destination.',
@@ -12,11 +12,11 @@ useSeoMeta({
   <div class="relative isolate flex min-h-dvh flex-col bg-[var(--workspace-bg)] text-default">
     <LandingHeader :app-url="appUrl" :registration="registration" />
     <main class="flex-1">
-      <LandingHero :app-url="appUrl" :registration="registration" />
+      <LandingHero :app-url="appUrl" :registration="registration" :demo="demo" />
       <LandingDashboard />
       <LandingFeatures />
       <LandingPrivacy />
-      <LandingCallToAction :app-url="appUrl" :registration="registration" />
+      <LandingCallToAction :app-url="appUrl" :registration="registration" :demo="demo" />
     </main>
     <LandingFooter />
   </div>

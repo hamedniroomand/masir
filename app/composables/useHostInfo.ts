@@ -1,6 +1,6 @@
 import { appUrl } from '#shared/deployment';
 
-export type HostInfo = { landing: boolean; appUrl: string; registration: boolean };
+export type HostInfo = { landing: boolean; appUrl: string; registration: boolean; demo: boolean };
 
 // The server reads the host from the request. The client asks once and keeps
 // the answer under one key, so the middleware and the page share it.
@@ -12,6 +12,7 @@ export function useHostInfo() {
         landing: Boolean(event?.context.landing),
         appUrl: appUrl(config as never),
         registration: Boolean(config.allowRegistration),
+        demo: Boolean(config.demoEnabled),
       })
     : $fetch<HostInfo>('/api/host'));
 }

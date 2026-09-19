@@ -7,6 +7,6 @@ const { data: host } = await useHostInfo();
 </script>
 
 <template>
-  <LandingPage v-if="host?.landing" :app-url="host.appUrl" :registration="host.registration" />
+  <LandingPage v-if="host?.landing" :app-url="host.appUrl" :registration="host.registration" :demo="host.demo" />
   <LinkListPage v-else />
 </template>

@@ -30,7 +30,7 @@ export default antfu({
   },
 }, {
   files: ['app/**/*.{ts,vue}'],
-  ignores: ['app/pages/login.vue', 'app/pages/register.vue', 'app/pages/forgot-password.vue', 'app/pages/reset-password.vue', 'app/pages/verify-email.vue', 'app/pages/report.vue', 'app/pages/p/**', 'app/components/VerifyEmailNotice.vue', 'app/composables/useSignOut.ts', 'app/composables/useHostInfo.ts', 'app/plugins/api.ts', 'app/composables/useApi.ts'],
+  ignores: ['app/pages/login.vue', 'app/pages/register.vue', 'app/pages/forgot-password.vue', 'app/pages/reset-password.vue', 'app/pages/verify-email.vue', 'app/pages/report.vue', 'app/pages/p/**', 'app/components/VerifyEmailNotice.vue', 'app/components/landing/LandingDemoButton.vue', 'app/composables/useSignOut.ts', 'app/composables/useHostInfo.ts', 'app/plugins/api.ts', 'app/composables/useApi.ts'],
   rules: {
     // A signed-in call goes through the api plugin so a 401 sends the user to
     // sign in. Public and auth pages keep the plain fetch on purpose.
