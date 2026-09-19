@@ -152,6 +152,35 @@ test('saves and removes a targeting rule on the settings tab', async ({ page, lo
   await expect(page.getByLabel('Android destination')).toHaveValue('https://example.com/play');
 });
 
+test('renames a slug and keeps the old address as an alias', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/renamed', slug: 'old-address', title: 'Renamed' });
+  await page.goto(`/links/${link.id}?tab=settings`);
+
+  await page.getByLabel('Short address').fill('new-address');
+  await expect(page.getByLabel('Keep /old-address working as an alias')).toBeChecked();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(page.getByRole('button', { name: 'Remove the address old-address' })).toBeVisible();
+  expect((await page.request.get('/old-address', { maxRedirects: 0 })).headers().location).toBe('https://example.com/renamed');
+  expect((await page.request.get('/new-address', { maxRedirects: 0 })).headers().location).toBe('https://example.com/renamed');
+});
+
+test('adds and removes an extra address', async ({ page, login }) => {
+  await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/extra', slug: 'extra-main', title: 'Extra' });
+  await page.goto(`/links/${link.id}?tab=settings`);
+
+  await page.getByLabel('New address').fill('extra-alias');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Remove the address extra-alias' })).toBeVisible();
+  expect((await page.request.get('/extra-alias', { maxRedirects: 0 })).headers().location).toBe('https://example.com/extra');
+
+  await page.getByRole('button', { name: 'Remove the address extra-alias' }).click();
+  await expect(page.getByRole('button', { name: 'Remove the address extra-alias' })).toHaveCount(0);
+  expect((await page.request.get('/extra-alias', { maxRedirects: 0 })).status()).toBe(404);
+});
+
 test('shows the password badge on the link header', async ({ page, login }) => {
   await login();
   await page.goto('/');

@@ -206,6 +206,22 @@ export const links = pgTable('links', {
   check('links_campaign_utm_check', sql`${table.campaignId} is null or ${table.utmCampaign} is null`),
 ]);
 
+// A renamed or extra address for a link. The row stays after a delete, so the
+// slug never returns to the pool and an old QR code never points somewhere new.
+export const linkAliases = pgTable('link_aliases', {
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  slug: text('slug').notNull(),
+  linkId: uuid('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
+  // Removing an alias stops it resolving. The row stays, so the slug never
+  // returns to the pool and nobody else can claim an address that once worked.
+  revokedAt: timestampTz('revoked_at'),
+  createdAt: timestampTz('created_at').notNull().defaultNow(),
+}, table => [
+  primaryKey({ columns: [table.workspaceId, table.slug] }),
+  index('link_aliases_link_id_idx').on(table.linkId),
+  check('link_aliases_slug_format_check', sql`${table.slug} ~ '^[a-z0-9_-]{1,64}$'`),
+]);
+
 export const tags = pgTable('tags', {
   id: uuid('id').primaryKey().default(uuidV7),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),

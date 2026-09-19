@@ -41,6 +41,25 @@ analytics.
 The note never reaches a visitor. Only your workspace reads it. Link search
 matches the note, so you can find a link by a word that appears nowhere else.
 
+## Aliases and renaming
+
+A link holds one **short address** and up to 10 **extra addresses**. Every one
+of them reaches the same destination.
+
+Change the short address in the **Destination** card on the Settings tab. Leave
+**Keep /old working as an alias** on, which is the default, and every copy you
+already shared keeps working. Turn it off and the old address stops working at
+once.
+
+Add and remove extra addresses in the **Extra addresses** card.
+
+A removed extra address stops working but stays **reserved**. So does the old
+address of a rename you did not keep, and so does the address of a deleted
+link. An address that once worked never returns to the pool, so a QR code on a
+printed poster can never start pointing at somebody else's destination.
+
+The QR code and the copy button always use the short address, not an alias.
+
 ## Query passthrough
 
 Whatever a visitor appends to the short link is merged into the destination:
@@ -93,9 +112,10 @@ involved.
 
 Deleting keeps the row with a `deleted_at` timestamp. Two things follow.
 
-**The slug stays taken** in that workspace. People bookmark and republish short
-links, and reusing a slug would send everyone holding the old one to a
-destination they did not expect. Another workspace can still use it.
+**The slug stays taken** in that workspace, and so does every extra address the
+link held. People bookmark and republish short links, and reusing an address
+would send everyone holding the old one to a destination they did not expect.
+Another workspace can still use it.
 
 **The click history stays** readable, so a report that included the link still
 adds up.

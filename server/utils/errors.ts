@@ -35,3 +35,9 @@ export class VisitLimitBelowUsageError extends Error {
     super('below-usage');
   }
 }
+
+export class AliasLimitError extends Error {
+  constructor() {
+    super('alias-limit');
+  }
+}

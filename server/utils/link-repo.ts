@@ -1,15 +1,16 @@
 import type { DeploymentConfig } from '#shared/deployment';
 import type { LinkTargeting } from '#shared/link-targeting';
 import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
-import { campaigns, clickEvents, links, linkTags, tags } from '#server/database/schema';
+import { campaigns, clickEvents, linkAliases, links, linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
-import { SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
-import { invalidateLink } from '#server/utils/link-cache';
+import { AliasLimitError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
+import { invalidateLink, invalidateLinkById } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
 import { workspaceUrl } from '#shared/deployment';
+import { MAX_ALIASES_PER_LINK } from '#shared/link-input';
 import { deriveLinkStatus } from '#shared/link-status';
-import { generateSlug } from '#shared/slug';
+import { generateSlug, RESERVED_SLUGS } from '#shared/slug';
 
 const countAll = sql<number>`count(*)::int`;
 
@@ -19,7 +20,7 @@ export function shortUrlFor(workspaceSlug: string, linkSlug: string) {
   return `${base}/${linkSlug}`;
 }
 
-export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string, tagNames: string[] = []) {
+export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string, tagNames: string[] = [], aliases: string[] = []) {
   return {
     id: link.id,
     slug: link.slug,
@@ -46,6 +47,7 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
     utmTerm: link.utmTerm,
     utmContent: link.utmContent,
     tags: tagNames,
+    aliases,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
     shortUrl: shortUrlFor(workspaceSlug, link.slug),
@@ -59,6 +61,71 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
   };
 }
 
+// Reserved names, every link slug including the deleted ones, and every alias.
+// A slug that ever worked never returns to the pool, so an old QR code can
+// never point at somebody else's destination.
+export async function isSlugTaken(workspaceId: string, slug: string, exceptLinkId?: string) {
+  if (RESERVED_SLUGS.has(slug))
+    return true;
+  const db = await getDb();
+  const [linkRow] = await db.select({ id: links.id }).from(links).where(and(eq(links.workspaceId, workspaceId), eq(links.slug, slug))).limit(1);
+  if (linkRow)
+    return linkRow.id !== exceptLinkId;
+  const [aliasRow] = await db.select({ linkId: linkAliases.linkId }).from(linkAliases).where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug))).limit(1);
+  return aliasRow ? aliasRow.linkId !== exceptLinkId : false;
+}
+
+export async function aliasesForLinks(linkIds: string[]) {
+  const map = new Map<string, string[]>();
+  if (!linkIds.length)
+    return map;
+  const db = await getDb();
+  const rows = await db.select({ linkId: linkAliases.linkId, slug: linkAliases.slug })
+    .from(linkAliases)
+    .where(and(inArray(linkAliases.linkId, linkIds), isNull(linkAliases.revokedAt)))
+    .orderBy(linkAliases.createdAt);
+  for (const row of rows) {
+    const list = map.get(row.linkId) ?? [];
+    list.push(row.slug);
+    map.set(row.linkId, list);
+  }
+  return map;
+}
+
+export async function addAlias(workspaceId: string, linkId: string, slug: string) {
+  const db = await getDb();
+  const held = await db.select({ slug: linkAliases.slug }).from(linkAliases).where(and(eq(linkAliases.linkId, linkId), isNull(linkAliases.revokedAt)));
+  if (held.length >= MAX_ALIASES_PER_LINK)
+    throw new AliasLimitError();
+
+  // The link may be taking back an address it revoked earlier.
+  const restored = await db.update(linkAliases)
+    .set({ revokedAt: null })
+    .where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug), eq(linkAliases.linkId, linkId)))
+    .returning({ slug: linkAliases.slug });
+  if (!restored.length)
+    await db.insert(linkAliases).values({ workspaceId, linkId, slug });
+
+  invalidateLink(workspaceId, slug);
+}
+
+export async function removeAlias(workspaceId: string, linkId: string, slug: string) {
+  const db = await getDb();
+  const removed = await db.update(linkAliases)
+    .set({ revokedAt: new Date() })
+    .where(and(
+      eq(linkAliases.workspaceId, workspaceId),
+      eq(linkAliases.slug, slug),
+      eq(linkAliases.linkId, linkId),
+      isNull(linkAliases.revokedAt),
+    ))
+    .returning({ slug: linkAliases.slug });
+  if (!removed.length)
+    return false;
+  invalidateLink(workspaceId, slug);
+  return true;
+}
+
 export async function findLinkBySlug(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
@@ -70,7 +137,7 @@ export async function findLinkBySlug(workspaceId: string, slug: string) {
     .leftJoin(campaigns, eq(links.campaignId, campaigns.id))
     .where(and(eq(links.workspaceId, workspaceId), eq(links.slug, slug), isNull(links.deletedAt)))
     .limit(1);
-  const row = rows[0];
+  const row = rows[0] ?? await findLinkByAlias(workspaceId, slug);
   if (!row)
     return null;
   // A check constraint lets only one side hold utm_campaign, so this picks the
@@ -80,6 +147,28 @@ export async function findLinkBySlug(workspaceId: string, slug: string) {
     utmMedium: row.utmMedium,
     utmCampaign: row.utmCampaign ?? row.link.utmCampaign,
   };
+}
+
+// Only a miss on the primary slug pays for this second query, and the caller
+// caches the result under the requested slug.
+async function findLinkByAlias(workspaceId: string, slug: string) {
+  const db = await getDb();
+  const rows = await db.select({
+    link: links,
+    utmMedium: campaigns.utmMedium,
+    utmCampaign: campaigns.utmCampaign,
+  })
+    .from(linkAliases)
+    .innerJoin(links, eq(linkAliases.linkId, links.id))
+    .leftJoin(campaigns, eq(links.campaignId, campaigns.id))
+    .where(and(
+      eq(linkAliases.workspaceId, workspaceId),
+      eq(linkAliases.slug, slug),
+      isNull(linkAliases.revokedAt),
+      isNull(links.deletedAt),
+    ))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 export async function findLinkById(id: string, workspaceId: string) {
@@ -358,11 +447,47 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   }
 
   invalidateLink(workspaceId, existing.slug);
+  invalidateLinkById(id);
   return findLinkById(id, workspaceId);
 }
 
 // A soft delete. The row keeps its slug, so no other link in the workspace can
 // take it, and the click history stays readable.
+// The rename and the alias for the old slug are one transaction, so a full
+// alias list can never leave the link renamed with its old address dead.
+export async function renameLinkSlug(id: string, workspaceId: string, slug: string, keepOldSlug: boolean) {
+  const existing = await findLinkById(id, workspaceId);
+  if (!existing)
+    return null;
+  if (existing.slug === slug)
+    return existing;
+
+  const db = await getDb();
+  await db.transaction(async (tx) => {
+    if (keepOldSlug) {
+      const held = await tx.select({ slug: linkAliases.slug }).from(linkAliases).where(and(eq(linkAliases.linkId, id), isNull(linkAliases.revokedAt)));
+      if (held.length >= MAX_ALIASES_PER_LINK)
+        throw new AliasLimitError();
+    }
+    // The old slug is written either way. A revoked row stops resolving but
+    // keeps the address out of the pool, so nobody else can claim it.
+    await tx.insert(linkAliases).values({
+      workspaceId,
+      linkId: id,
+      slug: existing.slug,
+      revokedAt: keepOldSlug ? null : new Date(),
+    });
+    // The new primary slug may be one of this link's own aliases.
+    await tx.delete(linkAliases).where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug), eq(linkAliases.linkId, id)));
+    await tx.update(links).set({ slug, updatedAt: new Date() }).where(and(eq(links.id, id), eq(links.workspaceId, workspaceId)));
+  });
+
+  invalidateLink(workspaceId, existing.slug);
+  invalidateLink(workspaceId, slug);
+  invalidateLinkById(id);
+  return findLinkById(id, workspaceId);
+}
+
 export async function deleteLink(id: string, workspaceId: string) {
   const existing = await findLinkById(id, workspaceId);
   if (!existing)
@@ -373,6 +498,7 @@ export async function deleteLink(id: string, workspaceId: string) {
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(links.id, id), eq(links.workspaceId, workspaceId)));
   invalidateLink(workspaceId, existing.slug);
+  invalidateLinkById(id);
   return true;
 }
 

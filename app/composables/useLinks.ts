@@ -24,6 +24,7 @@ export type LinkItem = {
   maximumVisits: number | null;
   successfulVisitCount: number;
   tags: string[];
+  aliases: string[];
   createdAt: string;
   updatedAt: string;
   // Only the detail route sends this.

@@ -3,15 +3,17 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
-import { VisitLimitBelowUsageError } from '#server/utils/errors';
-import { findLinkById, linkToDto, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
+import { isUniqueViolation } from '#server/utils/db';
+import { AliasLimitError, VisitLimitBelowUsageError } from '#server/utils/errors';
+import { aliasesForLinks, findLinkById, isSlugTaken, linkToDto, renameLinkSlug, tagNamesByLinkIds, updateLink } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { validateDestination, validateFallbackDestination, validateTargeting } from '#server/utils/url';
-import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
+import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_ALIASES_PER_LINK, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { targetingSchema } from '#shared/link-targeting';
+import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
 const bodySchema = v.object({
@@ -28,7 +30,8 @@ const bodySchema = v.object({
   password: v.optional(v.nullable(v.string())),
   tags: tagsSchema,
   isEnabled: v.optional(v.boolean()),
-  slug: v.optional(v.string()),
+  slug: v.optional(slugSchema),
+  keepOldSlug: v.optional(v.boolean()),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
   utmCampaign: optionalUtmSchema,
@@ -157,6 +160,31 @@ export default defineEventHandler(async (event) => {
   const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
   assertScheduleOrder(nextStarts, nextExpires);
 
+  // The rename runs before the rest, so a refused slug leaves the row alone.
+  if (body.slug !== undefined && body.slug !== existing.slug) {
+    if (await isSlugTaken(workspaceId, body.slug, id)) {
+      const reason = 'This short link is already taken.';
+      throw createError({ statusCode: 409, statusMessage: reason, data: { reason } });
+    }
+    try {
+      const renamed = await renameLinkSlug(id, workspaceId, body.slug, body.keepOldSlug !== false);
+      if (!renamed)
+        throw createError({ statusCode: 404, statusMessage: 'Not found' });
+    }
+    catch (error) {
+      if (error instanceof AliasLimitError) {
+        const reason = `A link holds at most ${MAX_ALIASES_PER_LINK} aliases. Remove one before you rename.`;
+        throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+      }
+      if (isUniqueViolation(error)) {
+        const reason = 'This short link is already taken.';
+        throw createError({ statusCode: 409, statusMessage: reason, data: { reason } });
+      }
+      throw error;
+    }
+    await writeAuditEvent('link_slug_changed', { from: existing.slug, to: body.slug }, { workspaceId, actor: user.id, linkId: id });
+  }
+
   let updated: Awaited<ReturnType<typeof updateLink>>;
   try {
     updated = await updateLink(id, workspaceId, patch);
@@ -180,5 +208,6 @@ export default defineEventHandler(async (event) => {
   }
   await writeAuditEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
   const tagMap = await tagNamesByLinkIds([updated.id]);
-  return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? []);
+  const aliasMap = await aliasesForLinks([updated.id]);
+  return linkToDto(updated, workspace.slug, tagMap.get(updated.id) ?? [], aliasMap.get(updated.id) ?? []);
 });

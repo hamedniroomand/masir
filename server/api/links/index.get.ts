@@ -1,5 +1,5 @@
 import { requireWorkspaceMember } from '#server/utils/auth';
-import { linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { aliasesForLinks, linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
@@ -32,9 +32,10 @@ export default defineEventHandler(async (event) => {
   });
 
   const tagMap = await tagNamesByLinkIds(items.map(i => i.id));
+  const aliasMap = await aliasesForLinks(items.map(i => i.id));
 
   return {
-    items: items.map(link => linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [])),
+    items: items.map(link => linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [], aliasMap.get(link.id) ?? [])),
     total,
     page,
     perPage,

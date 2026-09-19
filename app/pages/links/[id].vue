@@ -105,6 +105,7 @@ onMounted(() => {
 
         <div v-else-if="item.value === 'settings'" class="max-w-4xl space-y-5">
           <LinkDestinationForm :link="link" @updated="refreshLink()" />
+          <LinkAliasesList :link="link" @updated="refreshLink()" />
           <LinkNotesForm :link="link" @updated="refreshLink()" />
           <LinkTrackingForm :link="link" @updated="refreshLink()" />
           <LinkTargetingForm :link="link" @updated="refreshLink()" />

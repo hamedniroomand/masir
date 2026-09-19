@@ -2,6 +2,8 @@ import * as v from 'valibot';
 
 export const MAX_TAGS_PER_LINK = 20;
 
+export const MAX_ALIASES_PER_LINK = 10;
+
 export const CAMPAIGN_UTM_CONFLICT = 'A campaign sets utm_campaign. Clear one of the two.';
 
 // A campaign owns utm_campaign. A database check refuses the pair, so the form

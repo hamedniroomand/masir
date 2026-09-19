@@ -18,6 +18,8 @@ the notes for every version between the one you run and the one you install.
   started. Both are recorded as their own outcome and count no click.
 - Device and country targeting. One link can send iOS, Android, desktop, and up
   to 20 countries to their own destination.
+- Slug rename and up to 10 extra addresses for each link. An address that once
+  worked stays reserved, even after a rename or a delete.
 
 ### Changed
 

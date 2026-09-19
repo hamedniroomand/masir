@@ -98,10 +98,12 @@ Rate-limited requests answer `429` with a `Retry-After` header.
 | `GET` | `/api/links` | `page`, `perPage`, `sort` (`createdAt` or `clicks`), `status`, `search`, `tags` |
 | `POST` | `/api/links` | Create. See the fields below |
 | `GET` | `/api/links/:id` | One link, with its `creator` |
-| `PATCH` | `/api/links/:id` | Update any field except `slug` |
-| `DELETE` | `/api/links/:id` | Soft delete. The slug stays taken |
+| `PATCH` | `/api/links/:id` | Update any field. `slug` renames the link and, unless `keepOldSlug` is `false`, keeps the old address as an alias |
+| `DELETE` | `/api/links/:id` | Soft delete. The slug and every alias stay taken |
 | `GET` | `/api/links/:id/analytics` | `period` (`24h`, `7d`, `30d`, `all`), `traffic` (`human`, `bot`, `all`) |
 | `GET` | `/api/links/:id/history` | The last 50 changes, with who and which fields |
+| `POST` | `/api/links/:id/aliases` | `slug`. An extra address for the link. `409` when taken, `422` at ten |
+| `DELETE` | `/api/links/:id/aliases/:slug` | Stop an extra address. The slug stays taken |
 | `GET` | `/api/links/:id/qr` | `format` (`svg` or `png`), `size` (64 to 512) |
 
 A link takes these fields on create and update:

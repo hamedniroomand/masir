@@ -5,7 +5,7 @@ import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
 import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
-import { createLink, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
+import { createLink, isSlugTaken, linkToDto, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
@@ -89,6 +89,10 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
     }
     slug = parsed.output;
+    if (await isSlugTaken(workspaceId, slug)) {
+      const reason = 'This short link is already taken.';
+      throw createError({ statusCode: 409, statusMessage: reason, data: { reason } });
+    }
   }
 
   function fallback(value: string | null | undefined, label: string) {
@@ -147,7 +151,7 @@ export default defineEventHandler(async (event) => {
     await writeAuditEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
     setResponseStatus(event, 201);
     const tagMap = await tagNamesByLinkIds([link.id]);
-    return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? []);
+    return linkToDto(link, workspace.slug, tagMap.get(link.id) ?? [], []);
   }
   catch (error) {
     if (error instanceof SlugTakenError) {

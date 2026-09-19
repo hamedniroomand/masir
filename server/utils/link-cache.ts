@@ -51,7 +51,24 @@ export function setCachedLink(workspaceId: string, slug: string, link: ResolvedL
 }
 
 export function invalidateLink(workspaceId: string, slug: string) {
-  store.delete(cacheKey(workspaceId, slug));
+  forget(cacheKey(workspaceId, slug));
+}
+
+function forget(key: string) {
+  store.delete(key);
+  const idx = order.indexOf(key);
+  if (idx >= 0)
+    order.splice(idx, 1);
+}
+
+// An alias caches the same link under its own slug, so a write has to clear
+// every key that holds the row, not only the primary slug.
+// ponytail: O(n) scan of at most MAX_ENTRIES on each link write; upgrade path is a linkId -> keys index
+export function invalidateLinkById(linkId: string) {
+  for (const [key, entry] of store) {
+    if (entry.link?.id === linkId)
+      forget(key);
+  }
 }
 
 export function invalidateAllLinks() {
