@@ -42,8 +42,8 @@ Every slide, email, and QR code you already sent keeps working.
 <Card title="Links belong to the team" icon="building-2">
 
 A workspace owns its links. When someone leaves, you remove the person and
-keep the links. One owner, any number of members, and the database itself
-refuses a second owner.
+keep the links. One owner, any number of members and read-only viewers, and the
+database itself refuses a second owner.
 
 </Card>
 

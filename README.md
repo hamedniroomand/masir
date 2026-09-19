@@ -22,10 +22,13 @@ Masir turns long URLs into short ones on your own domain, and keeps them under y
 ## Highlights
 
 - **Editable destinations.** The short URL never changes. Where it goes can.
-- **Workspaces and roles.** Links belong to a team, not to a person. One owner, any number of members.
-- **Access control.** Passwords, start dates, expiry dates, visit caps, and one-time links.
+- **Workspaces and roles.** Links belong to a team, not to a person. One owner, any number of members, and read-only viewers.
+- **Access control.** Passwords, start dates, expiry dates, visit caps, and one-time links. Each blocked state can send visitors to a fallback page instead of a 404.
+- **Targeting.** One link, a different destination for iOS, Android, desktop, or a country.
+- **Rename without breaking.** Change a short address and keep the old one working. A link can hold several addresses, and an address that once worked is never handed to another link.
 - **Analytics without tracking.** Clicks, unique visitors, referrers, countries, devices, and browsers. Bots are counted separately. No IP addresses, no user agents, no cookies on visitors.
 - **Tags and campaigns.** Group links and share UTM values across a campaign.
+- **Alerts before a link stops.** Email the owner before a link reaches its visit cap or expires.
 - **One instance, one team or many.** Run a single workspace on your domain, or give every workspace its own subdomain.
 - **Sign in your way.** Email and password, Google, or Microsoft.
 
@@ -55,7 +58,7 @@ The [installation guide](https://hamedniroomand.github.io/masir/guide/installati
 Everything lives at **[hamedniroomand.github.io/masir](https://hamedniroomand.github.io/masir/)**.
 
 - [Guide](https://hamedniroomand.github.io/masir/guide/) covers installation, workspaces, sign-in, and deployment.
-- [Features](https://hamedniroomand.github.io/masir/features/) explains links, access control, analytics, and campaigns.
+- [Features](https://hamedniroomand.github.io/masir/features/) explains links, access control, targeting, analytics, and campaigns.
 - [Reference](https://hamedniroomand.github.io/masir/reference/) lists every environment variable, script, and API route.
 - [Project](https://hamedniroomand.github.io/masir/project/) describes the architecture, security model, and how to contribute.
 

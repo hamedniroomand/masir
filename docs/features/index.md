@@ -17,6 +17,12 @@ Passwords, start dates, expiry, visit caps, and one-time links.
 
 </Card>
 
+<Card title="Targeting" icon="crosshair" to="/features/targeting">
+
+One link, a different destination for iOS, Android, desktop, or a country.
+
+</Card>
+
 <Card title="Analytics" icon="chart-line" to="/features/analytics">
 
 Clicks, unique visitors, referrers, countries, devices, and browsers. Bots

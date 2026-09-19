@@ -11,12 +11,14 @@ erDiagram
   WORKSPACES ||--o{ WORKSPACE_MEMBERS : has
   WORKSPACES ||--o{ WORKSPACE_INVITATIONS : sends
   WORKSPACES ||--o{ LINKS : owns
+  WORKSPACES ||--o{ LINK_ALIASES : reserves
   WORKSPACES ||--o{ CAMPAIGNS : owns
   WORKSPACES ||--o{ TAGS : owns
   WORKSPACES ||--o{ AUDIT_EVENTS : records
   USERS ||--o{ WORKSPACE_MEMBERS : joins
   USERS ||--o{ AUTH_IDENTITIES : has
   USERS ||--o{ USER_TOKENS : holds
+  LINKS ||--o{ LINK_ALIASES : "answers to"
   LINKS ||--o{ LINK_TAGS : tagged
   LINKS }o--|| CAMPAIGNS : "belongs to"
   TAGS ||--o{ LINK_TAGS : names
@@ -124,6 +126,10 @@ raw SHA-256 digest. Boot deletes the expired rows.
 `workspace_members` has no surrogate id. Its primary key is
 `(workspace_id, user_id)`, and the member routes address a member by user id.
 
+`member_role` holds `owner`, `member`, and `viewer`. `workspace_invitations`
+carries a nullable `role`, and `null` joins as a member, which keeps every
+invitation made before the column working.
+
 ## Links
 
 The columns that carry behaviour:
@@ -136,9 +142,14 @@ The columns that carry behaviour:
 | `is_enabled` | The off switch |
 | `starts_at`, `expires_at` | Schedule window |
 | `expiration_destination` | Where an expired link goes instead of 404 |
+| `limit_destination` | Where a used-up link goes instead of 404 |
+| `scheduled_destination` | Where a link that has not started goes instead of 404 |
 | `password_hash` | argon2id, `null` for a public link |
 | `maximum_visits` | Cap on successful redirects |
 | `click_count` | One counter, raised atomically, only on success |
+| `targeting` | `jsonb`. Per-OS and per-country destinations, `null` when empty |
+| `notes` | Private text for the workspace, never sent to a visitor |
+| `cap_alert_sent_at`, `expiry_alert_sent_at` | Claim stamps, so each alert mails once |
 | `deleted_at` | Soft delete |
 
 Status is derived on read, never stored, so a scheduled link becomes active the
@@ -151,6 +162,31 @@ also the number the visit limit compares against. The API answers with both
 **Soft delete.** The unique index on `(workspace_id, slug)` has no partial
 clause, so a deleted row keeps holding its slug. The click history survives,
 and every read filters `deleted_at is null`.
+
+## Link aliases
+
+`link_aliases` gives one link several addresses. Its primary key is
+`(workspace_id, slug)`, so an alias and a link slug can never collide inside a
+workspace.
+
+| Column | Purpose |
+|---|---|
+| `workspace_id`, `slug` | The address, unique in the workspace |
+| `link_id` | The link it reaches |
+| `revoked_at` | Set when somebody removes the address |
+
+A **revoked** row stops resolving but stays in the table. So does the alias of a
+deleted link, and so does the old address of a rename made with
+`keepOldSlug: false`. An address that ever worked never returns to the pool,
+because a printed QR code must never start pointing at somebody else's
+destination.
+
+`isSlugTaken` reads reserved names, every `links.slug` including deleted rows,
+and every alias row whatever its `revoked_at`. A link holds at most 10 live
+aliases.
+
+Resolution tries `links.slug` first and falls back to the alias join only on a
+miss, so an alias costs one extra query on a cold cache and nothing after that.
 
 ## Click events
 
