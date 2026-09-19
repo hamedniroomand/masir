@@ -61,6 +61,10 @@ the notes for every version between the one you run and the one you install.
 - The security log is now the **Activity log**. It groups events into Links,
   Campaigns, Members, and Security, names the actor, links to the link, and
   pages with a cursor. The route stays at `/settings/security`.
+- The root host no longer flashes the links list and a "could not load"
+  error before it sends a signed-in person to their workspace. Pages that
+  render on the client show a loader while they start, instead of a blank
+  page.
 
 ### Upgrade notes
 

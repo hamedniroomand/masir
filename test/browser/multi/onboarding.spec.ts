@@ -68,8 +68,22 @@ test('shows the inbox notice to an unverified sign-in and resends the link', asy
 test('sends the root host straight to the only workspace', async ({ page, login, server }) => {
   await login(EMAIL, PASSWORD);
   await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/dashboard`);
+  // The root host has no workspace. A links request there answers 404 and
+  // flashes an error banner before the browser leaves.
+  const rootLinkRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().startsWith(`${server.baseURL}/api/links`))
+      rootLinkRequests.push(request.url());
+  });
+  // A slow cross-host navigation, as DNS and TLS make it in production, leaves
+  // the root page running long enough to ask for links.
+  await page.route(`${server.hostUrl('zeta-corp')}/dashboard`, async (route) => {
+    await new Promise(done => setTimeout(done, 1_500));
+    await route.continue();
+  });
   await page.goto('/');
   await expect(page).toHaveURL(`${server.hostUrl('zeta-corp')}/dashboard`);
+  expect(rootLinkRequests).toEqual([]);
 });
 
 test('offers no sign-in provider when the operator configured none', async ({ page }) => {
