@@ -313,6 +313,7 @@ export async function listLinks(workspaceId: string, query: {
   const notExpired = anyOf(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`);
   const underVisitLimit = anyOf(sql`${links.maximumVisits} IS NULL`, sql`${links.clickCount} < ${links.maximumVisits}`);
   const started = anyOf(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`);
+  const enabled = eq(links.isEnabled, true);
 
   if (query.q) {
     const term = `%${query.q.toLowerCase()}%`;
@@ -348,30 +349,18 @@ export async function listLinks(workspaceId: string, query: {
     }
   }
 
-  if (query.status === 'disabled') {
-    filters.push(eq(links.isEnabled, false));
-  }
-  else if (query.status === 'expired') {
-    filters.push(eq(links.isEnabled, true));
-    filters.push(sql`${links.expiresAt} IS NOT NULL AND ${links.expiresAt} <= ${now}`);
-  }
-  else if (query.status === 'limit_reached') {
-    filters.push(eq(links.isEnabled, true));
-    filters.push(notExpired);
-    filters.push(sql`${links.maximumVisits} IS NOT NULL AND ${links.clickCount} >= ${links.maximumVisits}`);
-  }
-  else if (query.status === 'scheduled') {
-    filters.push(eq(links.isEnabled, true));
-    filters.push(notExpired);
-    filters.push(underVisitLimit);
-    filters.push(sql`${links.startsAt} IS NOT NULL AND ${links.startsAt} > ${now}`);
-  }
-  else if (query.status === 'active') {
-    filters.push(eq(links.isEnabled, true));
-    filters.push(notExpired);
-    filters.push(underVisitLimit);
-    filters.push(started);
-  }
+  // Each row adds the negation of the row above it. The order must stay the
+  // same as the guard order in deriveLinkStatus().
+  const statusFilters = {
+    disabled: [eq(links.isEnabled, false)],
+    expired: [enabled, sql`${links.expiresAt} IS NOT NULL AND ${links.expiresAt} <= ${now}`],
+    limit_reached: [enabled, notExpired, sql`${links.maximumVisits} IS NOT NULL AND ${links.clickCount} >= ${links.maximumVisits}`],
+    scheduled: [enabled, notExpired, underVisitLimit, sql`${links.startsAt} IS NOT NULL AND ${links.startsAt} > ${now}`],
+    active: [enabled, notExpired, underVisitLimit, started],
+  };
+
+  if (query.status)
+    filters.push(...statusFilters[query.status]);
 
   const where = and(...filters);
   const orderBy = query.sort === 'clicks'
@@ -544,4 +533,12 @@ export async function countClickEvents(linkId: string) {
   const db = await getDb();
   const rows = await db.select({ n: countAll }).from(clickEvents).where(eq(clickEvents.linkId, linkId));
   return rows[0]?.n ?? 0;
+}
+
+export async function countLiveLinks(workspaceId: string) {
+  const db = await getDb();
+  const [row] = await db.select({ n: countAll })
+    .from(links)
+    .where(and(eq(links.workspaceId, workspaceId), isNull(links.deletedAt)));
+  return row?.n ?? 0;
 }

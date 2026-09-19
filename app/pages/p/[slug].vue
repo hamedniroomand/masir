@@ -1,6 +1,11 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' });
 
+const VERIFY_ERRORS: Record<number, string> = {
+  401: 'Incorrect password.',
+  429: 'Too many attempts. Try again later.',
+};
+
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const password = ref('');
@@ -23,12 +28,7 @@ async function submit() {
   }
   catch (failure: unknown) {
     const err = failure as { statusCode?: number; statusMessage?: string };
-    if (err.statusCode === 401)
-      errorMessage.value = 'Incorrect password.';
-    else if (err.statusCode === 429)
-      errorMessage.value = 'Too many attempts. Try again later.';
-    else
-      errorMessage.value = 'Could not verify password.';
+    errorMessage.value = VERIFY_ERRORS[err.statusCode ?? 0] ?? 'Could not verify password.';
   }
   finally {
     loading.value = false;
