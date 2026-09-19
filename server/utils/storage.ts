@@ -1,8 +1,13 @@
 import { fileProvider } from '#server/utils/storage-file';
 import { s3Provider } from '#server/utils/storage-s3';
 
+export type StorageObject = { bytes: Uint8Array; contentType: string };
+
 export type StorageDriver = {
   put: (key: string, data: Uint8Array, contentType: string) => Promise<void>;
+  // Null when the object is gone. A caller that only decorates an image treats
+  // a missing file as "no image", never as an error.
+  get: (key: string) => Promise<StorageObject | null>;
   delete: (key: string) => Promise<void>;
   publicUrl: (key: string) => string;
 };
@@ -91,6 +96,10 @@ function resolveDriver(): StorageDriver {
 
 export function putObject(key: string, data: Uint8Array, contentType: string) {
   return resolveDriver().put(key, data, contentType);
+}
+
+export function getObject(key: string) {
+  return resolveDriver().get(key);
 }
 
 export function deleteObject(key: string) {

@@ -23,6 +23,8 @@ the notes for every version between the one you run and the one you install.
 - The create form warns when a destination already has a link. It never blocks
   the second one.
 - Quick create at `/links/new`, with a bookmarklet in the workspace settings.
+- QR styling: `fg` and `bg` colours, `bg=transparent` for SVG, and `logo=1` to
+  put the workspace logo in the middle of an SVG code.
 - Workspace **Overview** page at `/dashboard`, with totals, a timeline, the top
   five links, and the links that need attention. Sign-in lands there. The link
   list stays at `/`.

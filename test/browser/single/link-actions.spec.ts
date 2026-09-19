@@ -255,3 +255,21 @@ test('downloads the QR code in both formats', async ({ page, login }) => {
     expect((await download).url()).toContain(`format=${format.toLowerCase()}`);
   }
 });
+
+test('carries the chosen QR colour into the preview and remembers it', async ({ page, login }) => {
+  await login();
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Copy me', exact: true }).click();
+  await page.getByRole('button', { name: 'QR code' }).click();
+  const panel = page.getByRole('dialog');
+
+  await panel.getByLabel('QR foreground colour').fill('#ff0000');
+  await expect(panel.getByRole('img', { name: 'QR code for short link' })).toHaveAttribute('src', /fg=ff0000/);
+  await expect(panel.getByRole('link', { name: 'SVG', exact: true })).toHaveAttribute('href', /fg=ff0000/);
+
+  // The choice lives in this browser, so another link starts with it.
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Moving target', exact: true }).click();
+  await page.getByRole('button', { name: 'QR code' }).click();
+  await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for short link' })).toHaveAttribute('src', /fg=ff0000/);
+});

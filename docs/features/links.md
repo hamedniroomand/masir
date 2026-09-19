@@ -99,6 +99,25 @@ Every link has a QR code, as SVG or PNG, at sizes from 64 to 512 pixels:
 The code encodes the short link, not the destination, so printing it is safe.
 You can still change where it goes.
 
+Three more parameters style it:
+
+| Parameter | Default | Rule |
+|---|---|---|
+| `fg` | `000000` | Six hex digits for the dark modules |
+| `bg` | `ffffff` | Six hex digits, or `transparent` for SVG only |
+| `logo` | `0` | `1` puts the workspace logo in the middle. SVG only |
+
+A bad colour answers `422`, and so does `bg=transparent` on a PNG.
+
+With `logo=1` the error correction rises from `M` to `H`, so the code still
+scans with its centre covered. A workspace with no logo ignores the flag, and
+so does a PNG, because compositing a raster logo needs an image decoder this
+project does not carry.
+
+The **QR code** panel holds the two colour pickers and the logo switch. Your
+choice is remembered in this browser for this workspace, so the next link
+starts with the same style. Nothing is stored on the server.
+
 ## History
 
 The **History** tab on a link lists the last 50 changes: who made each one,

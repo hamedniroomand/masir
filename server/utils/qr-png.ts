@@ -24,7 +24,12 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([len, body, crc]);
 }
 
-export function qrResultToPng(qr: QrCodeGenerateResult, pixelSize: number): Buffer {
+export type Rgb = [number, number, number];
+
+const BLACK: Rgb = [0, 0, 0];
+const WHITE: Rgb = [255, 255, 255];
+
+export function qrResultToPng(qr: QrCodeGenerateResult, pixelSize: number, foreground: Rgb = BLACK, background: Rgb = WHITE): Buffer {
   const modules = qr.size;
   const width = modules * pixelSize;
   const height = width;
@@ -37,12 +42,11 @@ export function qrResultToPng(qr: QrCodeGenerateResult, pixelSize: number): Buff
     const moduleY = Math.floor(y / pixelSize);
     for (let x = 0; x < width; x++) {
       const moduleX = Math.floor(x / pixelSize);
-      const black = qr.data[moduleY]?.[moduleX] ?? false;
-      const v = black ? 0 : 255;
+      const colour = qr.data[moduleY]?.[moduleX] ? foreground : background;
       const i = rowStart + 1 + x * 3;
-      raw[i] = v;
-      raw[i + 1] = v;
-      raw[i + 2] = v;
+      raw[i] = colour[0];
+      raw[i + 1] = colour[1];
+      raw[i + 2] = colour[2];
     }
   }
 

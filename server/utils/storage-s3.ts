@@ -21,6 +21,15 @@ export function createS3Driver(options: {
     async put(key, data, contentType) {
       await client.write(assertSafeKey(key), data, { type: contentType });
     },
+    async get(key) {
+      const file = client.file(assertSafeKey(key));
+      try {
+        return { bytes: new Uint8Array(await file.arrayBuffer()), contentType: file.type };
+      }
+      catch {
+        return null;
+      }
+    },
     async delete(key) {
       await client.delete(assertSafeKey(key));
     },
