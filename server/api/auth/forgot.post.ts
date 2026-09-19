@@ -5,6 +5,7 @@ import { readValidBody } from '#server/utils/body';
 import { findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { sendMail } from '#server/utils/mail';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { appUrl } from '#shared/deployment';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
@@ -25,9 +26,8 @@ export default defineEventHandler(async (event) => {
 
   const user = await findUserByEmail(email);
   if (user) {
-    const { rootDomain } = useRuntimeConfig();
     const raw = await createAuthToken('password_reset', user.id, RESET_LIFETIME_MS);
-    const link = `${rootDomain.replace(/\/$/, '')}/reset-password?token=${raw}`;
+    const link = `${appUrl(useRuntimeConfig() as never)}/reset-password?token=${raw}`;
     await sendMail(resetPasswordMessage(email, link));
   }
 

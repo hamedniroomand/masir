@@ -7,7 +7,7 @@ import { AliasLimitError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsa
 import { invalidateLink, invalidateLinkById } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
-import { workspaceUrl } from '#shared/deployment';
+import { linkOrigin } from '#shared/deployment';
 import { MAX_ALIASES_PER_LINK } from '#shared/link-input';
 import { deriveLinkStatus } from '#shared/link-status';
 import { generateSlug, RESERVED_SLUGS } from '#shared/slug';
@@ -18,7 +18,7 @@ export type ShortUrlWorkspace = { slug: string; linkPrefix: string | null };
 
 export function shortUrlFor(workspace: ShortUrlWorkspace, linkSlug: string) {
   const config = useRuntimeConfig();
-  const base = workspaceUrl(workspace.slug, config as unknown as DeploymentConfig);
+  const base = linkOrigin(workspace.slug, config as unknown as DeploymentConfig);
   return workspace.linkPrefix ? `${base}/${workspace.linkPrefix}/${linkSlug}` : `${base}/${linkSlug}`;
 }
 

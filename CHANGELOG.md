@@ -11,6 +11,11 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- `NUXT_APP_DOMAIN`. Set it to an origin such as `https://app.example.com` and
+  sign-in, onboarding, and the dashboard move there. The root then serves an
+  indexable landing page at `/`, keeps serving short links, and sends every
+  other app path to the app domain. Empty keeps everything as it was.
+
 - Optional link path for each workspace. With `go` set, every link sits at
   `host/go/{slug}` and the root paths stop resolving. Set at onboarding or in
   workspace settings. A change breaks every link already shared.

@@ -4,6 +4,7 @@ import { userTokens } from '#server/database/schema';
 import { verifyEmailMessage } from '#server/emails/verify-email';
 import { getDb } from '#server/utils/db';
 import { sendMail } from '#server/utils/mail';
+import { appUrl } from '#shared/deployment';
 
 export const VERIFICATION_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const RESET_LIFETIME_MS = 60 * 60 * 1000;
@@ -71,8 +72,7 @@ export async function revokeAuthTokens(purpose: TokenPurpose, userId: string) {
 }
 
 export async function sendVerification(userId: string, email: string) {
-  const { rootDomain } = useRuntimeConfig();
   const raw = await createAuthToken('email_verify', userId, VERIFICATION_LIFETIME_MS);
-  const link = `${rootDomain.replace(/\/$/, '')}/verify-email?token=${raw}`;
+  const link = `${appUrl(useRuntimeConfig() as never)}/verify-email?token=${raw}`;
   await sendMail(verifyEmailMessage(email, link));
 }

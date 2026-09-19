@@ -41,6 +41,7 @@ and use a pooled connection string.
 |---|---|---|
 | `NUXT_DEPLOYMENT_MODE` | `SELF_HOSTED` | Or `CLOUD` |
 | `NUXT_MULTI_WORKSPACE` | `false` | A subdomain per workspace |
+| `NUXT_APP_DOMAIN` | | Origin for sign-in and the dashboard, such as `https://app.example.com`. Empty keeps them on the root. See [the landing page](../guide/self-hosting.md#a-landing-page-on-the-root) |
 | `NUXT_SESSION_COOKIE_DOMAIN` | | **Required** when multi-workspace is on. Leading dot: `.example.com` |
 | `NUXT_SESSION_COOKIE_SECURE` | `true` | `false` only for plain HTTP on a private network |
 | `NUXT_ALLOW_REGISTRATION` | `false` | Public sign-up |

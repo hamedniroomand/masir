@@ -34,6 +34,30 @@ its one workspace on whatever host the request arrived on.
 
 <ReadMore to="/reference/environment" title="Every environment variable" />
 
+## A landing page on the root
+
+By default `example.com/` is the app. To put a public landing page there and
+run the app on its own host, set one more value:
+
+```sh [.env]
+NUXT_APP_DOMAIN=https://app.example.com
+```
+
+Then:
+
+- `example.com/` renders a landing page that crawlers may index. It links to
+  sign-in and, when registration is open, to sign-up on the app host.
+- `example.com/{slug}` keeps serving short links, with the link path in front
+  when the workspace has one. The unlock page for a protected link stays here
+  too.
+- Every other app path on the root, such as `/login` or `/dashboard`, answers
+  a redirect to the same path on `app.example.com`.
+- Emails for verification and password reset link to the app host.
+
+Point both names at the same instance. In multi-workspace mode the app host
+must be the root or a subdomain of it, because the session cookie is scoped to
+the root. Leave the value empty to get the old behaviour back.
+
 ## Behind a reverse proxy
 
 Most instances sit behind nginx, Caddy, Traefik, or a CDN that terminates TLS.

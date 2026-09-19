@@ -16,6 +16,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (useError().value)
     return;
 
+  // "/" is the landing page on the root host and the links list elsewhere.
+  if (to.path === '/') {
+    const { data: host } = await useHostInfo();
+    if (host.value?.landing)
+      return;
+    setPageLayout('default');
+  }
+
   const { loggedIn, ready, fetch: fetchSession } = useUserSession();
   if (!ready.value)
     await fetchSession();

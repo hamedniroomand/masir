@@ -77,6 +77,10 @@ names stay available.
 workspace picker. It serves **no short links**. Every short link lives inside a
 workspace and carries that workspace's subdomain.
 
+With `NUXT_APP_DOMAIN=https://app.example.com` those pages move to
+`app.example.com`, and `example.com` shows a landing page instead. The app
+domain must be the root or a subdomain of it, so the session cookie reaches it.
+
 ## Switching workspaces
 
 People who belong to several workspaces get a switcher in the account menu.

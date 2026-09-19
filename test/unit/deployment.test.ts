@@ -1,6 +1,6 @@
 import type { DeploymentConfig } from '#shared/deployment';
 import { describe, expect, it } from 'vitest';
-import { assertDeploymentConfig, isCloud, workspaceUrl } from '#shared/deployment';
+import { appUrl, assertDeploymentConfig, isCloud, linkOrigin, workspaceUrl } from '#shared/deployment';
 
 function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }> = {}) {
   return {
@@ -41,7 +41,51 @@ describe('workspaceUrl', () => {
   });
 });
 
+describe('appUrl', () => {
+  it('is the root origin without an app domain', () => {
+    expect(appUrl(config())).toBe('https://masir.dev');
+  });
+
+  it('is the app domain when set', () => {
+    expect(appUrl(config({ appDomain: 'https://app.masir.dev/' }))).toBe('https://app.masir.dev');
+  });
+});
+
+describe('with an app domain in single mode', () => {
+  const c = config({ multiWorkspace: false, appDomain: 'https://app.masir.dev' });
+
+  it('sends app links to the app domain', () => {
+    expect(workspaceUrl('acme', c)).toBe('https://app.masir.dev');
+  });
+
+  it('keeps short links on the root', () => {
+    expect(linkOrigin('acme', c)).toBe('https://masir.dev');
+  });
+});
+
+describe('linkOrigin in multi mode', () => {
+  it('is the workspace subdomain', () => {
+    expect(linkOrigin('acme', config({ appDomain: 'https://app.masir.dev' }))).toBe('https://acme.masir.dev');
+  });
+});
+
 describe('assertDeploymentConfig', () => {
+  it('rejects an app domain that is not an http url', () => {
+    expect(() => assertDeploymentConfig(config({ appDomain: 'app.masir.dev' }))).toThrow(/NUXT_APP_DOMAIN/);
+  });
+
+  it('rejects an app domain outside the root in multi mode', () => {
+    expect(() => assertDeploymentConfig(config({ appDomain: 'https://app.other.dev' }))).toThrow(/NUXT_APP_DOMAIN/);
+  });
+
+  it('accepts an app subdomain in multi mode', () => {
+    expect(() => assertDeploymentConfig(config({ appDomain: 'https://app.masir.dev' }))).not.toThrow();
+  });
+
+  it('accepts any app host in single mode', () => {
+    expect(() => assertDeploymentConfig(config({ multiWorkspace: false, appDomain: 'https://app.other.dev' }))).not.toThrow();
+  });
+
   it('accepts a valid cloud config', () => {
     expect(() => assertDeploymentConfig(config())).not.toThrow();
   });
