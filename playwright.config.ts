@@ -3,7 +3,7 @@ import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
 import { cleanEnv, databaseUrlOf, healthUrlOf, originOf, serverEnv, TEST_DOMAIN } from './test/browser/scenario';
 
-const SCENARIOS: Scenario[] = ['single', 'multi', 'cloud'];
+const SCENARIOS: Scenario[] = ['single', 'multi', 'cloud', 'landing'];
 
 // The server migrates on boot but cannot create its database, so the bridge
 // makes it first.

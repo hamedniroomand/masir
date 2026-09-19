@@ -9,7 +9,7 @@ if [ -n "${CI:-}" ] || ! command -v lsof >/dev/null 2>&1; then
   exit 0
 fi
 slot=${MASIR_TEST_SLOT:-0}
-for base in 3101 3102 3103; do
+for base in 3101 3102 3103 3104; do
   port=$((base + slot * 10))
   pids=$(lsof -ti tcp:"$port" 2>/dev/null || true)
   [ -n "$pids" ] || continue
