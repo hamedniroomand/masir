@@ -25,6 +25,7 @@ Changing `NUXT_SESSION_PASSWORD` signs everyone out at once.
 | `NUXT_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir` | |
 | `NUXT_DATABASE_POOL_MAX` | `10` | Connections per instance |
 | `NUXT_MIGRATE_ON_BOOT` | `true` | Apply migrations when the server starts |
+| `TEST_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir_test` | Read by the tests only. They make `masir_test_<file>` from it and never touch the application database |
 
 Migrations take a Postgres advisory lock, so a rolling deploy applies them
 exactly once. On serverless, set `NUXT_MIGRATE_ON_BOOT=false`, because every
