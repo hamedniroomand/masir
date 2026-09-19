@@ -5,6 +5,8 @@ import * as v from 'valibot';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_NOTES_LENGTH, notesSchema, toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
+const props = defineProps<{ initial?: { destinationUrl?: string; title?: string } }>();
+
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 
 const { $api } = useNuxtApp();
@@ -38,9 +40,9 @@ const schema = v.pipe(fields, v.check(input => !hasCampaignUtmConflict(input), C
 type Schema = v.InferOutput<typeof schema>;
 
 const state = reactive({
-  destinationUrl: '',
+  destinationUrl: props.initial?.destinationUrl ?? '',
   slug: '',
-  title: '',
+  title: props.initial?.title ?? '',
   expiresAt: null as number | null,
   startsAt: null as number | null,
   expirationDestination: '',

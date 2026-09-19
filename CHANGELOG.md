@@ -22,6 +22,7 @@ the notes for every version between the one you run and the one you install.
   worked stays reserved, even after a rename or a delete.
 - The create form warns when a destination already has a link. It never blocks
   the second one.
+- Quick create at `/links/new`, with a bookmarklet in the workspace settings.
 
 ### Changed
 

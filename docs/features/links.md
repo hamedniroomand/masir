@@ -60,6 +60,21 @@ printed poster can never start pointing at somebody else's destination.
 
 The QR code and the copy button always use the short address, not an alias.
 
+## Create from a bookmarklet
+
+**Settings → Workspace** holds a **Quick create** button. Drag it to your
+bookmarks bar.
+
+Press it on any page and Masir opens its create form with that page's address
+and title already filled. You only pick the short address and press Create.
+
+The bookmarklet reads nothing but the address and the title of the page you are
+on, and it sends both to your own workspace.
+
+The page behind it is `/links/new`, and it takes `url` and `title` in the
+query. A signed-out visitor goes to the sign-in page and comes back with the
+query intact.
+
 ## Query passthrough
 
 Whatever a visitor appends to the short link is merged into the destination:
