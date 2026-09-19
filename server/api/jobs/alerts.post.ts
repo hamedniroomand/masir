@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
+import { runDemoSweep } from '#server/utils/demo';
 import { runExpiryAlertSweep } from '#server/utils/link-alerts';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 
@@ -30,5 +31,7 @@ export default defineEventHandler(async (event) => {
   if (!tokenMatches(header, config.jobsSecret))
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
 
-  return { sent: await runExpiryAlertSweep() };
+  const sent = await runExpiryAlertSweep();
+  const demosDeleted = config.demoEnabled ? await runDemoSweep() : 0;
+  return { sent, demosDeleted };
 });
