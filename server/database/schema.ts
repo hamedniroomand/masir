@@ -102,11 +102,15 @@ export const workspaces = pgTable('workspaces', {
   // A deleted workspace keeps its slug. A subdomain must never change hands
   // without an operator action.
   deletedAt: timestampTz('deleted_at'),
+  // Set only on a demo workspace. The sweep deletes the row and its owner
+  // once the time has passed.
+  expiresAt: timestampTz('expires_at'),
   createdAt: timestampTz('created_at').notNull().defaultNow(),
   updatedAt: timestampTz('updated_at').notNull().defaultNow(),
 }, table => [
   check('workspaces_slug_format_check', sql`${table.slug} ~ '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'`),
   check('workspaces_link_prefix_format_check', sql`${table.linkPrefix} is null or ${table.linkPrefix} ~ '^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$'`),
+  index('workspaces_expires_at_idx').on(table.expiresAt).where(sql`expires_at is not null`),
 ]);
 
 export const workspaceMembers = pgTable('workspace_members', {
