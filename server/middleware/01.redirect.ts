@@ -148,7 +148,9 @@ export default defineEventHandler(async (event) => {
       return;
     }
     logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
-    if (meetsCapThreshold(consumed, link.maximumVisits))
+    // The cached row says whether the alert went out already, so the claim
+    // statement runs once per cache lifetime, not on every click past the line.
+    if (link.capAlertSentAt == null && meetsCapThreshold(consumed, link.maximumVisits))
       event.waitUntil(sendCapAlert(link.id).catch(() => {}));
   }
 

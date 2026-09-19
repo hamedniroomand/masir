@@ -16,6 +16,13 @@ export function logoStorageKey(workspaceId: string, type: ImageType): string {
   return `logos/${workspaceId}/${crypto.randomUUID()}.${EXTENSION[type]}`;
 }
 
+// A bucket read does not carry the type the upload stored, so the key does.
+export function contentTypeForKey(key: string): string {
+  const extension = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
+  const match = Object.entries(EXTENSION).find(([, value]) => value === extension);
+  return match?.[0] ?? 'application/octet-stream';
+}
+
 // A key can come from user input. Refuse an absolute path, a climb out of the
 // root, and a null byte.
 export function assertSafeKey(key: string): string {

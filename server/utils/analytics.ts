@@ -197,15 +197,17 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
     sql`${links.clickCount} < ${links.maximumVisits}`,
   )).orderBy(desc(links.clickCount)).limit(ATTENTION_ROWS);
 
+  // Expiry passing and the last visit never touch updated_at, so the window
+  // reads expires_at for an expired link. A used-up cap has no timestamp, so
+  // every link at its cap shows until somebody raises or removes it.
   const stopped = await db.select(linkSummary).from(links).where(and(
     live,
     eq(links.isEnabled, true),
-    gte(links.updatedAt, new Date(now.getTime() - STOPPED_WINDOW_MS)),
     sql`(
-      (${links.expiresAt} is not null and ${links.expiresAt} <= ${now})
+      (${links.expiresAt} > ${new Date(now.getTime() - STOPPED_WINDOW_MS)} and ${links.expiresAt} <= ${now})
       or (${links.maximumVisits} is not null and ${links.clickCount} >= ${links.maximumVisits})
     )`,
-  )).orderBy(desc(links.updatedAt)).limit(ATTENTION_ROWS);
+  )).orderBy(desc(sql`coalesce(${links.expiresAt}, ${links.updatedAt})`)).limit(ATTENTION_ROWS);
 
   return {
     clicks: analytics.periodClicks,

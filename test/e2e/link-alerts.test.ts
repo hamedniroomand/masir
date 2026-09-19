@@ -1,7 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { desc, eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { auditEvents, links, mailOutbox } from '#server/database/schema';
+import { auditEvents, links, mailOutbox, workspaceMembers } from '#server/database/schema';
 import {
   CHROME_UA,
   e2eSetupOptions,
@@ -159,6 +159,16 @@ describe('link alerts', async () => {
       method: 'POST',
       headers: { authorization: 'Bearer wrong' },
     })).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('sends to the owner, not the creator, once the creator was deactivated', async () => {
+    const leftUserId = await insertTestUser(TEST_DB, { email: 'left@example.com', password: TEST_PASSWORD });
+    const db = openTestDatabase(TEST_DB);
+    await db.insert(workspaceMembers).values({ workspaceId, userId: leftUserId, role: 'member', deactivatedAt: new Date() });
+    await insertTestLink(TEST_DB, { workspaceId, createdBy: leftUserId, slug: 'left-behind', expiresAt: new Date(Date.now() + DAY_MS) });
+    await $fetch('/api/jobs/alerts', { method: 'POST', headers: { authorization: `Bearer ${JOBS_SECRET}` } });
+    expect(await mailTo('left@example.com')).toHaveLength(0);
+    expect((await mailTo(TEST_EMAIL)).filter(row => row.subject.includes('left-behind'))).toHaveLength(1);
   });
 
   it('sends to the workspace owner when the link has no creator', async () => {

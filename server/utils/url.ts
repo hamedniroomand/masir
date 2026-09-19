@@ -82,12 +82,13 @@ export function validateFallbackDestination(input: {
   label: string;
   allowPrivate: boolean;
   shortDomain: string;
-  slug?: string;
+  // Every address the link answers on: the primary slug and its aliases.
+  slugs?: string[];
 }): Ok | Fail {
   const dest = validateDestination(input.value, input.allowPrivate);
   if (!dest.ok)
     return dest;
-  if (input.slug && shortLinkMatchesDestination(input.shortDomain, input.slug, dest.url))
+  if (input.slugs?.some(slug => shortLinkMatchesDestination(input.shortDomain, slug, dest.url)))
     return { ok: false, reason: `${input.label} cannot point to this short link.` };
   return dest;
 }
@@ -98,7 +99,7 @@ export function validateTargeting(input: {
   targeting: LinkTargeting | null | undefined;
   allowPrivate: boolean;
   shortDomain: string;
-  slug?: string;
+  slugs?: string[];
 }): { ok: true; targeting: LinkTargeting | null } | Fail {
   const normalized = normalizeTargeting(input.targeting);
   if (!normalized)

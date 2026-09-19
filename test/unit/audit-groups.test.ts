@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { AUDIT_GROUPS, auditGroup, isAuditGroup, typesInGroup } from '#shared/audit-groups';
+import { AUDIT_GROUPS, auditGroup, isAuditGroup, typesInGroup, typesOutsideGroup } from '#shared/audit-groups';
 
 const serverDir = join(import.meta.dirname, '../../server');
 
@@ -39,6 +39,9 @@ describe('auditGroup', () => {
 
   it('sends an unknown type to security', () => {
     expect(auditGroup('something_new')).toBe('security');
+    expect(typesOutsideGroup('security')).not.toContain('something_new');
+    expect(typesOutsideGroup('security')).toContain('link_created');
+    expect(typesOutsideGroup('security')).not.toContain('login_failed');
   });
 
   it('keeps link and alias events together', () => {

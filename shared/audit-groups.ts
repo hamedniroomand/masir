@@ -3,7 +3,8 @@ export const AUDIT_GROUPS = ['links', 'campaigns', 'members', 'security'] as con
 export type AuditGroup = typeof AUDIT_GROUPS[number];
 
 // Every type the server writes today. A type that is not here falls into
-// security, so a new event is never hidden from the page that shows them all.
+// security, and the security query excludes the other groups rather than
+// listing its own, so a new event is never hidden.
 const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   link_created: 'links',
   link_updated: 'links',
@@ -51,6 +52,12 @@ export function auditGroup(type: string): AuditGroup {
 
 export function typesInGroup(group: AuditGroup): string[] {
   return Object.entries(GROUP_OF_TYPE).filter(([, value]) => value === group).map(([type]) => type);
+}
+
+// Security is the catch-all, so a query for it excludes the other groups
+// instead of listing its own types. A type nobody mapped still shows there.
+export function typesOutsideGroup(group: AuditGroup): string[] {
+  return Object.entries(GROUP_OF_TYPE).filter(([, value]) => value !== group).map(([type]) => type);
 }
 
 export function isAuditGroup(value: unknown): value is AuditGroup {

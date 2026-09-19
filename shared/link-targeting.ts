@@ -62,3 +62,9 @@ export function resolveDestination(
   const byOs = meta.os === 'other' ? undefined : targeting.os?.[meta.os];
   return byOs ?? link.destinationUrl;
 }
+
+export function targetingUrls(targeting: LinkTargeting | null | undefined): string[] {
+  if (!targeting)
+    return [];
+  return [...Object.values(targeting.os ?? {}), ...Object.values(targeting.country ?? {})];
+}

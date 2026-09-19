@@ -138,6 +138,15 @@ describe('read-only role', async () => {
     })).rejects.toMatchObject({ statusCode: 404 });
   });
 
+  it('refuses a member patch that changes nothing', async () => {
+    const cookie = await loginCookie();
+    await expect($fetch(`/api/workspaces/members/${switchUserId}`, {
+      method: 'PATCH',
+      body: {},
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
   it('joins as a viewer when the invitation carries the role', async () => {
     await invite(VIEWER_EMAIL.replace('viewer', 'viewer2'), 'VIEWER');
     const db = openTestDatabase(TEST_DB);

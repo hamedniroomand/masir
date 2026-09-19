@@ -13,15 +13,24 @@ export const CAP_ALERT_RATIO = 0.9;
 const SWEEP_LIMIT = 200;
 const DAY_MS = 86_400_000;
 
+type AlertColumn = 'capAlertSentAt' | 'expiryAlertSentAt';
+
 // One statement claims the alert. Two instances can run this at the same time
 // and only the one that gets a row back sends the mail.
-async function claim(linkId: string, column: 'capAlertSentAt' | 'expiryAlertSentAt') {
+async function claim(linkId: string, column: AlertColumn) {
   const db = await getDb();
   const claimed = await db.update(links)
     .set({ [column]: new Date() })
     .where(and(eq(links.id, linkId), isNull(links[column]), isNull(links.deletedAt)))
     .returning();
   return claimed[0] ?? null;
+}
+
+// A mail that failed to leave must not count as sent, or the next sweep skips
+// the link for good.
+async function release(linkId: string, column: AlertColumn) {
+  const db = await getDb();
+  await db.update(links).set({ [column]: null }).where(eq(links.id, linkId));
 }
 
 export function claimCapAlert(linkId: string) {
@@ -32,19 +41,25 @@ export function claimExpiryAlert(linkId: string) {
   return claim(linkId, 'expiryAlertSentAt');
 }
 
-// The person who made the link, else the owner of the workspace. A link whose
-// creator left the workspace still reaches somebody.
+// The person who made the link, while they are still an active member, else
+// the owner of the workspace. Somebody who was removed must not keep hearing
+// about the links they left behind.
 async function recipientFor(link: Link) {
   const db = await getDb();
+  const activeMember = and(eq(workspaceMembers.workspaceId, link.workspaceId), isNull(workspaceMembers.deactivatedAt));
   if (link.createdBy) {
-    const rows = await db.select({ email: users.email }).from(users).where(eq(users.id, link.createdBy)).limit(1);
+    const rows = await db.select({ email: users.email })
+      .from(workspaceMembers)
+      .innerJoin(users, eq(workspaceMembers.userId, users.id))
+      .where(and(activeMember, eq(workspaceMembers.userId, link.createdBy)))
+      .limit(1);
     if (rows[0])
       return rows[0].email;
   }
   const owner = await db.select({ email: users.email })
     .from(workspaceMembers)
     .innerJoin(users, eq(workspaceMembers.userId, users.id))
-    .where(and(eq(workspaceMembers.workspaceId, link.workspaceId), eq(workspaceMembers.role, 'owner')))
+    .where(and(activeMember, eq(workspaceMembers.role, 'owner')))
     .limit(1);
   return owner[0]?.email ?? null;
 }
@@ -62,13 +77,21 @@ async function addressesFor(link: Link) {
   };
 }
 
-async function send(link: Link, kind: 'cap' | 'expiry', build: (base: { to: string; slug: string; title: string | null; shortUrl: string; linkUrl: string }) => Parameters<typeof sendMail>[0]) {
+type MessageBase = { to: string; slug: string; title: string | null; shortUrl: string; linkUrl: string };
+
+async function send(link: Link, kind: 'cap' | 'expiry', column: AlertColumn, build: (base: MessageBase) => Parameters<typeof sendMail>[0]) {
   const to = await recipientFor(link);
   const addresses = await addressesFor(link);
   if (!to || !addresses)
     return false;
 
-  await sendMail(build({ to, slug: link.slug, title: link.title, ...addresses }));
+  try {
+    await sendMail(build({ to, slug: link.slug, title: link.title, ...addresses }));
+  }
+  catch (error) {
+    await release(link.id, column);
+    throw error;
+  }
   await writeAuditEvent('link_alert_sent', { kind }, { workspaceId: link.workspaceId, linkId: link.id });
   return true;
 }
@@ -77,7 +100,7 @@ export async function sendCapAlert(linkId: string) {
   const link = await claimCapAlert(linkId);
   if (!link || link.maximumVisits == null)
     return false;
-  return send(link, 'cap', base => capAlertMessage({
+  return send(link, 'cap', 'capAlertSentAt', base => capAlertMessage({
     ...base,
     clickCount: link.clickCount,
     maximumVisits: link.maximumVisits as number,
@@ -89,7 +112,7 @@ export async function sendExpiryAlert(linkId: string) {
   if (!link || !link.expiresAt)
     return false;
   const days = Math.max(0, Math.ceil((link.expiresAt.getTime() - Date.now()) / DAY_MS));
-  return send(link, 'expiry', base => expiryAlertMessage({ ...base, days }));
+  return send(link, 'expiry', 'expiryAlertSentAt', base => expiryAlertMessage({ ...base, days }));
 }
 
 // A click that meets the threshold or the cap sends the alert. Both use the
@@ -118,7 +141,12 @@ export async function runExpiryAlertSweep() {
 
   let sent = 0;
   for (const candidate of candidates) {
-    if (await sendExpiryAlert(candidate.id))
+    // One failed mail must not stop the rest of the sweep.
+    const ok = await sendExpiryAlert(candidate.id).catch((error) => {
+      console.error(`[alerts] expiry alert failed for link ${candidate.id}`, error);
+      return false;
+    });
+    if (ok)
       sent++;
   }
   return sent;

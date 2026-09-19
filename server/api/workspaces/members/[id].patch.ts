@@ -28,6 +28,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readValidBody(event, bodySchema);
+  if (body.role === undefined && body.isActive === undefined) {
+    const reason = 'Send a role or an active state.';
+    throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+  }
 
   if (body.role) {
     await setMemberRole(workspaceId, userId, body.role);

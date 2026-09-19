@@ -19,11 +19,21 @@ const { current } = useCurrentWorkspace();
 const storageKey = computed(() => `masir:qr-style:${current.value?.id ?? 'default'}`);
 const style = ref({ fg: '000000', bg: 'ffffff', logo: false });
 
+const HEX = /^[0-9a-f]{6}$/;
+
+// The store is only a memory of this panel's own controls, but a value from
+// an older build or a hand edit would make every request answer 422.
 function readStyle() {
   try {
     const raw = localStorage.getItem(storageKey.value);
-    if (raw)
-      style.value = { ...style.value, ...JSON.parse(raw) as typeof style.value };
+    if (!raw)
+      return;
+    const saved = JSON.parse(raw) as Partial<typeof style.value>;
+    style.value = {
+      fg: typeof saved.fg === 'string' && HEX.test(saved.fg) ? saved.fg : '000000',
+      bg: typeof saved.bg === 'string' && HEX.test(saved.bg) ? saved.bg : 'ffffff',
+      logo: saved.logo === true,
+    };
   }
   catch {
     // A blocked or full store only costs the remembered choice.

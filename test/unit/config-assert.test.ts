@@ -98,6 +98,7 @@ describe('assertRuntimeConfig', () => {
     };
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: -1 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 1.5 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);
+    expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 35_001 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 0 })).not.toThrow();
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: 15 })).not.toThrow();
   });

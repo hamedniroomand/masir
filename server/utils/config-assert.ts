@@ -2,6 +2,7 @@ import type { DeploymentConfig } from '#shared/deployment';
 import { assertDeploymentConfig } from '#shared/deployment';
 
 const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i;
+export const MAX_ALERTS_INTERVAL_MINUTES = 35_000;
 
 export function assertRuntimeConfig(config: DeploymentConfig & {
   sessionPassword: string;
@@ -39,9 +40,11 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
     throw new Error('Missing or invalid NUXT_PUBLIC_SHORT_DOMAIN (must be a valid http(s) URL)');
   }
 
+  // setInterval takes a 32-bit signed delay in milliseconds. Above that it
+  // fires every millisecond, so the ceiling stays under it.
   const interval = Number(config.alertsIntervalMinutes ?? 15);
-  if (!Number.isInteger(interval) || interval < 0)
-    throw new Error('Missing or invalid NUXT_ALERTS_INTERVAL_MINUTES (must be a whole number of minutes, 0 to turn the sweep off)');
+  if (!Number.isInteger(interval) || interval < 0 || interval > MAX_ALERTS_INTERVAL_MINUTES)
+    throw new Error(`Missing or invalid NUXT_ALERTS_INTERVAL_MINUTES (must be a whole number of minutes from 0 to ${MAX_ALERTS_INTERVAL_MINUTES}, 0 turns the sweep off)`);
 
   const googleAnalyticsId = config.public.scripts?.googleAnalytics?.id;
   if (googleAnalyticsId && !GA4_MEASUREMENT_ID.test(googleAnalyticsId))

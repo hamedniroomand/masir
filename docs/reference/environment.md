@@ -182,7 +182,7 @@ argument, so it stays out of the image layers. Compose fills it from
 
 | Variable | Default | Notes |
 |---|---|---|
-| `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | How often the instance sweeps for links that expire soon. `0` turns the sweep off |
+| `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | How often the instance sweeps for links that expire soon. `0` turns the sweep off, `35000` is the most |
 | `NUXT_JOBS_SECRET` | | Bearer token for `POST /api/jobs/alerts`. Empty makes the route answer `404` |
 
 A long-running instance runs the sweep itself on the interval. A serverless

@@ -10,9 +10,9 @@ import { assertScheduleOrder } from '#server/utils/link-schedule';
 import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
-import { validateDestination, validateFallbackDestination, validateTargeting } from '#server/utils/url';
+import { shortLinkMatchesDestination, validateDestination, validateFallbackDestination, validateTargeting } from '#server/utils/url';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_ALIASES_PER_LINK, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
-import { targetingSchema } from '#shared/link-targeting';
+import { targetingSchema, targetingUrls } from '#shared/link-targeting';
 import { slugSchema } from '#shared/slug';
 import { emptyToNull, optionalUtmSchema } from '#shared/utm';
 
@@ -44,6 +44,16 @@ function visitLimitBelowUsage() {
   return createError({ statusCode: 422, statusMessage: reason, data: { reason } });
 }
 
+function slugTaken() {
+  const reason = 'This short link is already taken.';
+  return createError({ statusCode: 409, statusMessage: reason, data: { reason } });
+}
+
+function aliasLimitReached() {
+  const reason = `A link holds at most ${MAX_ALIASES_PER_LINK} aliases. Remove one before you rename.`;
+  return createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+}
+
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
@@ -65,7 +75,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   const body = await readValidBody(event, bodySchema);
-  const { slug } = existing;
+  const nextSlug = body.slug ?? existing.slug;
+  const renaming = nextSlug !== existing.slug;
+  // A fallback must not point at any address this link answers on after the
+  // write: the old slug, the new one, or an alias. Any of them would loop.
+  const aliases = (await aliasesForLinks([id])).get(id) ?? [];
+  const slugs = [existing.slug, nextSlug, ...aliases];
 
   const patch: Parameters<typeof updateLink>[2] = {};
   if (body.title !== undefined)
@@ -89,7 +104,7 @@ export default defineEventHandler(async (event) => {
       label,
       allowPrivate: config.allowPrivateDestinations,
       shortDomain: config.public.shortDomain,
-      slug,
+      slugs,
     });
     if (!dest.ok)
       throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
@@ -108,11 +123,32 @@ export default defineEventHandler(async (event) => {
       targeting: body.targeting,
       allowPrivate: config.allowPrivateDestinations,
       shortDomain: config.public.shortDomain,
-      slug,
+      slugs,
     });
     if (!targetingResult.ok)
       throw createError({ statusCode: 422, statusMessage: targetingResult.reason, data: { reason: targetingResult.reason } });
     patch.targeting = targetingResult.targeting;
+  }
+
+  // A destination the body leaves alone can still start pointing at the link
+  // once the slug changes.
+  if (renaming) {
+    const kept = [
+      patch.expirationDestination !== undefined ? patch.expirationDestination : existing.expirationDestination,
+      patch.limitDestination !== undefined ? patch.limitDestination : existing.limitDestination,
+      patch.scheduledDestination !== undefined ? patch.scheduledDestination : existing.scheduledDestination,
+      ...targetingUrls(patch.targeting !== undefined ? patch.targeting : existing.targeting),
+    ];
+    if (kept.some(url => url && shortLinkMatchesDestination(config.public.shortDomain, nextSlug, url))) {
+      const reason = 'A fallback or targeting destination points to the new short link. Change it first.';
+      throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+    }
+    if (await isSlugTaken(workspaceId, nextSlug, id))
+      throw slugTaken();
+    // Keeping the old address needs a free alias slot. The rename writes last,
+    // so a refusal found here is the only way the other fields stay unwritten.
+    if (body.keepOldSlug !== false && aliases.length >= MAX_ALIASES_PER_LINK)
+      throw aliasLimitReached();
   }
 
   if (body.maximumVisits !== undefined) {
@@ -167,31 +203,6 @@ export default defineEventHandler(async (event) => {
   const nextExpires = patch.expiresAt !== undefined ? patch.expiresAt : existing.expiresAt;
   assertScheduleOrder(nextStarts, nextExpires);
 
-  // The rename runs before the rest, so a refused slug leaves the row alone.
-  if (body.slug !== undefined && body.slug !== existing.slug) {
-    if (await isSlugTaken(workspaceId, body.slug, id)) {
-      const reason = 'This short link is already taken.';
-      throw createError({ statusCode: 409, statusMessage: reason, data: { reason } });
-    }
-    try {
-      const renamed = await renameLinkSlug(id, workspaceId, body.slug, body.keepOldSlug !== false);
-      if (!renamed)
-        throw createError({ statusCode: 404, statusMessage: 'Not found' });
-    }
-    catch (error) {
-      if (error instanceof AliasLimitError) {
-        const reason = `A link holds at most ${MAX_ALIASES_PER_LINK} aliases. Remove one before you rename.`;
-        throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
-      }
-      if (isUniqueViolation(error)) {
-        const reason = 'This short link is already taken.';
-        throw createError({ statusCode: 409, statusMessage: reason, data: { reason } });
-      }
-      throw error;
-    }
-    await writeAuditEvent('link_slug_changed', { from: existing.slug, to: body.slug }, { workspaceId, actor: user.id, linkId: id });
-  }
-
   let updated: Awaited<ReturnType<typeof updateLink>>;
   try {
     updated = await updateLink(id, workspaceId, patch);
@@ -203,6 +214,25 @@ export default defineEventHandler(async (event) => {
   }
   if (!updated)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
+
+  // The rename runs last, once every other field is written. The slug check
+  // above already refused a taken address, so only a race can fail here.
+  if (renaming) {
+    try {
+      const renamed = await renameLinkSlug(id, workspaceId, nextSlug, body.keepOldSlug !== false);
+      if (!renamed)
+        throw createError({ statusCode: 404, statusMessage: 'Not found' });
+      updated = renamed;
+    }
+    catch (error) {
+      if (error instanceof AliasLimitError)
+        throw aliasLimitReached();
+      if (isUniqueViolation(error))
+        throw slugTaken();
+      throw error;
+    }
+    await writeAuditEvent('link_slug_changed', { from: existing.slug, to: nextSlug }, { workspaceId, actor: user.id, linkId: id });
+  }
 
   if (body.tags !== undefined)
     await setLinkTags(id, workspaceId, body.tags);

@@ -1,6 +1,6 @@
 import type { StorageDriver, StorageProvider } from '#server/utils/storage';
 import { S3Client } from 'bun';
-import { assertSafeKey } from '#server/utils/storage-key';
+import { assertSafeKey, contentTypeForKey } from '#server/utils/storage-key';
 
 // One driver serves S3, R2 and any other bucket with an S3 endpoint.
 export function createS3Driver(options: {
@@ -24,7 +24,8 @@ export function createS3Driver(options: {
     async get(key) {
       const file = client.file(assertSafeKey(key));
       try {
-        return { bytes: new Uint8Array(await file.arrayBuffer()), contentType: file.type };
+        // file.type is Bun's default, not the object's metadata.
+        return { bytes: new Uint8Array(await file.arrayBuffer()), contentType: contentTypeForKey(key) };
       }
       catch (error) {
         // A missing object and a wrong key or endpoint look the same to the

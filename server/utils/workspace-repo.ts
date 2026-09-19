@@ -154,7 +154,8 @@ export async function setMemberDeactivated(workspaceId: string, userId: string, 
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)));
 }
 
-export async function setMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
+// Ownership moves only through transfer, so this never writes owner.
+export async function setMemberRole(workspaceId: string, userId: string, role: Exclude<WorkspaceRole, 'OWNER'>) {
   const db = await getDb();
   await db.update(workspaceMembers)
     .set({ role: roleLabel(role), updatedAt: new Date() })

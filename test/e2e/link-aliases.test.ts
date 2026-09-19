@@ -37,7 +37,9 @@ function readLink(id: string) {
 }
 
 describe('link aliases and slug rename', async () => {
-  await setup(await e2eSetupOptions(TEST_DB));
+  // The short domain in the test env is a loopback address, which the
+  // destination rule refuses, so the loop test needs private destinations on.
+  await setup(await e2eSetupOptions(TEST_DB, { NUXT_ALLOW_PRIVATE_DESTINATIONS: 'true' }));
 
   beforeAll(async () => {
     await resetTestDb(TEST_DB);
@@ -77,6 +79,12 @@ describe('link aliases and slug rename', async () => {
     expect(free.slug).toBe('never-used');
   });
 
+  it('refuses a link its own primary slug as an alias', async () => {
+    const link = await createLink({ destinationUrl: 'https://example.com/self', slug: 'myself' });
+    await expect(addAlias(link.id, 'myself')).rejects.toMatchObject({ statusCode: 409 });
+    expect((await readLink(link.id)).aliases).toEqual([]);
+  });
+
   it('answers 404 for an alias of a deleted link', async () => {
     const link = await createLink({ destinationUrl: 'https://example.com/doomed', slug: 'doomed' });
     await addAlias(link.id, 'doomed-alias');
@@ -106,6 +114,23 @@ describe('link aliases and slug rename', async () => {
     expect((await readLink(link.id)).aliases).toHaveLength(10);
   });
 
+  it('writes nothing else when the rename is refused at the alias limit', async () => {
+    const link = await createLink({ destinationUrl: 'https://example.com/full', slug: 'full-aliases', title: 'Before' });
+    for (let i = 0; i < 10; i++)
+      await addAlias(link.id, `full-${i}`);
+
+    await expect($fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { title: 'After', slug: 'renamed-full' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+
+    // The rename writes last, so a refusal must leave every other field alone.
+    const read = await $fetch<LinkDto & { title: string | null }>(`/api/links/${link.id}`, { headers: { cookie } });
+    expect(read.slug).toBe('full-aliases');
+    expect(read.title).toBe('Before');
+  });
+
   it('renames a slug and keeps the old address as an alias', async () => {
     const link = await createLink({ destinationUrl: 'https://example.com/renamed', slug: 'old-name' });
     const patched = await $fetch<LinkDto>(`/api/links/${link.id}`, {
@@ -132,6 +157,27 @@ describe('link aliases and slug rename', async () => {
     await expect(createLink({ destinationUrl: 'https://example.com/z', slug: 'drop-me' }))
       .rejects
       .toMatchObject({ statusCode: 409 });
+  });
+
+  it('refuses a rename when a fallback would point at the new address', async () => {
+    const link = await createLink({ destinationUrl: 'https://example.com/loop', slug: 'loop-old' });
+    const shortDomain = 'http://127.0.0.1:3000';
+    await expect($fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { slug: 'loop-new', expirationDestination: `${shortDomain}/loop-new` },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { expirationDestination: `${shortDomain}/loop-new` },
+      headers: { cookie },
+    });
+    await expect($fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { slug: 'loop-new' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 422 });
+    expect((await readLink(link.id)).slug).toBe('loop-old');
   });
 
   it('refuses a rename to a slug somebody else holds', async () => {

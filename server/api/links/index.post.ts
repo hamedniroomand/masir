@@ -103,7 +103,7 @@ export default defineEventHandler(async (event) => {
       label,
       allowPrivate: config.allowPrivateDestinations,
       shortDomain: config.public.shortDomain,
-      slug,
+      slugs: slug ? [slug] : [],
     });
     if (!dest.ok)
       throw createError({ statusCode: 422, statusMessage: dest.reason, data: { reason: dest.reason } });
@@ -118,7 +118,7 @@ export default defineEventHandler(async (event) => {
     targeting: body.targeting,
     allowPrivate: config.allowPrivateDestinations,
     shortDomain: config.public.shortDomain,
-    slug,
+    slugs: slug ? [slug] : [],
   });
   if (!targetingResult.ok)
     throw createError({ statusCode: 422, statusMessage: targetingResult.reason, data: { reason: targetingResult.reason } });

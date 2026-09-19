@@ -63,14 +63,16 @@ export function linkToDto(link: typeof links.$inferSelect, workspaceSlug: string
 
 // Reserved names, every link slug including the deleted ones, and every alias.
 // A slug that ever worked never returns to the pool, so an old QR code can
-// never point at somebody else's destination.
+// never point at somebody else's destination. A primary slug is taken even
+// for its own link, so a link cannot hold itself as an alias. Only an alias
+// the same link already holds is free for it, which lets a rename promote it.
 export async function isSlugTaken(workspaceId: string, slug: string, exceptLinkId?: string) {
   if (RESERVED_SLUGS.has(slug))
     return true;
   const db = await getDb();
   const [linkRow] = await db.select({ id: links.id }).from(links).where(and(eq(links.workspaceId, workspaceId), eq(links.slug, slug))).limit(1);
   if (linkRow)
-    return linkRow.id !== exceptLinkId;
+    return true;
   const [aliasRow] = await db.select({ linkId: linkAliases.linkId }).from(linkAliases).where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug))).limit(1);
   return aliasRow ? aliasRow.linkId !== exceptLinkId : false;
 }
@@ -94,17 +96,25 @@ export async function aliasesForLinks(linkIds: string[]) {
 
 export async function addAlias(workspaceId: string, linkId: string, slug: string) {
   const db = await getDb();
-  const held = await db.select({ slug: linkAliases.slug }).from(linkAliases).where(and(eq(linkAliases.linkId, linkId), isNull(linkAliases.revokedAt)));
-  if (held.length >= MAX_ALIASES_PER_LINK)
-    throw new AliasLimitError();
+  await db.transaction(async (tx) => {
+    // The lock on the link row serialises the count and the insert, so two
+    // requests cannot both pass the limit.
+    // ponytail: a link slug and an alias slug share no constraint, so a link
+    // created with this slug at the same moment still wins the race. A shared
+    // slugs table would close it.
+    await tx.select({ id: links.id }).from(links).where(eq(links.id, linkId)).for('update');
+    const held = await tx.select({ slug: linkAliases.slug }).from(linkAliases).where(and(eq(linkAliases.linkId, linkId), isNull(linkAliases.revokedAt)));
+    if (held.length >= MAX_ALIASES_PER_LINK)
+      throw new AliasLimitError();
 
-  // The link may be taking back an address it revoked earlier.
-  const restored = await db.update(linkAliases)
-    .set({ revokedAt: null })
-    .where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug), eq(linkAliases.linkId, linkId)))
-    .returning({ slug: linkAliases.slug });
-  if (!restored.length)
-    await db.insert(linkAliases).values({ workspaceId, linkId, slug });
+    // The link may be taking back an address it revoked earlier.
+    const restored = await tx.update(linkAliases)
+      .set({ revokedAt: null })
+      .where(and(eq(linkAliases.workspaceId, workspaceId), eq(linkAliases.slug, slug), eq(linkAliases.linkId, linkId)))
+      .returning({ slug: linkAliases.slug });
+    if (!restored.length)
+      await tx.insert(linkAliases).values({ workspaceId, linkId, slug });
+  });
 
   invalidateLink(workspaceId, slug);
 }
@@ -474,6 +484,7 @@ export async function renameLinkSlug(id: string, workspaceId: string, slug: stri
 
   const db = await getDb();
   await db.transaction(async (tx) => {
+    await tx.select({ id: links.id }).from(links).where(eq(links.id, id)).for('update');
     if (keepOldSlug) {
       const held = await tx.select({ slug: linkAliases.slug }).from(linkAliases).where(and(eq(linkAliases.linkId, id), isNull(linkAliases.revokedAt)));
       if (held.length >= MAX_ALIASES_PER_LINK)

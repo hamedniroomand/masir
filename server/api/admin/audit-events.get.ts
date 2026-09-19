@@ -1,8 +1,8 @@
-import { and, desc, eq, inArray, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, notInArray } from 'drizzle-orm';
 import { auditEvents, links, users } from '#server/database/schema';
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { getDb } from '#server/utils/db';
-import { isAuditGroup, typesInGroup } from '#shared/audit-groups';
+import { isAuditGroup, typesInGroup, typesOutsideGroup } from '#shared/audit-groups';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
   const type = query.type;
   if (typeof type === 'string' && type)
     filters.push(eq(auditEvents.type, type));
+  else if (query.group === 'security')
+    filters.push(notInArray(auditEvents.type, typesOutsideGroup('security')));
   else if (isAuditGroup(query.group))
     filters.push(inArray(auditEvents.type, typesInGroup(query.group)));
 
