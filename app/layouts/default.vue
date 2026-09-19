@@ -140,6 +140,7 @@ watch(() => route.fullPath, () => {
         </div>
       </header>
       <main id="main-content" class="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-8 sm:py-9 lg:px-10" tabindex="-1">
+        <DemoBanner v-if="current?.expiresAt" :expires-at="current.expiresAt" />
         <slot />
       </main>
     </div>
