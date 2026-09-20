@@ -53,14 +53,16 @@ docker compose -f compose.image.yaml exec app bun run db:seed:admin
 
 </Steps>
 
-The image is built without Sentry. To report errors, build it yourself with
-the path below.
+To report errors to Sentry, set `NUXT_PUBLIC_SENTRY_DSN` in `.env` and
+restart. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, and the
+container also uploads the source maps of its own build to your project, so
+the stack traces are readable. Your own Sentry works too. See the
+[environment reference](../reference/environment#error-reporting).
 
 ## Build it yourself
 
-Use this when you want Sentry compiled in, or a change of your own. Compose
-builds the image, starts Postgres and Masir together, and keeps the data on
-named volumes.
+Use this when you run a change of your own. Compose builds the image, starts
+Postgres and Masir together, and keeps the data on named volumes.
 
 <Steps>
 

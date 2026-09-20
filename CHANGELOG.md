@@ -9,6 +9,20 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
+### Changed
+
+- The Docker image ships with Sentry compiled in and off. `NUXT_PUBLIC_SENTRY_DSN`
+  turns it on at run time, with no rebuild. With `SENTRY_AUTH_TOKEN`,
+  `SENTRY_ORG`, and `SENTRY_PROJECT` the container also creates the release
+  and uploads the source maps of its own build to your Sentry when it starts.
+  The maps travel inside the image and stay out of the directory the server
+  publishes. Compose no longer takes the Sentry build arguments or the
+  `sentry_auth_token` build secret.
+- Sentry now starts only with a DSN. `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
+  `SENTRY_PROJECT`, and `SENTRY_URL` upload source maps and no longer turn
+  error reporting on by themselves.
+- `NUXT_PUBLIC_SENTRY_RELEASE` defaults to the version of the image.
+
 ## [1.0.1] - 2026-09-20
 
 ### Fixed

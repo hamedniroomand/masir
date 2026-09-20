@@ -158,28 +158,53 @@ and the script is never requested. The id is public and reaches the browser.
 
 ## Error reporting
 
-Sentry stays off until at least one of these is set.
+Sentry stays off until `NUXT_PUBLIC_SENTRY_DSN` or `SENTRY_DSN` is set. The
+other variables label an event or upload the source maps. On their own they
+report nothing.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `NUXT_PUBLIC_SENTRY_DSN` | | Project DSN. The browser reads this one |
+| `NUXT_PUBLIC_SENTRY_DSN` | | Project DSN. The browser reads this one. It turns Sentry on |
 | `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | | `production`, `staging`, or your own label |
 | `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `0` | Fraction of requests to trace, 0 to 1. `0` sends errors only |
-| `NUXT_PUBLIC_SENTRY_RELEASE` | | Release name. Empty lets the SDK pick |
-| `SENTRY_AUTH_TOKEN` | | Build only. Uploads source maps |
-| `SENTRY_ORG` | | Build only. Organisation slug |
-| `SENTRY_PROJECT` | | Build only. Project slug |
-| `SENTRY_URL` | | Build only. Set for a self-hosted Sentry |
+| `NUXT_PUBLIC_SENTRY_RELEASE` | version of the image, in Docker | Release name, for example `masir@1.0.1` |
+| `SENTRY_AUTH_TOKEN` | | Uploads the source maps. Needs `SENTRY_ORG` and `SENTRY_PROJECT` too |
+| `SENTRY_ORG` | | Organisation slug |
+| `SENTRY_PROJECT` | | Project slug |
+| `SENTRY_URL` | `https://sentry.io/` | Set for a Sentry of your own |
+| `SENTRY_BUILD` | `false` | Build only. `true` compiles the module in with no other variable set |
 
-A DSN from sentry.io or from your own Sentry both work. Setting these for the
-first time needs a rebuild, because the module is compiled in only when at
-least one of them is present at build.
+A DSN from sentry.io or from your own Sentry both work.
 
-The three `SENTRY_*` build variables are read when `nuxt build` runs. Set them
-in that environment if you want readable client stack traces. The Docker build
-takes the token as a build secret named `sentry_auth_token`, never as a build
-argument, so it stays out of the image layers. Compose fills it from
-`SENTRY_AUTH_TOKEN` in your shell or `.env`.
+### Source maps in the Docker image
+
+The image ships with Sentry compiled in and off. Set the DSN and restart, and
+it reports.
+
+The build stamps every client chunk and its source map with the same Sentry
+Debug ID, and it keeps the maps out of the directory the server publishes. So
+the maps travel in the image, the browser never reads them, and the container
+can send them to any Sentry later.
+
+Set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, and the container
+creates the release, uploads the maps of its own build, and closes the
+release. The upload runs beside the server, not before it, so a slow Sentry
+never delays a start. A failed upload writes one line to the log and costs
+only readable stack traces. Sentry keeps one copy of each map, so a restart
+uploads nothing new. The token is removed from the environment of the server
+process after the upload starts.
+
+Sentry does not apply a map to an error it received earlier. An error in the
+first seconds after a restart can therefore keep its minified stack trace.
+
+Server stack traces need no upload. The server maps sit next to the server
+bundle and Bun reads them.
+
+### Outside Docker
+
+The module is compiled in when any variable of this section is present at
+build, or when `SENTRY_BUILD=true` is. With the token present at build, the
+Sentry plugin uploads the maps during the build instead.
 
 ## Alerts
 

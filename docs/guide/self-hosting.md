@@ -189,10 +189,13 @@ NUXT_PUBLIC_SENTRY_ENVIRONMENT=production
 ```
 
 Tracing is off by default. Set `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` to a
-fraction between 0 and 1 to turn it on. Turning Sentry on for the first time
-needs a rebuild, because the module is only compiled in when at least one of
-its variables is set. The published image is built without them, so Sentry
-needs the [build path](/guide/installation#build-it-yourself).
+fraction between 0 and 1 to turn it on.
+
+The published image has Sentry compiled in, so the DSN and a restart are
+enough. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` and the
+container also uploads the source maps of its own build, which makes the
+client stack traces readable. See the
+[environment reference](/reference/environment#error-reporting).
 
 ## Backups
 
