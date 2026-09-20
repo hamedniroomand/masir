@@ -67,6 +67,8 @@ export type Db = {
   insertMember: (input: { workspaceId: string; userId: string; role?: 'owner' | 'member' | 'viewer'; deactivated?: boolean }) => void;
   insertIdentity: (input: { userId: string; provider?: 'google' | 'microsoft' }) => void;
   insertClicks: (input: ClickSeed) => void;
+  expireWorkspace: (slug: string) => void;
+  sweepDemos: () => number;
   lastToken: (to: string) => string | null;
   mailCount: (to: string) => number;
 };
@@ -101,6 +103,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       insertMember: input => bridge('insert-member', { url, ...input }),
       insertIdentity: input => bridge('insert-identity', { url, ...input }),
       insertClicks: input => bridge('insert-clicks', { url, ...input }),
+      expireWorkspace: slug => bridge('expire-workspace', { url, slug }),
+      sweepDemos: () => bridge('sweep-demos', { url }),
       lastToken: to => bridge('last-token', { url, to }),
       mailCount: to => bridge('mail-count', { url, to }),
     });

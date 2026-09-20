@@ -4,7 +4,8 @@
 import process from 'node:process';
 import { count, desc, eq } from 'drizzle-orm';
 import { setMemoisedDb } from '#server/database/client';
-import { authIdentities, clickEvents, hosts, mailOutbox, workspaceMembers } from '#server/database/schema';
+import { authIdentities, clickEvents, hosts, mailOutbox, workspaceMembers, workspaces } from '#server/database/schema';
+import { runDemoSweep } from '#server/utils/demo';
 import { hashSecret } from '#server/utils/password';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
@@ -140,6 +141,20 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     }));
     await db.insert(clickEvents).values(rows);
     return { ok: true };
+  },
+  // A demo lives 24 hours. A test that needs the expired view moves the date
+  // back instead of waiting.
+  'expire-workspace': async ({ url, slug }) => {
+    const db = openTestDatabase(url);
+    await db.update(workspaces).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(workspaces.slug, String(slug)));
+    return { ok: true };
+  },
+  // The browser scenarios set no jobs secret, so no request can start the
+  // sweep. runDemoSweep reads through getDb, so point that memo at the test
+  // database, as seedLink does.
+  'sweep-demos': async ({ url }) => {
+    setMemoisedDb(openTestDatabase(url) as Parameters<typeof setMemoisedDb>[0]);
+    return runDemoSweep();
   },
   'last-token': async ({ url, to }) => {
     const db = openTestDatabase(url);
