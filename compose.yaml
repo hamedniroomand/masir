@@ -23,21 +23,7 @@ services:
       retries: 5
 
   app:
-    build:
-      context: .
-      args:
-        NUXT_PUBLIC_SENTRY_DSN: ${NUXT_PUBLIC_SENTRY_DSN:-}
-        NUXT_PUBLIC_SENTRY_ENVIRONMENT: ${NUXT_PUBLIC_SENTRY_ENVIRONMENT:-}
-        NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: ${NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-}
-        NUXT_PUBLIC_SENTRY_RELEASE: ${NUXT_PUBLIC_SENTRY_RELEASE:-}
-        SENTRY_DSN: ${SENTRY_DSN:-}
-        SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
-        SENTRY_RELEASE: ${SENTRY_RELEASE:-}
-        SENTRY_ORG: ${SENTRY_ORG:-}
-        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
-        SENTRY_URL: ${SENTRY_URL:-}
-      secrets:
-        - sentry_auth_token
+    build: .
     restart: unless-stopped
     ports:
       - '${MASIR_APP_PORT:-3000}:3000'
@@ -60,8 +46,3 @@ services:
 volumes:
   db-data:
   uploads:
-
-# Empty when SENTRY_AUTH_TOKEN is not set, and the build skips the upload.
-secrets:
-  sentry_auth_token:
-    environment: SENTRY_AUTH_TOKEN

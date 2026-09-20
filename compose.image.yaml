@@ -1,5 +1,5 @@
 # Production stack from the published image. Use compose.yaml instead to build
-# the image yourself, for example to compile Sentry in.
+# the image yourself, for example to run a change of your own.
 #   cp .env.example .env    # set POSTGRES_PASSWORD and NUXT_SESSION_PASSWORD
 #   docker compose -f compose.image.yaml up -d
 name: masir

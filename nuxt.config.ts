@@ -1,14 +1,16 @@
 import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { provider } from 'std-env';
+import { collectSourceMaps } from './scripts/sentry-sourcemaps';
 import { resolveNitroPreset } from './shared/nitro-preset';
-import { sentryEnabled } from './shared/sentry';
+import { sentryCompiled } from './shared/sentry';
 
 // The build is the one place that knows the target for certain, so the
 // serverless flag is decided here and read from runtimeConfig at run time.
 const preset = resolveNitroPreset(process.env, provider);
-const sentry = sentryEnabled(process.env);
+const sentry = sentryCompiled(process.env);
 
 // Every page under app/pages renders on the client. Read from the directory,
 // so a new page needs no line here. A directory covers its index and children.
@@ -173,6 +175,18 @@ export default defineNuxtConfig({
     preset,
   },
 
+  hooks: {
+    // Nitro copies the public assets before this hook and writes their
+    // manifest after it. That is the only point where the client maps can
+    // move out. See scripts/sentry-sourcemaps.ts.
+    'nitro:build:public-assets': async (nitro) => {
+      if (!sentry)
+        return;
+      const count = await collectSourceMaps(nitro.options.output.publicDir, join(nitro.options.output.dir, 'sourcemaps'));
+      nitro.logger.info(`Sentry: kept ${count} client source maps out of the public directory.`);
+    },
+  },
+
   ui: {
     experimental: {
       componentDetection: true,
@@ -202,7 +216,10 @@ export default defineNuxtConfig({
     strict: true,
   },
 
-  sourcemap: process.env.SENTRY_AUTH_TOKEN ? { client: 'hidden' } : undefined,
+  // Hidden client maps. The upload happens at build when a token is present,
+  // or later from the container. Server maps stay next to the server bundle:
+  // Bun reads them, so a server stack trace needs no upload.
+  sourcemap: sentry ? { client: 'hidden', server: true } : undefined,
 
   sentry: {
     enabled: sentry,
@@ -212,8 +229,5 @@ export default defineNuxtConfig({
     authToken: process.env.SENTRY_AUTH_TOKEN,
     sentryUrl: process.env.SENTRY_URL,
     telemetry: false,
-    sourcemaps: {
-      disable: !process.env.SENTRY_AUTH_TOKEN,
-    },
   },
 });
