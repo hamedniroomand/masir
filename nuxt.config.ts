@@ -193,7 +193,7 @@ export default defineNuxtConfig({
       warmupStrategy: false,
     },
     registry: {
-      googleAnalytics: {},
+      googleAnalytics: { proxy: false },
     },
     security: false,
   },
