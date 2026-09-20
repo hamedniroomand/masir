@@ -1,7 +1,7 @@
 {
   "name": "masir",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "packageManager": "bun@1.4.2",
   "description": "Every link has a destination.",
