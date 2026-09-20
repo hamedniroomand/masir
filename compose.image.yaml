@@ -26,7 +26,7 @@ services:
     image: ghcr.io/hamedniroomand/masir:${MASIR_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - '${MASIR_APP_PORT:-3000}:3000'
+      - '127.0.0.1:${MASIR_APP_PORT:-3000}:3000'
     env_file: .env
     environment:
       NUXT_DATABASE_URL: postgres://masir@db:5432/masir
