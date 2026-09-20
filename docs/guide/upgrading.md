@@ -1,81 +1,83 @@
-# Upgrading
+# Upgrade Masir
 
-Masir upgrades itself. You start the new version, it applies whatever the
-database is missing, and it serves. This page covers what to do around that
-step.
+> Back up the state, read each release note, and verify the new instance before you finish.
 
-## Before every upgrade
+Masir applies forward-only database migrations. A downgrade does not reverse
+them. A tested backup is the rollback path.
 
-Back up the database. It is the only durable state, and there is no downgrade
-path.
+## Before an upgrade
+
+1. Read every changelog entry between the current and target versions.
+2. Read each **Upgrade notes** block.
+3. Back up Postgres.
+4. Back up the uploads volume when you use file storage.
+5. Record the current image version and environment.
+6. Test the target release on a restored copy when the data matters.
+
+## Upgrade the published image
+
+Pin the target release in `.env`:
 
 ```sh
-pg_dump "$NUXT_DATABASE_URL" > masir-$(date +%F).sql
+MASIR_VERSION=1.1.0
 ```
 
-Then read the **Upgrade notes** for every version between yours and the one you
-install. They live in the
-[changelog](https://github.com/hamedniroomand/masir/blob/main/CHANGELOG.md) and
-are mirrored under [Version notes](#version-notes) below. Most releases have
-none. A release that needs a new variable, or that will take time on a large
-table, says so there.
-
-## Upgrade
-
-Pin to a version rather than tracking `latest` or `main`, so an upgrade is
-something you do on purpose.
-
-With the published image, set `MASIR_VERSION` in `.env` and pull:
+Pull and restart:
 
 ```sh
 docker compose -f compose.image.yaml pull
 docker compose -f compose.image.yaml up -d
 ```
 
-The quick install script writes the stack as `compose.yaml`, so drop the `-f`
-there. With a build of your own, check out the tag and rebuild:
+Watch the application log while migrations run:
 
 ```sh
-git fetch --tags
-git checkout v1.2.0
+docker compose -f compose.image.yaml logs -f app
+```
+
+## Upgrade a local build
+
+Update the repository, rebuild, and restart:
+
+```sh
+git pull --ff-only
 docker compose up -d --build
 ```
 
-Migrations run on boot under a Postgres advisory lock. A rolling deploy or
-`docker compose up --scale app=3` applies them once, and the other instances
-wait. Old instances keep serving against the new schema until they stop,
-because a release only adds to the schema.
+Do not edit a migration that another deployment can already have applied.
 
-## Skipping versions
+## Verify the result
 
-You can jump from any tagged version straight to the latest. Migrations are
-incremental and never rewritten, so the server applies every step you missed in
-order. Do read the upgrade notes for the versions you skipped. The migrations
-do not read them for you.
+Check:
 
-## On serverless
+```sh
+curl -fsS https://go.example.com/api/health
+```
 
-With `NUXT_MIGRATE_ON_BOOT=false`, nothing migrates on its own. Run the
-migration as a deploy step against the direct connection string, before the new
-build takes traffic:
+Then sign in, open a known link, create a temporary link, and confirm that
+analytics record its request.
+
+## Skip versions
+
+You can skip releases. Read and apply the notes for every skipped version in
+order. Database migrations run in order and use an advisory lock.
+
+## Upgrade on serverless
+
+Set `NUXT_MIGRATE_ON_BOOT=false`. Run the migration command once during
+deployment against the direct Postgres connection:
 
 ```sh
 bun run db:migrate
 ```
 
-## If something goes wrong
+Do not let every cold start attempt the migration.
 
-**The server refuses to start.** The first log line names the problem. A bad
-environment variable is a configuration error: fix the value and start again.
+## Roll back
 
-**A migration fails.** The database stays at the last completed step. Report
-the log line, then start the previous version again. It runs against the
-partial schema, because a migration only adds.
+Restore the database backup and uploads from the same point in time, then run
+the previous image. Do not point an older release at a schema that its
+compatibility range does not support.
 
-**You need to go back further.** Restore the backup and start the previous
-version.
+<ReadMore to="/project/compatibility" title="Read the compatibility policy" />
 
-## Version notes
-
-No version has been tagged yet. Each release adds a heading here with the
-actions it needs, and only those.

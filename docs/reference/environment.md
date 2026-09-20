@@ -1,270 +1,124 @@
 # Environment variables
 
-Masir validates these at boot and refuses to start on a bad one, naming the
-variable in the first line of the log. Every variable has a default except the
-ones under **Required**.
+> Configure Masir at runtime. Restart the application after a value changes.
 
-`.env.example` in the repository lists every variable with a comment. Copy it
-and edit.
+Copy `.env.example` and edit it. Masir validates critical values at boot and
+stops with a named error when they are invalid.
 
-## Required
+## Required values
 
-| Variable | Notes |
-|---|---|
-| `NUXT_SESSION_PASSWORD` | 32 characters or more. `openssl rand -base64 32` |
-| `NUXT_DATABASE_URL` | `postgres://user:pass@host:5432/masir`. Postgres 18 or newer. The Compose stacks build this one themselves |
-| `NUXT_ROOT_DOMAIN` | Origin of the root site, with protocol and port |
-| `NUXT_PUBLIC_SHORT_DOMAIN` | Origin printed in front of every slug, no trailing slash |
-
-Changing `NUXT_SESSION_PASSWORD` signs everyone out at once.
-
-## Database
-
-| Variable | Default | Notes |
+| Variable | Default | Rule |
 |---|---|---|
-| `NUXT_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir` | |
-| `NUXT_DATABASE_POOL_MAX` | `10` | Connections per instance |
-| `NUXT_MIGRATE_ON_BOOT` | `true` | Apply migrations when the server starts |
-| `TEST_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir_test` | Read by the tests only. They make `masir_test_<file>` from it and never touch the application database |
+| `NUXT_SESSION_PASSWORD` | none | At least 32 characters |
+| `NUXT_DATABASE_URL` | local development URL | Postgres 18 connection |
+| `NUXT_ROOT_DOMAIN` | `http://localhost:3000` | Full HTTP or HTTPS origin |
+| `NUXT_PUBLIC_SHORT_DOMAIN` | `http://localhost:3000` | Origin printed in short links |
 
-Migrations take a Postgres advisory lock, so a rolling deploy applies them
-exactly once. On serverless, set `NUXT_MIGRATE_ON_BOOT=false`, because every
-cold start would otherwise run them, and migrate as a deploy step against the
-direct connection string.
+The production Compose files construct the database URL and require
+`POSTGRES_PASSWORD`.
 
-Multiply the pool by your instance count and keep it under the Postgres
-`max_connections`, which defaults to 100. On serverless, set it to `1` or `2`
-and use a pooled connection string.
+Changing the session password signs every user out. Set a separate visitor
+hash secret so this does not also reset daily unique counts.
 
-## Deployment
+## Database and session
 
-| Variable | Default | Notes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NUXT_DEPLOYMENT_MODE` | `SELF_HOSTED` | Or `CLOUD` |
-| `NUXT_MULTI_WORKSPACE` | `false` | A subdomain per workspace |
-| `NUXT_APP_DOMAIN` | | Origin for sign-in and the dashboard, such as `https://app.example.com`. Empty keeps them on the root. See [the landing page](../guide/self-hosting.md#a-landing-page-on-the-root) |
-| `NUXT_SESSION_COOKIE_DOMAIN` | | **Required** when multi-workspace is on. Leading dot: `.example.com` |
-| `NUXT_SESSION_COOKIE_SECURE` | `true` | `false` only for plain HTTP on a private network |
-| `NUXT_ALLOW_REGISTRATION` | `false` | Public sign-up |
-| `NUXT_SERVERLESS` | from the build | `true` on the `vercel` preset. Set it yourself on a container that keeps no disk |
+| `NUXT_SESSION_PASSWORD` | none | Seals session cookies |
+| `NUXT_VISITOR_HASH_SECRET` | session password | Salts daily visitor hashes |
+| `NUXT_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir` | Runtime database |
+| `NUXT_DATABASE_POOL_MAX` | `10` | Connections per app instance |
+| `NUXT_MIGRATE_ON_BOOT` | `true` | Applies pending migrations at startup |
+| `TEST_DATABASE_URL` | `postgres://masir:masir@127.0.0.1:5432/masir_test` | Test-only database source |
 
-Without the leading dot on the cookie domain, the session does not cross
-subdomains and switching workspaces asks people to sign in again.
+On serverless, set the pool to one or two, turn off boot migration, and run
+`bun run db:migrate` during deployment.
 
-A `Secure` cookie never travels over plain HTTP, except to `localhost`. An
-instance reached as `http://intranet.example` signs nobody in until
-`NUXT_SESSION_COOKIE_SECURE=false`. Put TLS in front instead when you can.
+## Deployment and domains
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NUXT_DEPLOYMENT_MODE` | `SELF_HOSTED` | `SELF_HOSTED` or `CLOUD` |
+| `NUXT_ROOT_DOMAIN` | `http://localhost:3000` | Root host boundary |
+| `NUXT_APP_DOMAIN` | empty | Optional sign-in and dashboard origin |
+| `NUXT_PUBLIC_SHORT_DOMAIN` | `http://localhost:3000` | Displayed short-link origin |
+| `NUXT_MULTI_WORKSPACE` | `false` | Enables workspace subdomains |
+| `NUXT_SESSION_COOKIE_DOMAIN` | empty | Required parent domain in multi mode |
+| `NUXT_SESSION_COOKIE_SECURE` | `true` | Sends the session only over HTTPS |
+| `NUXT_ALLOW_REGISTRATION` | `false` | Enables public registration |
+| `NUXT_SERVERLESS` | build target | Marks hosts without durable disk or process |
+| `NUXT_DEMO_ENABLED` | `false` | Enables 24-hour seeded demo workspaces |
+
+Multi-workspace mode needs a dotted root hostname and a cookie domain such as
+`.example.com`. It does not support `localhost`, an IP address, or a bare
+local hostname.
 
 ## Mail
 
-| Variable | Default | Notes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NUXT_MAIL_DRIVER` | | `smtp`, `resend`, `outbox`, or `log` |
-| `NUXT_MAIL_FROM` | `Masir <no-reply@localhost>` | |
-| `NUXT_MAIL_SMTP_HOST` | | Enables the SMTP provider |
-| `NUXT_MAIL_SMTP_PORT` | `587` | |
-| `NUXT_MAIL_SMTP_USER` | | Omit for an unauthenticated relay |
-| `NUXT_MAIL_SMTP_PASSWORD` | | |
-| `NUXT_MAIL_SMTP_SECURE` | `false` | `true` for implicit TLS on 465 |
+| `NUXT_MAIL_DRIVER` | automatic | `smtp`, `resend`, `outbox`, or `log` |
+| `NUXT_MAIL_FROM` | `Masir <no-reply@localhost>` | Sender header |
+| `NUXT_MAIL_SMTP_HOST` | empty | Enables SMTP |
+| `NUXT_MAIL_SMTP_PORT` | `587` | SMTP port |
+| `NUXT_MAIL_SMTP_USER` | empty | Optional SMTP user |
+| `NUXT_MAIL_SMTP_PASSWORD` | empty | Optional SMTP password |
+| `NUXT_MAIL_SMTP_SECURE` | `false` | Implicit TLS, usually on port 465 |
 | `NUXT_MAIL_SMTP_POOL_MAX` | `5` | Open SMTP connections |
-| `NUXT_MAIL_API_KEY` | | Enables the Resend provider |
+| `NUXT_MAIL_API_KEY` | empty | Enables Resend |
 
-Leave `NUXT_MAIL_DRIVER` empty and the first configured provider wins: SMTP if
-a host is set, then Resend if a key is set, then the log driver. An instance
-with no mail configuration still boots. Messages go to the application log,
-including the links inside them.
-
-Name a driver to pin it. An unknown or unconfigured name logs a warning and
-falls back to the log driver rather than failing a request. The `outbox`
-driver holds messages in memory and exists for tests.
+Automatic selection tries SMTP, then Resend, then the log driver. The outbox
+driver is for tests.
 
 ## Storage
 
-Workspace logos. Local disk by default.
-
-| Variable | Default | Notes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NUXT_STORAGE_DRIVER` | | `s3` or `file` |
-| `NUXT_STORAGE_BUCKET` | | Enables the S3 provider |
-| `NUXT_STORAGE_ACCESS_KEY_ID` | | |
-| `NUXT_STORAGE_SECRET_ACCESS_KEY` | | |
-| `NUXT_STORAGE_ENDPOINT` | | Set for R2 or another S3-compatible host |
-| `NUXT_STORAGE_LOCAL_ROOT` | `./data/uploads` | Root of the file provider |
-| `NUXT_STORAGE_PUBLIC_BASE_URL` | `http://localhost:3000/uploads` | Public prefix for reading uploads |
-| `NUXT_STORAGE_MAX_UPLOAD_BYTES` | `2097152` | Largest logo accepted, 2 MiB |
+| `NUXT_STORAGE_DRIVER` | automatic | `file` or `s3` |
+| `NUXT_STORAGE_LOCAL_ROOT` | `./data/uploads` | File storage root |
+| `NUXT_STORAGE_PUBLIC_BASE_URL` | `http://localhost:3000/uploads` | Public object prefix |
+| `NUXT_STORAGE_ACCESS_KEY_ID` | empty | S3-compatible access key |
+| `NUXT_STORAGE_SECRET_ACCESS_KEY` | empty | S3-compatible secret |
+| `NUXT_STORAGE_BUCKET` | empty | Enables S3 selection |
+| `NUXT_STORAGE_ENDPOINT` | empty | R2 or custom S3 endpoint |
+| `NUXT_STORAGE_MAX_UPLOAD_BYTES` | `2097152` | Maximum workspace logo size |
 
-Leave `NUXT_STORAGE_DRIVER` empty and a bucket wins. Otherwise the file
-provider is used, because it always has a root.
+Automatic selection prefers S3 when a bucket is set, then file storage.
+Serverless mode rejects file storage.
 
-The database stores the storage key of a logo, not its URL. You can change the
-public base URL or move the files to another bucket without a data migration.
-
-S3 and R2 use the same four values; R2 needs its endpoint. Uploads go through
-Bun's built-in S3 client.
-
-::: warning The file provider needs a real disk
-It writes to the local filesystem, which works on a VPS or a container with a
-mounted volume and does not survive a serverless cold start. When
-`NUXT_SERVERLESS` is true and no bucket is set, the app refuses to boot rather
-than lose every upload later.
-:::
-
-## OAuth
+## OAuth and bot checks
 
 | Variable | Default |
 |---|---|
-| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | |
-| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | |
-| `NUXT_OAUTH_MICROSOFT_CLIENT_ID` | |
-| `NUXT_OAUTH_MICROSOFT_CLIENT_SECRET` | |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID` | empty |
+| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | empty |
+| `NUXT_OAUTH_MICROSOFT_CLIENT_ID` | empty |
+| `NUXT_OAUTH_MICROSOFT_CLIENT_SECRET` | empty |
 | `NUXT_OAUTH_MICROSOFT_TENANT` | `common` |
+| `NUXT_PUBLIC_TURNSTILE_SITE_KEY` | empty |
+| `NUXT_TURNSTILE_SECRET_KEY` | empty |
 
-Leave a client id empty and that provider's button is hidden. The interface
-asks the server which providers exist at runtime, so turning one on needs a
-restart, not a rebuild.
+A provider button appears when its client ID is set. Cloud mode requires a
+specific Microsoft tenant.
 
-Set `NUXT_OAUTH_MICROSOFT_TENANT` to your tenant id to accept one organisation
-only.
+Turnstile runs only when both keys are set.
 
-## Bot protection
+## Request handling
 
-| Variable | Default |
-|---|---|
-| `NUXT_PUBLIC_TURNSTILE_SITE_KEY` | |
-| `NUXT_TURNSTILE_SECRET_KEY` | |
-
-Set both and the email sign-in and sign-up forms show a Cloudflare Turnstile
-check. The "Try the demo" button runs the same check while it loads and shows
-a box only when Cloudflare asks the visitor to click. Leave both empty and the
-forms work without it. The OAuth buttons never show the check.
-
-Create the keys in the Cloudflare dashboard under Turnstile, add a widget, and
-list every hostname that serves the login page. With multi-workspace on, that
-is the root domain. The site key is public and goes into the browser. Keep the
-secret key on the server.
-
-Turning the check on or off needs a restart. An unreachable Cloudflare counts
-as a failed check.
-
-## Product analytics
-
-| Variable | Default | Notes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID` | | GA4 measurement id, `G-XXXXXXXX` |
+| `NUXT_ALLOW_PRIVATE_DESTINATIONS` | `false` | Allows private-network link targets |
+| `NUXT_GEO_COUNTRY_HEADER` | empty | Trusted country-code header |
+| `NUXT_TRUSTED_PROXY_DEPTH` | `0` | Trusted proxies before the app |
 
-Set it to record page views of the application itself. The tag loads after the
-interface is ready and stays off the short-link visitor pages. Leave it empty
-and the script is never requested. The id is public and reaches the browser.
-
-## Error reporting
-
-Sentry stays off until `NUXT_PUBLIC_SENTRY_DSN` or `SENTRY_DSN` is set. The
-other variables label an event or upload the source maps. On their own they
-report nothing.
-
-| Variable | Default | Notes |
-|---|---|---|
-| `NUXT_PUBLIC_SENTRY_DSN` | | Project DSN. The browser reads this one. It turns Sentry on |
-| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | | `production`, `staging`, or your own label |
-| `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `0` | Fraction of requests to trace, 0 to 1. `0` sends errors only |
-| `NUXT_PUBLIC_SENTRY_RELEASE` | version of the image, in Docker | Release name, for example `masir@1.0.1` |
-| `SENTRY_AUTH_TOKEN` | | Uploads the source maps. Needs `SENTRY_ORG` and `SENTRY_PROJECT` too |
-| `SENTRY_ORG` | | Organisation slug |
-| `SENTRY_PROJECT` | | Project slug |
-| `SENTRY_URL` | `https://sentry.io/` | Set for a Sentry of your own |
-| `SENTRY_BUILD` | `false` | Build only. `true` compiles the module in with no other variable set |
-
-A DSN from sentry.io or from your own Sentry both work.
-
-### Source maps in the Docker image
-
-The image ships with Sentry compiled in and off. Set the DSN and restart, and
-it reports.
-
-The build stamps every client chunk and its source map with the same Sentry
-Debug ID, and it keeps the maps out of the directory the server publishes. So
-the maps travel in the image, the browser never reads them, and the container
-can send them to any Sentry later.
-
-Set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, and the container
-creates the release, uploads the maps of its own build, and closes the
-release. The upload runs beside the server, not before it, so a slow Sentry
-never delays a start. A failed upload writes one line to the log and costs
-only readable stack traces. Sentry keeps one copy of each map, so a restart
-uploads nothing new. The token is removed from the environment of the server
-process after the upload starts.
-
-Sentry does not apply a map to an error it received earlier. An error in the
-first seconds after a restart can therefore keep its minified stack trace.
-
-Server stack traces need no upload. The server maps sit next to the server
-bundle and Bun reads them.
-
-### Outside Docker
-
-The module is compiled in when any variable of this section is present at
-build, or when `SENTRY_BUILD=true` is. With the token present at build, the
-Sentry plugin uploads the maps during the build instead.
-
-## Alerts
-
-| Variable | Default | Notes |
-|---|---|---|
-| `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | How often the instance sweeps for links that expire soon. `0` turns the sweep off, `35000` is the most |
-| `NUXT_JOBS_SECRET` | | Bearer token for `POST /api/jobs/alerts`. Empty makes the route answer `404` |
-
-A long-running instance runs the sweep itself on the interval. A serverless
-deployment stops between requests, so it leaves the interval at `0`, sets
-`NUXT_JOBS_SECRET`, and points an external cron at the jobs route. See
-[Vercel](/guide/vercel#cron).
-
-## Demo
-
-| Variable | Default | Notes |
-|---|---|---|
-| `NUXT_DEMO_ENABLED` | `false` | Lets a visitor open a seeded workspace without an account from the landing page. Needs `NUXT_MULTI_WORKSPACE=true` |
-
-The button sits on the landing page, which the root serves only when
-`NUXT_APP_DOMAIN` points the app somewhere else. Set that too, or the button
-has no page to sit on.
-
-A demo workspace holds 4 sample links with sample analytics and 9 links in
-total, so the visitor can make 5 more. The visitor cannot invite members,
-transfer ownership, or make another workspace. The workspace and its user are deleted 24 hours after creation by
-the same sweep that sends expiry alerts, so a serverless deployment needs the
-jobs cron from the Alerts section. Their click events stay until the monthly
-partition ages out. With the gate off, nothing here runs.
-
-## Requests
-
-| Variable | Default | Notes |
-|---|---|---|
-| `NUXT_ALLOW_PRIVATE_DESTINATIONS` | `false` | Allow private-network destinations |
-| `NUXT_GEO_COUNTRY_HEADER` | | Country header your proxy sets |
-| `NUXT_TRUSTED_PROXY_DEPTH` | `0` | Proxies in front of the app |
-| `NUXT_VISITOR_HASH_SECRET` | | Salt for the visitor hash. Falls back to the session password |
-
-::: warning Set the proxy depth to match your deployment
-At `0` the client address comes from the socket and `X-Forwarded-For` is
-ignored. Behind one nginx or one CDN, set `1`.
-
-Too low behind a proxy puts every caller in one bucket, so one noisy client
-rate-limits everybody. Too high lets a caller write their own address and reset
-every limit, which is the same as having none.
-:::
-
-Keep `NUXT_ALLOW_PRIVATE_DESTINATIONS` off in production. A shortener that
-accepts `http://169.254.169.254/` is a request-forgery tool pointed at your own
-metadata service.
-
-Set `NUXT_VISITOR_HASH_SECRET` so that rotating the session password does not
-reset the day's unique visitor counts.
+Keep private destinations off on a public deployment. Set proxy depth to the
+exact network chain.
 
 ## Rate limits
 
 | Variable | Default |
 |---|---|
-| `NUXT_REDIS_URL` | |
+| `NUXT_REDIS_URL` | empty |
 | `NUXT_RATE_LIMIT_LOGIN_PER_MINUTE` | `10` |
 | `NUXT_RATE_LIMIT_WORKSPACE_PER_DAY` | `5` |
 | `NUXT_RATE_LIMIT_REDIRECT_PER_MINUTE` | `120` |
@@ -274,51 +128,70 @@ reset the day's unique visitor counts.
 | `NUXT_RATE_LIMIT_SLUG_CHECK_PER_MINUTE` | `30` |
 | `NUXT_RATE_LIMIT_INVITE_PER_HOUR` | `30` |
 
-Counters live in the process unless `NUXT_REDIS_URL` is set. Three instances
-then means each limit is three times looser than configured, so set it before
-you run more than one.
+Without Redis, each process has its own counters. Use a `rediss://` endpoint
+before you run several instances.
 
-Use the **TLS** endpoint (`rediss://…upstash.io:6379`), not the REST URL.
+## Alerts and jobs
 
-::: warning When the store is unreachable
-Authentication and other protected routes **refuse**, so an outage cannot
-quietly turn off brute-force protection. The redirect path keeps serving,
-because a shortener that stops redirecting when Redis blinks is the worse
-failure.
-:::
+| Variable | Default | Purpose |
+|---|---|---|
+| `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | In-process sweep interval; zero disables it |
+| `NUXT_JOBS_SECRET` | empty | Bearer secret for `POST /api/jobs/alerts` |
+
+The maximum interval is 35,000 minutes. Serverless deployments use zero and an
+external scheduler.
+
+## Application analytics
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID` | empty | GA4 measurement ID |
+
+This tracks application page views. It does not run on short-link visitor
+responses.
+
+## Sentry
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NUXT_PUBLIC_SENTRY_DSN` | empty | Enables error reporting |
+| `NUXT_PUBLIC_SENTRY_ENVIRONMENT` | empty | Environment label |
+| `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `0` | Trace fraction from zero to one |
+| `NUXT_PUBLIC_SENTRY_RELEASE` | image version in Docker | Release name |
+| `SENTRY_AUTH_TOKEN` | empty | Authorizes source-map upload |
+| `SENTRY_ORG` | empty | Organization slug |
+| `SENTRY_PROJECT` | empty | Project slug |
+| `SENTRY_URL` | `https://sentry.io/` | Custom Sentry origin |
+| `SENTRY_BUILD` | `false` | Build-only module switch |
+
+The Docker image sets `SENTRY_BUILD=true`, includes hidden source maps, and
+keeps reporting off until a DSN exists. With upload credentials, the container
+creates the release and uploads its maps at startup.
+
+The build also accepts `SENTRY_DSN`, `SENTRY_ENVIRONMENT`,
+`SENTRY_RELEASE`, and `SENTRY_TRACES_SAMPLE_RATE` as server-side aliases.
 
 ## Seed script
 
-Read by `bun run db:seed:admin` only, never by the server.
-
-| Variable | Default |
-|---|---|
-| `ADMIN_EMAIL` | `admin@example.com` |
-| `ADMIN_PASSWORD` | |
-
-## Compose
-
-Read by Docker Compose from `.env`, never by the server.
-
-| Variable | Default | Stack |
+| Variable | Default | Purpose |
 |---|---|---|
-| `POSTGRES_PASSWORD` | | production, **required** |
-| `MASIR_APP_PORT` | `3000` | both |
-| `MASIR_VERSION` | `latest` | image |
-| `MASIR_DB_PORT` | `5432` | development |
-| `MASIR_MAIL_SMTP_PORT` | `1025` | development |
-| `MASIR_MAIL_UI_PORT` | `8025` | development |
+| `ADMIN_EMAIL` | `admin@example.com` | Initial owner email |
+| `ADMIN_PASSWORD` | none | Initial owner password |
 
-Compose hands `POSTGRES_PASSWORD` to the app as `PGPASSWORD`, outside the
-connection string, so any character works. Changing it after the first start
-does not change the password inside the existing volume.
+The server does not read these values. Only `bun run db:seed:admin` uses them.
 
-`MASIR_VERSION` picks the tag of `ghcr.io/hamedniroomand/masir` that
-`compose.image.yaml` runs, such as `1.2.0`, `1.2`, or `1`.
+## Docker Compose
 
-The port variables set the host port of a published service. The port inside
-the container never changes. The production stack publishes only the app. The
-development stack also publishes Postgres and Mailpit on `127.0.0.1`.
+| Variable | Default | Purpose |
+|---|---|---|
+| `POSTGRES_PASSWORD` | none | Required database password |
+| `MASIR_APP_PORT` | `3000` | Host application port |
+| `MASIR_VERSION` | `latest` | Published image tag |
+| `MASIR_DB_PORT` | `5432` | Development database port |
+| `MASIR_MAIL_SMTP_PORT` | `1025` | Development Mailpit SMTP port |
+| `MASIR_MAIL_UI_PORT` | `8025` | Development Mailpit web port |
 
-Change `NUXT_ROOT_DOMAIN` and `NUXT_PUBLIC_SHORT_DOMAIN` too when you move the
-app port.
+Compose passes the database password through `PGPASSWORD`, outside the
+connection URL. Changing `POSTGRES_PASSWORD` does not change an existing
+Postgres volume password.
+

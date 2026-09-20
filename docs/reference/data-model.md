@@ -1,250 +1,148 @@
 # Data model
 
-One Postgres database holds everything. Masir talks to it through Drizzle ORM.
-The minimum is Postgres 18, because every primary key defaults to the native
-`uuidv7()` function.
+> One Postgres database holds accounts, workspaces, links, and event data.
 
-## The shape
+Masir requires Postgres 18 because primary keys use the native `uuidv7()`
+function. Drizzle defines the schema and generates forward-only migrations.
+
+## Relationship map
 
 ```mermaid
 erDiagram
-  WORKSPACES ||--o{ WORKSPACE_MEMBERS : has
+  USERS ||--o{ AUTH_IDENTITIES : uses
+  USERS ||--o{ WORKSPACE_MEMBERS : joins
+  WORKSPACES ||--o{ WORKSPACE_MEMBERS : contains
   WORKSPACES ||--o{ WORKSPACE_INVITATIONS : sends
   WORKSPACES ||--o{ LINKS : owns
-  WORKSPACES ||--o{ LINK_ALIASES : reserves
   WORKSPACES ||--o{ CAMPAIGNS : owns
   WORKSPACES ||--o{ TAGS : owns
-  WORKSPACES ||--o{ AUDIT_EVENTS : records
-  USERS ||--o{ WORKSPACE_MEMBERS : joins
-  USERS ||--o{ AUTH_IDENTITIES : has
-  USERS ||--o{ USER_TOKENS : holds
-  LINKS ||--o{ LINK_ALIASES : "answers to"
+  LINKS ||--o{ LINK_ALIASES : answers
   LINKS ||--o{ LINK_TAGS : tagged
-  LINKS }o--|| CAMPAIGNS : "belongs to"
-  TAGS ||--o{ LINK_TAGS : names
-  CLICK_EVENTS }o..|| LINKS : "names, with no key"
-  CLICK_EVENTS }o--|| HOSTS : "referrer"
+  TAGS ||--o{ LINK_TAGS : applies
+  CAMPAIGNS ||--o{ LINKS : groups
+  WORKSPACES ||--o{ AUDIT_EVENTS : records
+  LINKS ||--o{ CLICK_EVENTS : measures
 ```
 
-Every table a user can reach carries `workspace_id`. This is how isolation is
-enforced. A query that forgets it would return another workspace's rows, so
-the column is `NOT NULL` everywhere and every repository function takes a
-workspace as its first argument.
+## Tables
 
-`click_events` is the one exception, on purpose. See below.
+| Table | Purpose |
+|---|---|
+| `users` | Account identity, verification, and session version |
+| `auth_identities` | Password, Google, and Microsoft sign-in methods |
+| `user_tokens` | Single-use verification and password-reset tokens |
+| `workspaces` | Tenant name, slug, plan, link prefix, logo, and state |
+| `workspace_members` | User role and active state inside a workspace |
+| `workspace_invitations` | Open, accepted, and revoked invitations |
+| `campaigns` | Shared campaign and medium values |
+| `links` | Destination, slug, access rules, targeting, counters, and state |
+| `link_aliases` | Current and revoked extra slugs |
+| `tags` | Workspace tag names |
+| `link_tags` | Link-to-tag relationships |
+| `hosts` | Deduplicated referrer host names |
+| `click_events` | Partitioned redirect events |
+| `link_daily_stats` | Reserved daily aggregate shape |
+| `audit_events` | Product and security change history |
+| `mail_outbox` | Database-backed mail outbox shape |
 
-## Column type rules
+## Tenant boundary
 
-Every column follows one of these rules, so a new column is checked against a
-list rather than against taste.
+User-reachable product rows carry a workspace ID. Repository operations accept
+the workspace as input before they accept a row ID. This prevents a valid row
+ID from crossing a workspace boundary.
 
-| Rule | Choice | Reason |
-|---|---|---|
-| Id of an API-visible row | `uuid`, default `uuidv7()` | 16 bytes. Not enumerable. Time-ordered inserts |
-| Id of an internal event row | `bigint generated always as identity` | 8 bytes. Nobody addresses these rows by id |
-| Category on a cold table | Postgres `enum` | 4 bytes. Readable in psql |
-| Category on the hot table | `smallint` code | 2 bytes. A new code is one line in `shared/codes.ts` |
-| Hash the app compares | `bytea` | 32 bytes, not 64 hex characters |
-| Hash the app only counts | `bigint` | First 8 bytes of the digest. Fastest `count(distinct)` |
-| Repeated string on the hot table | `integer` key into a dimension table | 4 bytes per row instead of the string |
-| Counter | `bigint` | Never overflows |
-| Time | `timestamptz`, default `now()` | Partitioning and `date_trunc` understand it |
-| Structured detail | `jsonb` | Validated on write. Indexable |
-| Case rule | `check (col = lower(col))` | No `citext`, no extension |
-| Encoded password | `text` | Argon2 output carries its own parameters |
+Click events keep workspace and link IDs without foreign keys. An event log
+must not block or cascade a product deletion.
 
-Enum labels are lowercase in the database (`owner`, `password`, `active`). The
-API keeps its uppercase strings (`OWNER`, `PASSWORD`, `ACTIVE`). Two small maps
-in `shared/permissions.ts` and the identity repository are the only places the
-two spellings meet.
+## Identity and sessions
 
-`shared/codes.ts` is the single source for every `smallint` column on
-`click_events`: outcome, device, browser, and bot category. The API answers with
-labels, never with codes, and a code is never reused after its label is
-removed.
+`users.session_version` lets the server invalidate every sealed cookie for an
+account. Password reset increments the value.
 
-## Constraints that carry the model
+Password hashes live on `auth_identities`, not on the user row. One user can
+connect several providers. The last identity cannot be removed.
 
-Four constraints replace application logic that would otherwise have a race.
+`user_tokens` stores SHA-256 hashes for email verification and password
+reset. Expired rows are removed during database preparation.
 
-**Slugs are unique per workspace.**
+## Workspace constraints
 
-```sql
-create unique index links_workspace_slug_unique_idx on links (workspace_id, slug);
-```
+`workspace_members` uses `(workspace_id, user_id)` as its primary key.
+A partial unique index permits one owner per workspace.
 
-Two teams both own `pricing`. Two simultaneous creates of the same slug in one
-workspace: one wins, the other gets a `23505` that becomes a `409`.
-
-**One owner per workspace**, as a partial unique index:
-
-```sql
-create unique index workspace_members_one_owner_idx
-  on workspace_members (workspace_id) where role = 'owner';
-```
-
-A two-owner state cannot be represented, so ownership transfer is one
-transaction that demotes and promotes.
-
-**One open invitation per address per workspace:**
-
-```sql
-create unique index workspace_invitations_open_idx
-  on workspace_invitations (workspace_id, email)
-  where accepted_at is null and revoked_at is null;
-```
-
-**A campaign owns `utm_campaign`:**
-
-```sql
-check (campaign_id is null or utm_campaign is null)
-```
-
-A link with a campaign carries no `utm_campaign` of its own, so the two can
-never disagree.
-
-## Users, sessions, and tokens
-
-`users` holds the account and its `session_version`. The argon2id hash lives on
-the `password` row in `auth_identities`, never on the user row.
-
-Sessions are sealed cookies with no server-side store. That makes them fast and
-makes revocation impossible, unless you version them. Every session carries the
-version it was issued at. Bumping the column on the user invalidates every
-session that person holds, on the next request. A password reset bumps it.
-
-`auth_identities` holds one row per provider link, unique on
-`(provider, provider_account_id)`. Signing in with Google as an address that
-already has a password account attaches the identity to that account.
-
-`user_tokens` holds every single-use token. One table, one `purpose` column
-(`email_verify` or `password_reset`), one module. `token_hash` is `bytea`, the
-raw SHA-256 digest. Boot deletes the expired rows.
-
-## Members
-
-`workspace_members` has no surrogate id. Its primary key is
-`(workspace_id, user_id)`, and the member routes address a member by user id.
-
-`member_role` holds `owner`, `member`, and `viewer`. `workspace_invitations`
-carries a nullable `role`, and `null` joins as a member, which keeps every
-invitation made before the column working.
+Only one open invitation can exist for one workspace and email pair.
 
 ## Links
 
-The columns that carry behaviour:
+Important columns include:
 
-| Column | Purpose |
+| Column | Meaning |
 |---|---|
-| `slug` | Unique within the workspace, alive or deleted |
-| `destination_url` | Editable after sharing |
-| `destination_host` | Extracted at write time, for lookups |
-| `is_enabled` | The off switch |
-| `starts_at`, `expires_at` | Schedule window |
-| `expiration_destination` | Where an expired link goes instead of 404 |
-| `limit_destination` | Where a used-up link goes instead of 404 |
-| `scheduled_destination` | Where a link that has not started goes instead of 404 |
-| `password_hash` | argon2id, `null` for a public link |
-| `maximum_visits` | Cap on successful redirects |
-| `click_count` | One counter, raised atomically, only on success |
-| `targeting` | `jsonb`. Per-OS and per-country destinations, `null` when empty |
-| `notes` | Private text for the workspace, never sent to a visitor |
-| `cap_alert_sent_at`, `expiry_alert_sent_at` | Claim stamps, so each alert mails once |
-| `deleted_at` | Soft delete |
+| `slug` | Public address, unique in the workspace |
+| `destination_url` | Current HTTP or HTTPS destination |
+| `is_enabled` | Immediate off switch |
+| `starts_at`, `expires_at` | Availability window |
+| `scheduled_destination` | Fallback before opening |
+| `expiration_destination` | Fallback after expiry |
+| `limit_destination` | Fallback after the visit cap |
+| `password_hash` | Optional Argon2id hash |
+| `maximum_visits` | Optional successful-human-visit cap |
+| `click_count` | Atomic successful human redirect count |
+| `targeting` | Country and operating-system destinations |
+| `notes` | Private workspace text |
+| `deleted_at` | Soft-delete marker |
 
-Status is derived on read, never stored, so a scheduled link becomes active the
-moment its start time passes with no job involved.
+Status is derived at read time. A scheduled link becomes active without a job.
 
-**One counter.** `click_count` totals the successful human redirects and is
-also the number the visit limit compares against. The API answers with both
-`clickCount` and `successfulVisitCount`, read from that one column.
+Deleted links keep their slug. This stops an old public address from later
+pointing to a different link.
 
-**Soft delete.** The unique index on `(workspace_id, slug)` has no partial
-clause, so a deleted row keeps holding its slug. The click history survives,
-and every read filters `deleted_at is null`.
+## Aliases
 
-## Link aliases
+`link_aliases` uses `(workspace_id, slug)` as its primary key. A revoked
+alias remains reserved. A link can have 10 active aliases.
 
-`link_aliases` gives one link several addresses. Its primary key is
-`(workspace_id, slug)`, so an alias and a link slug can never collide inside a
-workspace.
+Resolution checks the primary slug, then an active alias.
 
-| Column | Purpose |
-|---|---|
-| `workspace_id`, `slug` | The address, unique in the workspace |
-| `link_id` | The link it reaches |
-| `revoked_at` | Set when somebody removes the address |
+## Campaigns and tags
 
-A **revoked** row stops resolving but stays in the table. So does the alias of a
-deleted link, and so does the old address of a rename made with
-`keepOldSlug: false`. An address that ever worked never returns to the pool,
-because a printed QR code must never start pointing at somebody else's
-destination.
+A link can belong to one campaign and many tags.
 
-`isSlugTaken` reads reserved names, every `links.slug` including deleted rows,
-and every alias row whatever its `revoked_at`. A link holds at most 10 live
-aliases.
-
-Resolution tries `links.slug` first and falls back to the alias join only on a
-miss, so an alias costs one extra query on a cold cache and nothing after that.
+A database check prevents a campaign link from also setting its own
+`utm_campaign`. The campaign remains the single source for that value.
 
 ## Click events
 
-One row per request, with no IP address and no user agent string.
+One event records the request outcome, daily visitor hash, referrer host,
+country, device, browser, bot class, and time.
 
-`visitor_hash` is a salted daily digest stored as a `bigint`, the first eight
-bytes of the hash. A visitor counts once per day per link, and values cannot be
-joined across days.
+It does not store a raw IP address or full user-agent string.
 
-`referrer_host` is an `integer` key into `hosts`. A few hundred host names
-repeat across millions of rows, so the string is stored once and the server
-keeps a `host → id` map in memory.
+The visitor hash is a salted daily `bigint`. It supports daily unique counts
+for one link and cannot join a visitor across days.
 
-Columns are ordered by alignment, 8 bytes, then 4, 2, 1, then variable, which
-saves up to 7 bytes of padding per row. A row measures 96 bytes with every
-column set and 102 at its widest.
-
-**No foreign key to `links` or `workspaces`.** An event log must never block or
-cascade a delete. The rows of a deleted link age out with their partition.
-
-**Two indexes:**
-
-```sql
-create index click_events_link_created_idx      on click_events (link_id, created_at);
-create index click_events_workspace_created_idx on click_events (workspace_id, created_at);
-```
-
-Every analytics query scopes by link and time first, so an index on `outcome`
-would earn nothing. The workspace index has no reader yet. It is cheap to carry
-from day one and expensive to build later, and a workspace dashboard is the
-obvious next feature.
-
-**Monthly partitions.** `click_events` is partitioned by range on `created_at`.
-Boot creates the partition for the current month and the next one. Retention is
-`drop table`, never `delete`.
-
-`link_daily_stats` is in the schema with no reader yet, so an hourly rollup can
-land later without a schema change.
+Events use monthly range partitions. Database preparation creates the current
+and next partitions. Retention can drop a partition instead of deleting rows
+one at a time.
 
 ## Audit events
 
-`audit_events` records what happened: who created a link, who changed a member,
-which sign-in failed, which link was reported. `type` is `text`, because around
-30 labels grow over time and an enum would need an `alter type` for each new
-one. `detail` is `jsonb`.
+Audit rows contain a type, optional actor, optional workspace and link, JSON
+detail, and time.
 
-A row with no `workspace_id` belongs to no tenant. Sign-in failures, OAuth
-errors, and abuse reports sit there, and the workspace views filter on a
-concrete workspace, so they never reach one.
+Events without a workspace, such as sign-in failures and abuse reports, do not
+appear in a workspace activity feed.
 
 ## Migrations
 
-SQL files under `drizzle/`, generated by `db:generate` and applied by
-`db:migrate`. They also run at boot.
+Migrations live under `drizzle/`. Generate and inspect them after a schema
+change:
 
-They are incremental and forward-only. There is no down migration. Restoring a
-backup is the honest rollback, and a `down` that has never been tested is worse
-than none.
+```sh
+bun run db:generate
+bun run db:migrate
+```
 
-Boot does three things under one advisory lock, in order: migrate, create the
-click event partitions, delete the expired tokens.
+At boot, Masir applies pending migrations under an advisory lock, prepares
+click partitions, and removes expired tokens.
+

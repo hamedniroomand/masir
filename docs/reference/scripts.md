@@ -1,19 +1,20 @@
 # Scripts
 
-Every command is `bun run <name>` from the repository root.
+> Run these commands from the repository root with Bun 1.4 or newer.
 
-## Day to day
+The command form is `bun run <name>`.
 
-| Script | Does |
+## Application
+
+| Script | Result |
 |---|---|
-| `dev` | Start the development stack in Docker: app with hot reload, Postgres, and Mailpit |
-| `build` | Production build into `.output/` |
-| `preview` | Serve the last build |
-| `lint` | ESLint over the repository |
-| `typecheck` | `vue-tsc` over app and server |
+| `dev` | Starts the Docker development stack with hot reload, Postgres, and Mailpit |
+| `build` | Creates the production application in `.output/` |
+| `preview` | Runs the most recent Nuxt build |
+| `lint` | Checks the repository with ESLint |
+| `typecheck` | Checks application and server types |
 
-`dev` is a shortcut for `docker compose -f compose.dev.yaml up`. To run the app
-on the host and keep only Postgres and Mailpit in Docker:
+To run the app on the host while Docker supplies Postgres and Mailpit:
 
 ```sh
 docker compose -f compose.dev.yaml up -d db mail
@@ -22,63 +23,50 @@ bun --bun nuxt dev
 
 ## Database
 
-| Script | Does |
+| Script | Result |
 |---|---|
-| `db:generate` | Write a migration from the schema diff |
-| `db:migrate` | Apply pending migrations |
-| `db:studio` | Drizzle Studio, a browser client for the data |
-| `db:seed:admin` | Create the first account and workspace |
+| `db:generate` | Creates a Drizzle migration from the schema difference |
+| `db:migrate` | Applies pending migrations and prepares event partitions |
+| `db:studio` | Opens Drizzle Studio |
+| `db:seed:admin` | Creates the initial user, workspace, and owner membership |
 
-The loop after editing `server/database/schema.ts`:
+After a schema change:
 
 ```sh
-bun run db:generate   # writes drizzle/<timestamp>_<name>/migration.sql
-bun run db:migrate    # applies it
+bun run db:generate
+bun run db:migrate
 ```
 
-Read the generated SQL before you apply it. Drizzle infers intent from a diff,
-and a renamed column can come back as a drop plus an add, which loses the data.
-
-Migrations also run when the server boots, so a deployment needs no separate
-step. `db:migrate` and `db:seed:admin` both work inside the production image.
+Read generated SQL before you apply it. A rename can appear as a destructive
+drop and add when the migration tool cannot infer intent.
 
 ## Tests
 
-| Script | Does |
+| Script | Result |
 |---|---|
-| `test` | Unit and end-to-end tests in one Vitest run |
-| `test:coverage` | The same, with a coverage report in `coverage/` |
-| `test:browser` | Build, then run the Playwright suite |
-| `test:browser:run` | Run Playwright against the last build |
+| `test` | Runs unit and server end-to-end tests |
+| `test:coverage` | Runs the same suite with V8 coverage |
+| `test:browser` | Builds the app, then runs Playwright |
+| `test:browser:run` | Runs Playwright against the existing build |
 
-`test` and `test:coverage` start the `db` service from the development stack
-first and wait for it. They skip that step under `CI` and on a machine without
-Docker, where Postgres comes from somewhere else.
+The server tests read `TEST_DATABASE_URL`. They create one isolated database
+for each test file and do not use the application database.
 
-The tests read `TEST_DATABASE_URL`, never `NUXT_DATABASE_URL`. They create one
-database per test file from it, named `masir_test_<file>`, and keep them between
-runs. The development stack creates the `masir_test` database on its first
-start.
-
-The end-to-end suite builds the application **once**, then starts a server from
-`.output` for each test file. This is the same artifact that Docker runs.
-
-Browser tests start one server per deployment shape: `single`, `multi`, and
-`cloud`. Run one shape with `--project`:
+Browser tests cover single-workspace, multi-workspace, and cloud shapes. Run
+one shape with:
 
 ```sh
 bun run test:browser:run --project multi
 ```
 
-<ReadMore to="/project/development#tests" title="How the test suite is put together" />
-
 ## Documentation
 
-The docs site is its own workspace package under `docs/`, so VitePress never
-reaches the application image.
-
-| Script | Does |
+| Script | Result |
 |---|---|
-| `docs:dev` | This site, locally, with hot reload |
-| `docs:build` | Static output into `docs/.vitepress/dist` |
-| `docs:preview` | Serve the built site |
+| `docs:dev` | Starts VitePress with hot reload |
+| `docs:build` | Builds the static site in `docs/.vitepress/dist` |
+| `docs:preview` | Serves the built documentation |
+
+The docs are a separate workspace package. They do not enter the application
+image.
+

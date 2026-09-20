@@ -1,106 +1,112 @@
 # Architecture
 
-One Nitro process and one Postgres database. Redis is optional and only shares
-rate-limit counters between instances.
+> Masir is one Nitro application, one Postgres database, and optional external providers.
 
-## The redirect path
+Redis shares rate-limit counters. S3-compatible storage, mail, Sentry, and
+Google Analytics are optional.
 
-This is the path that has to be fast. Everything else can take its time.
+## Request flow
 
 ```mermaid
 flowchart TD
-  A[GET /pricing] --> B[Workspace middleware]
-  B --> C{In cache?}
-  C -->|yes| E[Check the rules]
-  C -->|no| D[(Query by workspace and slug)]
-  D --> E
-  E -->|blocked| F[404]
-  E -->|password| G[Unlock page]
-  E -->|ok| H[302 to destination]
-  H --> I[Record the click in the background]
+  R[Request] --> W[Resolve workspace from host]
+  W --> Q{Application, API, or short link?}
+  Q -->|Application| A[Vue application]
+  Q -->|API| C[Session and permission checks]
+  Q -->|Short link| L[Find link by slug or alias]
+  L --> S[Evaluate status and password]
+  S --> T[Choose country, OS, or default destination]
+  T --> D[Return 302]
+  D -. after response .-> E[(Click event)]
+  C --> P[(Postgres)]
+  L --> P
+  E --> P
 ```
 
-Two pieces of server middleware, ordered by filename because Nitro sorts them
-that way:
+## Ordered middleware
 
-- **`00.workspace.ts`** resolves the workspace. In multi-workspace mode it
-  reads the subdomain from the `Host` header. In single-workspace mode it
-  ignores the host and loads the one workspace.
-- **`01.redirect.ts`** resolves the slug inside that workspace and applies the
-  link's rules.
+Nitro loads server middleware by filename.
 
-A third, `02.csrf.ts`, rejects a state-changing request whose `Origin` does not
-match the `Host`.
+- `00.workspace.ts` resolves the workspace from the host or selects the
+  single workspace.
+- `01.redirect.ts` checks whether the request path is a short link and
+  applies its redirect rules.
+- `02.csrf.ts` checks the Origin of state-changing requests.
+- `03.landing.ts` decides whether the root shows the application or public
+  landing page.
 
-::: info Why the numbers
-The files were once `00.redirect.ts` and `00.workspace.ts`. Nitro ordered them
-alphabetically, so the redirect ran before the workspace existed and every link
-answered 404. The numbers are load-bearing.
-:::
+The numeric prefixes are part of the behavior. Redirect resolution needs a
+workspace before it can query a slug.
 
-The application pages render on the client only. The server renders the
-visitor-facing error page behind a short link itself, so link previews and
-crawlers read it without JavaScript.
+## Redirect evaluation
 
-## The cache
+The redirect path:
 
-Resolved links are held in memory for 60 seconds, keyed on the workspace id
-plus the slug. A miss is held for 15 seconds. Creating, updating, or deleting a
-link clears its entry.
+1. reads the workspace-scoped cache
+2. queries the primary slug, then an active alias on a miss
+3. derives status
+4. checks the password grant when required
+5. chooses the country, operating-system, or default destination
+6. merges generated and incoming query values
+7. atomically consumes a successful human visit
+8. returns `302`
+9. records the event after the response
 
-The key carries the workspace on purpose. Keyed on the slug alone, one
-workspace's `pricing` would serve another workspace's destination, a
-cross-tenant leak from a cache that no test of the query layer would catch.
+Bots use the default destination and do not consume visit limits.
 
-With several instances each keeps its own copy, so an edit can take up to a
-minute to appear everywhere. For a link shortener that is an acceptable trade.
+## Cache
 
-## Analytics are written after the response
+Each process keeps resolved links in memory for 60 seconds and misses for 15
+seconds. Keys include the workspace ID and slug.
 
-The redirect is sent, then `event.waitUntil` records the click. A visitor never
-waits on an insert, and a database that is briefly slow delays nothing a person
-can see.
+Writes invalidate the affected link entries. Several app instances have
+separate caches, so a value can remain stale on another instance until its
+short lifetime ends.
 
-The cost is a race that tests have to respect: a test asserting on a click must
-poll for it, because the response arrives first.
+## Durable state
 
-## Where state lives
+Postgres stores accounts, workspaces, links, analytics, audit events, and
+provider metadata.
 
-**Postgres** holds everything durable.
+The database enforces important invariants such as workspace slug uniqueness
+and one owner per workspace.
 
-**The process** holds the link cache and, without Redis, the rate-limit
-counters.
+Migrations run under an advisory lock. Rolling instances wait instead of
+applying the same migration twice.
 
-**Redis**, when `NUXT_REDIS_URL` is set, holds the rate-limit counters so
-several instances share them.
+## Process and external state
 
-**The visitor's browser** holds the session cookie and, on a protected link, a
-15-minute unlock cookie.
+The process stores:
 
-There is no session store and no queue. Sessions are sealed JSON cookies, which
-is why sign-in scales without shared state, and why revocation needs the
-`session_version` column instead of deleting a row.
+- the link cache
+- provider driver instances
+- rate-limit counters when Redis is not configured
+- the alert timer on a long-running server
 
-## Running several instances
+Redis stores shared rate-limit counters when configured.
 
-The cache is fine to duplicate. The rate limiter is not: without a shared store,
-three instances make each limit three times looser than configured. Set
-`NUXT_REDIS_URL` before you scale out.
+The browser stores the sealed session cookie and short-lived link password
+grants. Masir has no server-side session store.
 
-Migrations run on boot under a Postgres advisory lock, so a rolling deploy
-applies them once while the other instances wait.
+File or S3-compatible storage holds workspace logos. SMTP or Resend delivers
+messages.
 
-## Deployment shape
+## Analytics write path
 
-A single container:
+Masir sends the redirect before it inserts the event. Tests must poll for the
+event because the response can arrive first.
 
-```text
-bun .output/server/index.mjs
-```
+The application stores a daily visitor hash, not the raw address or user-agent
+string.
 
-Configuration is read at runtime, so one image serves staging and production.
-`GET /api/health` checks the database and answers `503` when it is unreachable,
-which is what a load balancer should watch.
+## Deployment shapes
 
-The `db:migrate` and `db:seed:admin` scripts ship in the image as bundles, so an
-operator can run them inside the container without the source tree.
+The same output runs as a long-lived Bun server or on the Vercel Nitro preset.
+Runtime configuration separates staging and production images.
+
+Long-running deployments can use local storage and an in-process alert timer.
+Serverless and multi-instance deployments need external storage, shared rate
+limits, and an external alert schedule.
+
+`GET /api/health` checks Postgres for a load balancer or uptime monitor.
+

@@ -1,70 +1,80 @@
-# Features
+# User guide
 
-What Masir does, on one page. Each section links to the details.
+> Learn the daily workflows for links, teams, and accounts.
+
+Choose the task that matches what you need to do.
+
+## Work with links
 
 <CardGroup :cols="2">
 
-<Card title="Short links" icon="link" to="/features/links">
+<Card title="Create and manage links" icon="link" to="/features/links">
 
-Custom or generated slugs, editable destinations, QR codes, query passthrough,
-and a change history.
-
-</Card>
-
-<Card title="Access control" icon="shield-check" to="/features/access-control">
-
-Passwords, start dates, expiry, visit caps, and one-time links.
+Create links, change destinations, add aliases, pass query values, make QR
+codes, and inspect change history.
 
 </Card>
 
-<Card title="Targeting" icon="crosshair" to="/features/targeting">
+<Card title="Control link access" icon="shield-check" to="/features/access-control">
 
-One link, a different destination for iOS, Android, desktop, or a country.
-
-</Card>
-
-<Card title="Analytics" icon="chart-line" to="/features/analytics">
-
-Clicks, unique visitors, referrers, countries, devices, and browsers. Bots
-separated. No IP addresses stored.
+Use passwords, schedules, expiry, visit limits, fallback destinations, and
+alerts.
 
 </Card>
 
-<Card title="Tags and campaigns" icon="megaphone" to="/features/campaigns">
+<Card title="Route visitors" icon="crosshair" to="/features/targeting">
 
-Group links, filter by tag, and share UTM values across a campaign.
+Send visitors to a different destination by country or operating system.
+
+</Card>
+
+<Card title="Measure traffic" icon="chart-line" to="/features/analytics">
+
+Read clicks, unique visitors, referrers, locations, devices, browsers, and
+outcomes.
+
+</Card>
+
+<Card title="Organize links" icon="megaphone" to="/features/campaigns">
+
+Use tags for flexible grouping and campaigns for shared UTM values.
 
 </Card>
 
 </CardGroup>
 
-## Also included
+## Work with people
 
-- **Workspaces with roles.** One owner, any number of members. See
-  [Workspaces](/guide/workspaces) and [Members](/guide/members).
-- **Email, Google, and Microsoft sign-in.** See [Signing in](/guide/authentication).
-- **An HTTP API** for everything the interface does. See [API](/reference/api).
-- **An abuse report form** at `/report`, so visitors can flag a link without an
-  account.
-- **Optional Sentry and Google Analytics** for the application itself, both off
-  until you set a key.
+<CardGroup :cols="3">
 
-## Not included
+<Card title="Workspaces" icon="building-2" to="/guide/workspaces">
 
-Worth stating plainly so you can judge the fit.
+Understand ownership, addresses, logos, activity, and isolation.
 
-**No billing or usage limits.** The schema carries plan columns so they can be
-added later without a redesign. Nothing enforces them today, and every
-workspace is on the `active` plan.
+</Card>
 
-**No custom domains per workspace.** A workspace lives on its subdomain. The
-data model has room for it. The feature is not built.
+<Card title="Members and roles" icon="users" to="/guide/members">
 
-**No API tokens.** The HTTP API is real and complete, but it authenticates with
-the same session cookie as the interface. There is no separate token yet.
+Invite people and assign owner, member, or viewer access.
 
-**No two-factor authentication.**
+</Card>
 
-**No deep analytics.** Clicks, visitors, referrers, countries, devices,
-browsers. No funnels, no sessions, no retention. UTM parameters pass straight
-through to whatever analytics tool you already run.
+<Card title="Accounts and sign-in" icon="key-round" to="/guide/authentication">
+
+Use passwords, Google, Microsoft, recovery, and connected identities.
+
+</Card>
+
+</CardGroup>
+
+## Product boundaries
+
+Masir is focused on durable shared links.
+
+- The API uses session cookies. API tokens are not available.
+- Workspaces use subdomains in multi-workspace mode. Per-workspace custom
+  domains are not available.
+- Analytics describe link traffic. Masir does not provide funnels, retention,
+  or session replay.
+- Two-factor authentication and billing are not included.
+

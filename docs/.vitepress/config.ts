@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 import { icon } from './icons.ts';
 
 const DESCRIPTION
-  = 'Every link has a destination. Masir is a self-hosted link manager for teams. Short links your team owns, destinations you can change after sharing, and analytics that never store a visitor IP.';
+  = 'Masir is an open-source link management platform for teams. Run it on your infrastructure, publish links on your domain, and keep control after you share them.';
 
 // Sidebar links carry the icon the page used to declare in its frontmatter.
 function link(name: string, text: string, path: string) {
@@ -62,57 +62,59 @@ export default defineConfig({
     logo: '/icon.svg',
 
     nav: [
-      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
-      { text: 'Features', link: '/features/', activeMatch: '/features/' },
+      { text: 'Overview', link: '/' },
+      { text: 'Get started', link: '/guide/', activeMatch: '^/guide/(?:$|installation|quickstart)' },
+      { text: 'User guide', link: '/features/', activeMatch: '^/(?:features|guide/(?:workspaces|members|authentication))' },
+      { text: 'Self-hosting', link: '/guide/self-hosting', activeMatch: '^/guide/(?:self-hosting|multi-workspace|upgrading|vercel|troubleshooting)' },
       { text: 'Reference', link: '/reference/', activeMatch: '/reference/' },
-      { text: 'Project', link: '/project/', activeMatch: '/project/' },
+      { text: 'Contributing', link: '/project/', activeMatch: '/project/' },
     ],
 
     sidebar: {
       '/guide/': [
         {
-          text: 'Get started',
+          text: 'Start here',
           items: [
-            link('compass', 'Introduction', '/guide/'),
-            link('package', 'Installation', '/guide/installation'),
-            link('rocket', 'Your first link', '/guide/quickstart'),
+            link('compass', 'Choose your path', '/guide/'),
+            link('package', 'Install Masir', '/guide/installation'),
+            link('rocket', 'Create your first link', '/guide/quickstart'),
           ],
         },
         {
-          text: 'Teams',
+          text: 'Use Masir',
           items: [
             link('building-2', 'Workspaces', '/guide/workspaces'),
             link('users', 'Members and roles', '/guide/members'),
-            link('key-round', 'Signing in', '/guide/authentication'),
+            link('key-round', 'Accounts and sign-in', '/guide/authentication'),
           ],
         },
         {
-          text: 'Running it',
+          text: 'Operate Masir',
           items: [
-            link('server', 'Self-hosting', '/guide/self-hosting'),
+            link('server', 'Production setup', '/guide/self-hosting'),
             link('arrow-up-circle', 'Upgrading', '/guide/upgrading'),
-            link('cloud', 'Multi-workspace mode', '/guide/multi-workspace'),
-            link('triangle', 'Vercel', '/guide/vercel'),
+            link('cloud', 'Multi-workspace deployments', '/guide/multi-workspace'),
+            link('triangle', 'Deploy on Vercel', '/guide/vercel'),
             link('life-buoy', 'Troubleshooting', '/guide/troubleshooting'),
           ],
         },
       ],
       '/features/': [
         {
-          text: 'Features',
+          text: 'User guide',
           items: [
-            link('sparkles', 'Overview', '/features/'),
-            link('link', 'Short links', '/features/links'),
-            link('shield-check', 'Access control', '/features/access-control'),
-            link('crosshair', 'Targeting', '/features/targeting'),
-            link('chart-line', 'Analytics', '/features/analytics'),
-            link('megaphone', 'Tags and campaigns', '/features/campaigns'),
+            link('sparkles', 'Start here', '/features/'),
+            link('link', 'Create and manage links', '/features/links'),
+            link('shield-check', 'Control link access', '/features/access-control'),
+            link('crosshair', 'Route by device or country', '/features/targeting'),
+            link('chart-line', 'Measure link traffic', '/features/analytics'),
+            link('megaphone', 'Organize links', '/features/campaigns'),
           ],
         },
       ],
       '/reference/': [
         {
-          text: 'Reference',
+          text: 'Technical reference',
           items: [
             link('braces', 'Overview', '/reference/'),
             link('settings', 'Environment variables', '/reference/environment'),
@@ -124,13 +126,13 @@ export default defineConfig({
       ],
       '/project/': [
         {
-          text: 'Project',
+          text: 'Contributing',
           items: [
-            link('folder-git-2', 'Overview', '/project/'),
+            link('folder-git-2', 'Start contributing', '/project/'),
             link('network', 'Architecture', '/project/architecture'),
-            link('lock', 'Security', '/project/security'),
-            link('hammer', 'Development', '/project/development'),
-            link('shield-check', 'Compatibility', '/project/compatibility'),
+            link('lock', 'Security model', '/project/security'),
+            link('hammer', 'Development workflow', '/project/development'),
+            link('shield-check', 'Compatibility policy', '/project/compatibility'),
           ],
         },
       ],
@@ -148,7 +150,7 @@ export default defineConfig({
     search: { provider: 'local' },
 
     footer: {
-      message: 'Every link has a destination. Released under the MIT License.',
+      message: 'Open source link management for teams. Released under the MIT License.',
       copyright: 'Copyright © 2026-present Hamed Niroomand',
     },
   },

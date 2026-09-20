@@ -1,71 +1,70 @@
-# Project
+# Contributing
 
-How Masir is put together, the choices behind it, and how to work on it.
+> Understand the project, choose a focused change, and verify it before review.
+
+Masir is an MIT-licensed Bun and Nuxt application. Contributions can improve
+the product, deployment experience, tests, or documentation.
+
+## Start here
 
 <CardGroup :cols="2">
 
+<Card title="Development workflow" icon="hammer" to="/project/development">
+
+Install dependencies, start services, run tests, and prepare a pull request.
+
+</Card>
+
 <Card title="Architecture" icon="network" to="/project/architecture">
 
-The redirect path, where state lives, and what the cache does.
+Follow a request through host resolution, redirect rules, storage, and event
+recording.
 
 </Card>
 
-<Card title="Security" icon="lock" to="/project/security">
+<Card title="Security model" icon="lock" to="/project/security">
 
-Tenancy, sessions, passwords, destination validation, and what is not covered.
-
-</Card>
-
-<Card title="Development" icon="hammer" to="/project/development">
-
-Set up, run the tests, and find your way around the code.
+Review tenant isolation, sessions, passwords, validation, and rate limits.
 
 </Card>
 
-<Card title="Compatibility" icon="shield-check" to="/project/compatibility">
+<Card title="Compatibility policy" icon="shield-check" to="/project/compatibility">
 
-Versioning, migrations, configuration, and what an upgrade must never break.
+Protect existing deployments, data, routes, and configuration.
 
 </Card>
 
 </CardGroup>
 
-## Principles
+## Project principles
 
-**Bun's own APIs first.** Passwords go through `Bun.password`, digests through
-`Bun.CryptoHasher`, uploads through Bun's S3 client, Postgres through Bun's
-native `SQL`. Resend is reached over `fetch`. `nodemailer` loads only when SMTP
-is the chosen transport. Each of these replaced a dependency that would
-otherwise ship in every deployment. The one exception is QR codes, which
-compress with `node:zlib` because a PNG needs zlib-framed deflate.
-
-**The database enforces what matters.** Slug uniqueness, single ownership, and
-tenancy are constraints, not checks in application code. A check has a race. A
-unique index does not.
-
-**Fail at boot, not under load.** Configuration is validated when the process
-starts. A missing session password stops the container instead of producing a
-confusing failure at three in the morning.
-
-**Store less.** No visitor IP addresses, no user agent strings, no third-party
-analytics in the request path. Data that is never written cannot leak.
-
-**One registry per pluggable thing.** Mail and storage both resolve a named
-provider at boot, fall through to the next configured one, and log which they
-picked. Adding a transport is a file, not a branch in a resolver.
+- Use the platform or standard library before adding a dependency.
+- Put tenant scope in repository operations, not only in handlers.
+- Use database constraints for invariants that can race.
+- Validate deployment configuration before the server accepts traffic.
+- Store less visitor data.
+- Keep migrations forward-only and compatible with rolling deployment.
+- Prefer the smallest change that fixes the shared cause.
 
 ## Stack
 
-| Layer | Choice |
+| Area | Technology |
 |---|---|
 | Runtime | Bun 1.4 |
-| Framework | Nuxt 4 with the Nitro server |
-| Interface | Vue 3, Nuxt UI 4, Tailwind 4 |
-| Database | Postgres 18 or newer, Drizzle ORM |
-| Sessions | `nuxt-auth-utils`, sealed cookies |
-| Tests | Vitest, `@nuxt/test-utils`, Playwright |
-| Docs | VitePress |
+| Application | Nuxt 4 and Nitro |
+| Interface | Vue 3, Nuxt UI 4, Tailwind CSS 4 |
+| Database | Postgres 18 and Drizzle ORM |
+| Sessions | `nuxt-auth-utils` sealed cookies |
+| Tests | Vitest, Nuxt test utilities, Playwright |
+| Documentation | VitePress 2 |
+| License | MIT |
 
-## License
+## Choose an issue
 
-MIT. See [LICENSE](https://github.com/hamedniroomand/masir/blob/main/LICENSE).
+Keep one pull request focused. Read the affected flow from the interface or
+route through its shared utility and database operation. Add the smallest test
+that proves the behavior.
+
+For a security problem, use a private GitHub security advisory instead of a
+public issue.
+

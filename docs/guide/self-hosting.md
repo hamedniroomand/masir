@@ -1,223 +1,159 @@
-# Self-hosting
+# Production setup
 
-This page covers what you need to know once Masir is installed and serving real
-traffic: proxies, email, scaling, backups, and error reporting. The
-[installation guide](/guide/installation) gets you to a running instance first.
+> Run Masir with durable data, trusted network inputs, and a tested recovery path.
 
-## What you are running
+The default production stack has two services: Masir and Postgres. Local file
+storage adds an uploads volume. Mail, Redis, S3, and Sentry are optional.
 
-Masir is one process and one Postgres database. The process holds nothing
-durable. Its only in-memory state is a short link cache and, unless you point
-it at Redis, the rate-limit counters. You can stop it, move it, or run more of
-it without losing anything.
+## Set the public origins
 
-## The four values that matter
-
-Everything else has a working default.
+Set both values to full origins without a trailing slash:
 
 ```sh [.env]
-# 32 characters or more. openssl rand -base64 32
-NUXT_SESSION_PASSWORD=
-
-# Where people reach the app, with protocol
 NUXT_ROOT_DOMAIN=https://go.example.com
-
-# The origin printed in front of every slug, no trailing slash
 NUXT_PUBLIC_SHORT_DOMAIN=https://go.example.com
-
-NUXT_DATABASE_URL=postgres://user:pass@host:5432/masir
+NUXT_STORAGE_PUBLIC_BASE_URL=https://go.example.com/uploads
 ```
 
-Leave `NUXT_MULTI_WORKSPACE` at `false` unless you want a subdomain per
-workspace. In single-workspace mode the server ignores the hostname and serves
-its one workspace on whatever host the request arrived on.
+`NUXT_ROOT_DOMAIN` controls host resolution and application URLs.
+`NUXT_PUBLIC_SHORT_DOMAIN` is printed in short links.
 
-<ReadMore to="/reference/environment" title="Every environment variable" />
+## Add a reverse proxy
 
-## A landing page on the root
+Terminate TLS before traffic reaches port `3000`. Forward the original host,
+scheme, and client address.
 
-By default `example.com/` is the app. To put a public landing page there and
-run the app on its own host, set one more value:
+A small Caddy site is enough:
 
-```sh [.env]
-NUXT_APP_DOMAIN=https://app.example.com
+```text [Caddyfile]
+go.example.com {
+  reverse_proxy 127.0.0.1:3000
+}
 ```
 
-Then:
-
-- `example.com/` renders a landing page that crawlers may index. It links to
-  sign-in and, when registration is open, to sign-up on the app host.
-- `example.com/{slug}` keeps serving short links, with the link path in front
-  when the workspace has one. The unlock page for a protected link stays here
-  too.
-- Every other app path on the root, such as `/login` or `/dashboard`, answers
-  a redirect to the same path on `app.example.com`.
-- Emails for verification and password reset link to the app host.
-
-Point both names at the same instance. In multi-workspace mode the app host
-must be the root or a subdomain of it, because the session cookie is scoped to
-the root. Leave the value empty to get the old behaviour back.
-
-## Behind a reverse proxy
-
-Most instances sit behind nginx, Caddy, Traefik, or a CDN that terminates TLS.
-Two settings depend on that.
-
-**Tell Masir how many proxies are in front of it.** At `0`, the client address
-comes from the socket and `X-Forwarded-For` is ignored. Behind one proxy, set
-`1`.
+Set the exact number of trusted proxies:
 
 ```sh [.env]
 NUXT_TRUSTED_PROXY_DEPTH=1
 ```
 
-Getting this wrong costs you either way. Too low and every visitor shares one
-rate-limit bucket, so one noisy client blocks everyone. Too high and a caller
-can write their own address into the header and reset every limit.
+A value that is too low groups clients under the proxy address. A value that is
+too high lets a client forge its address.
 
-**Point the proxy at port 3000.** Masir speaks plain HTTP and needs no special
-headers. Caddy is the shortest path, because it fetches and renews the
-certificate on its own:
+## Keep cookies secure
 
-```text [Caddyfile]
-go.example.com {
-  reverse_proxy localhost:3000
-}
-```
+Keep `NUXT_SESSION_COOKIE_SECURE=true` behind HTTPS.
 
-With nginx, terminate TLS as you normally do and pass the client address:
+For plain HTTP on a private network, set it to `false`. Do not use that
+setting on the public internet.
 
-```nginx [nginx.conf]
-server {
-  server_name go.example.com;
-  listen 443 ssl;
-  # ssl_certificate and ssl_certificate_key from certbot or your CA
+## Configure email
 
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
-```
+Invitations, verification, password recovery, and link alerts need email.
 
-In multi-workspace mode, or with `NUXT_APP_DOMAIN` set, list every hostname
-in the same block. Masir routes on the `Host` header.
+<Tabs>
 
-**Pass a country header if you want the country breakdown.** Masir never
-geolocates an IP itself, because that would mean handling the address it has
-decided not to store. It reads a header your proxy sets instead. Cloudflare's
-`cf-ipcountry` and Vercel's `x-vercel-ip-country` are recognised out of the
-box. For anything else, name the header:
+<Tab title="SMTP" icon="server">
 
 ```sh [.env]
-NUXT_GEO_COUNTRY_HEADER=x-geo-country
+NUXT_MAIL_DRIVER=smtp
+NUXT_MAIL_FROM=Masir <no-reply@example.com>
+NUXT_MAIL_SMTP_HOST=smtp.example.com
+NUXT_MAIL_SMTP_PORT=587
+NUXT_MAIL_SMTP_USER=masir
+NUXT_MAIL_SMTP_PASSWORD=<secret>
+NUXT_MAIL_SMTP_SECURE=false
 ```
 
-Without a proxy that adds one, the country breakdown stays empty.
+Use port 465 with `NUXT_MAIL_SMTP_SECURE=true` for implicit TLS.
 
-## Plain HTTP on a private network
+</Tab>
 
-The session cookie is marked `Secure`, and browsers refuse to send a `Secure`
-cookie over plain HTTP to any host except `localhost`. An instance reached as
-`http://intranet.example` will sign nobody in until you set:
+<Tab title="Resend" icon="mail">
 
 ```sh [.env]
-NUXT_SESSION_COOKIE_SECURE=false
+NUXT_MAIL_DRIVER=resend
+NUXT_MAIL_FROM=Masir <links@example.com>
+NUXT_MAIL_API_KEY=<secret>
 ```
 
-Put TLS in front instead whenever you can.
+</Tab>
 
-## Email
+</Tabs>
 
-Invitations and password recovery need a mail provider. Without one, messages
-go to the application log. See [Sending email](/guide/authentication#sending-email)
-for SMTP and Resend.
+Without a configured provider, Masir writes messages to the application log.
 
-## Running more than one instance
+## Choose storage
 
-Two parts of Masir keep state in the process.
+The default file driver writes workspace logos below
+`./data/uploads`. The Compose stacks mount that path on a named volume.
 
-**The link cache** holds resolved links for 60 seconds. With several instances
-each keeps its own, so an edit can take up to a minute to show everywhere.
-That is usually fine for a shortener.
-
-**The rate limiter** counts in memory until you point it at Redis. With three
-instances behind a load balancer, each limit is three times looser than you
-configured. Set a shared store before you scale out:
+Use S3-compatible storage when the app has no durable disk or runs on several
+instances:
 
 ```sh [.env]
-NUXT_REDIS_URL=rediss://user:pass@host.upstash.io:6379
-```
-
-Use the TLS endpoint, not the REST URL. If the store becomes unreachable, sign-in
-and other protected routes refuse until it is back, so an outage cannot quietly
-turn off brute-force protection. The redirect path keeps serving.
-
-Also watch the connection pool. Each instance opens up to
-`NUXT_DATABASE_POOL_MAX` connections, 10 by default, and Postgres allows 100 in
-total by default. Multiply the pool by your instance count and keep the result
-under that.
-
-## Uploaded logos
-
-Workspace logos go to local disk by default, under `./data/uploads`. The Compose
-stack mounts a volume there so they survive a recreate. If your instance runs
-on a platform without a disk that lasts between requests, use an S3-compatible
-bucket instead:
-
-```sh [.env]
+NUXT_STORAGE_DRIVER=s3
+NUXT_STORAGE_ACCESS_KEY_ID=<key>
+NUXT_STORAGE_SECRET_ACCESS_KEY=<secret>
 NUXT_STORAGE_BUCKET=masir
-NUXT_STORAGE_ACCESS_KEY_ID=...
-NUXT_STORAGE_SECRET_ACCESS_KEY=...
 NUXT_STORAGE_ENDPOINT=https://<account>.r2.cloudflarestorage.com
-NUXT_STORAGE_PUBLIC_BASE_URL=https://cdn.example.com
+NUXT_STORAGE_PUBLIC_BASE_URL=https://assets.example.com
 ```
 
-The database stores the storage key, not the URL, so you can move files to a
-new bucket or host later. Copy the objects and change the public base URL.
+Set the endpoint for R2 or another S3-compatible service.
 
-## Error reporting
+## Share state across instances
 
-Leave the Sentry variables empty and nothing is sent anywhere. Set a DSN from
-sentry.io or from your own Sentry to report errors:
+Postgres is already shared. Before you run several app instances:
 
-```sh [.env]
-NUXT_PUBLIC_SENTRY_DSN=https://...@sentry.io/...
-NUXT_PUBLIC_SENTRY_ENVIRONMENT=production
-```
+- use S3-compatible storage instead of a local volume
+- set `NUXT_REDIS_URL` so rate-limit counters are shared
+- route every instance to the same Postgres database
+- use the same session and visitor-hash secrets
+- keep the same domain configuration
 
-Tracing is off by default. Set `NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` to a
-fraction between 0 and 1 to turn it on.
+Use a `rediss://` Redis endpoint. Protected actions fail closed when Redis is
+unavailable. Redirects continue and skip the limit check.
 
-The published image has Sentry compiled in, so the DSN and a restart are
-enough. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` and the
-container also uploads the source maps of its own build, which makes the
-client stack traces readable. See the
-[environment reference](/reference/environment#error-reporting).
+## Back up and recover
 
-## Backups
+Back up:
 
-One database holds everything. Back it up before every upgrade and on a
-schedule that matches how much you would mind losing.
+1. the Postgres database
+2. the uploads volume when you use file storage
+3. the deployment files and secret values
+
+Test a restore on another host. A database dump without the uploads loses
+workspace logos. An uploads archive without the database loses the storage
+keys that name them.
+
+## Alerts
+
+A long-running instance checks for expiry and visit-limit alerts every 15
+minutes by default.
+
+Set `NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop. On a
+serverless host, set `NUXT_JOBS_SECRET` and call:
 
 ```sh
-pg_dump "$NUXT_DATABASE_URL" > masir-$(date +%F).sql
+curl -X POST https://go.example.com/api/jobs/alerts \
+  -H 'Authorization: Bearer <jobs-secret>'
 ```
 
-Uploaded logos are not in the dump. They live wherever `NUXT_STORAGE_*` points.
-Back up the `masir_uploads` volume, or use a bucket.
+## Add monitoring
 
-## Upgrading
+`GET /api/health` checks the database and returns `503` when it is
+unavailable. Use it for uptime checks.
 
-```sh
-git pull
-docker compose up -d --build
-```
+Set `NUXT_PUBLIC_SENTRY_DSN` to enable Sentry. The Docker image includes
+hidden source maps. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and
+`SENTRY_PROJECT` to upload them when the container starts.
 
-Migrations run on boot under an advisory lock. A rolling deploy applies them
-once while the other instances wait. They only add to the schema, so the
-instances still running the old version keep working until they restart.
+## Operator responsibilities
 
-<ReadMore to="/guide/upgrading" title="Back up, pin versions, and recover" />
+Masir does not manage the host for you. Keep the operating system, Docker,
+reverse proxy, Postgres, and external services patched. Monitor capacity,
+certificate renewal, backups, restores, and release notes.
+
+<ReadMore to="/guide/upgrading" title="Plan a safe upgrade" />
+

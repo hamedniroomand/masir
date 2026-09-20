@@ -1,158 +1,88 @@
-# Short links
+# Create and manage links
 
-A link is a slug, a destination, and a set of rules about when the redirect is
-allowed. This page covers the slug and the destination. The rules are on
-[Access control](/features/access-control).
+> Keep a public address stable while its destination and rules change.
 
-## Slugs
+A link belongs to one workspace. Its slug is unique inside that workspace.
 
-Leave the slug empty and Masir generates a seven-character one from an alphabet
-of 31 characters. It leaves out `0`, `1`, `i`, `l`, and `o`, the characters
-people misread from a slide or mistype from a printed page.
+## Create a link
 
-Type your own slug for something memorable. Slugs are unique within a
-workspace, so two teams can both own `pricing`.
+A destination is required. It must use HTTP or HTTPS. You can choose a slug or
+let Masir generate one.
 
-A slug cannot collide with an application route. `login`, `settings`, `api`,
-`p`, and the rest are reserved, and a test in the repository fails if somebody
-adds a page without reserving its path.
+Masir blocks private-network destinations by default. An operator can allow
+them for a trusted internal deployment.
 
-## Editing the destination
+## Change the destination
 
-This is the feature that justifies a shortener. Change where a link points and
-every copy you already shared follows.
+Open a link, replace its destination, and save. The short URL continues to
+work. Masir records the change in the link history and workspace activity log.
 
-Masir answers with a **302**, not a 301. Browsers cache a permanent redirect
-hard, and you would lose the ability to move anyone who had already clicked.
+## Rename a link
 
-Destinations must be `http` or `https`. Private and local addresses are refused
-by default, and a link cannot point back at itself. See
-[Destination validation](/project/security#destination-validation).
+Changing the slug keeps the old slug as an alias by default. Both addresses
+reach the same link.
 
-## Notes
+Turn off **Keep old slug** only when the old address must stop resolving. The
+old slug still stays reserved. Masir never gives a previously used address to
+another link.
 
-Each link holds a private note of at most 2000 characters. Use it for why the
-link exists, who asked for it, or where it is printed.
+## Add aliases
 
-Write the note in the **Notes** card on the Settings tab, or in the **Tags and
-notes** group of the create form. The Overview tab shows it above the
-analytics.
+An alias is another slug for the same link. A link can have up to 10 active
+aliases.
 
-The note never reaches a visitor. Only your workspace reads it. Link search
-matches the note, so you can find a link by a word that appears nowhere else.
+Removing an alias stops it from resolving but does not release its slug. This
+protects old QR codes, printed material, and browser bookmarks.
 
-## Aliases and renaming
+## Pass query values
 
-A link holds one **short address** and up to 10 **extra addresses**. Every one
-of them reaches the same destination.
+When query passthrough is on, Masir appends the incoming query values to the
+destination.
 
-Change the short address in the **Destination** card on the Settings tab. Leave
-**Keep /old working as an alias** on, which is the default, and every copy you
-already shared keeps working. Turn it off and the old address stops working at
-once.
+If the destination and incoming request use the same key, the incoming value
+wins. Use this for a shared link that accepts values such as a referral code.
 
-Add and remove extra addresses in the **Extra addresses** card.
+Campaign and link UTM values are added before the incoming query values.
 
-A removed extra address stops working but stays **reserved**. So does the old
-address of a rename you did not keep, and so does the address of a deleted
-link. An address that once worked never returns to the pool, so a QR code on a
-printed poster can never start pointing at somebody else's destination.
+## Add notes
 
-The QR code and the copy button always use the short address, not an alias.
+Notes are private workspace text. Visitors never receive them. Use notes for a
+campaign owner, renewal date, source document, or reason for the link.
 
-## Create from a bookmarklet
+## Download a QR code
 
-**Settings → Workspace** holds a **Quick create** button. Drag it to your
-bookmarks bar.
+Open the QR panel to download SVG or PNG. The image contains the short URL, not
+the current destination. You can change the destination without replacing the
+image.
 
-Press it on any page and Masir opens its create form with that page's address
-and title already filled. You only pick the short address and press Create.
+PNG sizes range from 64 to 512 pixels. SVG remains sharp at any print size.
 
-The bookmarklet reads nothing but the address and the title of the page you are
-on, and it sends both to your own workspace.
+## Review changes
 
-The page behind it is `/links/new`, and it takes `url` and `title` in the
-query. A signed-out visitor goes to the sign-in page and comes back with the
-query intact.
+The history panel shows the last 50 changes. Each row includes the user, time,
+and fields that changed.
 
-## Query passthrough
+Workspace owners can use the activity log for a broader view across links,
+campaigns, members, and security.
 
-Whatever a visitor appends to the short link is merged into the destination:
+## Understand link status
 
-```text
-go.example.com/pricing?ref=twitter
-  becomes
-example.com/plans?utm_source=newsletter&ref=twitter
-```
+Masir evaluates status in this order:
 
-Values the visitor sends win over the link's own UTM values, so a campaign link
-stays correctly attributed when somebody adds their own tracking.
+1. disabled
+2. expired
+3. visit limit reached
+4. scheduled
+5. active
 
-## QR codes
+The first matching state wins.
 
-Every link has a QR code, as SVG or PNG, at sizes from 64 to 512 pixels:
+## Delete a link
 
-```text
-/api/links/:id/qr?format=png&size=512
-```
+Deletion is soft. The link leaves normal lists and stops resolving. Its slug,
+aliases, analytics, and audit history remain reserved or retained.
 
-The code encodes the short link, not the destination, so printing it is safe.
-You can still change where it goes.
+A deleted address cannot be reused.
 
-Three more parameters style it:
+<ReadMore to="/features/access-control" title="Control when the link works" />
 
-| Parameter | Default | Rule |
-|---|---|---|
-| `fg` | `000000` | Six hex digits for the dark modules |
-| `bg` | `ffffff` | Six hex digits, or `transparent` for SVG only |
-| `logo` | `0` | `1` puts the workspace logo in the middle. SVG only |
-
-A bad colour answers `422`, and so does `bg=transparent` on a PNG.
-
-With `logo=1` the error correction rises from `M` to `H`, so the code still
-scans with its centre covered. A workspace with no logo ignores the flag, and
-so does a PNG, because compositing a raster logo needs an image decoder this
-project does not carry.
-
-The **QR code** panel holds the two colour pickers and the logo switch. Your
-choice is remembered in this browser for this workspace, so the next link
-starts with the same style. Nothing is stored on the server.
-
-## History
-
-The **History** tab on a link lists the last 50 changes: who made each one,
-when, and which fields moved. It reads from the same audit log that records
-member changes and sign-in failures.
-
-## Status
-
-A link is always in exactly one state, worked out when it is read rather than
-stored:
-
-| Status | Meaning |
-|---|---|
-| `active` | Resolving normally |
-| `disabled` | Switched off by hand |
-| `scheduled` | Start date is in the future |
-| `expired` | Past its expiry date |
-| `limit_reached` | Visit cap used up |
-
-When more than one applies, `disabled` wins, then `expired`, then
-`limit_reached`, then `scheduled`. Deriving instead of storing means a link
-becomes active the second its start time passes, with no scheduled job
-involved.
-
-## Deleting a link
-
-Deleting keeps the row with a `deleted_at` timestamp. Two things follow.
-
-**The slug stays taken** in that workspace, and so does every extra address the
-link held. People bookmark and republish short links, and reusing an address
-would send everyone holding the old one to a destination they did not expect.
-Another workspace can still use it.
-
-**The click history stays** readable, so a report that included the link still
-adds up.
-
-If you are not sure, disable the link instead. It answers 404 while it is off
-and everything resumes when you turn it back on.

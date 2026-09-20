@@ -1,138 +1,80 @@
 # Workspaces
 
-A workspace is where your team's links live. It owns every link, tag,
-campaign, and click event inside it. People reach a workspace through a
-membership, never directly.
+> Keep links, people, and analytics inside one team boundary.
 
-```mermaid
-flowchart TD
-  U[User] --> M[Membership with a role]
-  M --> W[Workspace]
-  W --> L[Links]
-  W --> T[Tags and campaigns]
-  W --> A[Click events]
+Every link, tag, campaign, invitation, and workspace audit event belongs to a
+workspace.
+
+## Understand the boundary
+
+A workspace has a name, permanent slug, optional logo, link prefix, plan
+state, and exactly one owner.
+
+Repository queries take the workspace ID as part of their input. Database
+constraints keep workspace-scoped slugs and ownership valid.
+
+## Choose one workspace or many
+
+Single-workspace mode is the default. One team uses the configured app and
+short-link domains.
+
+Multi-workspace mode gives each workspace a subdomain:
+
+```text
+acme.example.com
+studio.example.com
 ```
 
-This matters more than it sounds. Because links belong to the workspace and
-not to the person who made them, someone leaving the company does not take
-their links with them. You remove the person. The links stay where they were.
+The database model is the same in both modes.
 
-## Overview
+## Create a workspace
 
-**Overview** is the first page after you sign in. It answers two questions for
-the whole workspace at once:
+Verified users can create a workspace only in multi-workspace mode. Enter a
+name and optional slug. Masir generates a slug when it is empty.
 
-- **How is it doing.** Clicks, unique visitors, and bot requests for the period
-  you pick, with the same chart the link page uses, and the five links that got
-  the most clicks.
-- **What needs attention.** Links that expire within 7 days, links at 80 percent
-  of their visit cap or more, and links that stopped working in the last 7 days.
+The creator becomes the owner.
 
-Every row opens the link it names. The link list stays at `/`, so every bookmark
-and every saved search keeps working.
+A demo user cannot create another workspace.
 
-## Activity log
+## Treat the slug as permanent
 
-**Settings → Activity log** lists what happened in the workspace, newest first.
-Only the owner can open it.
+The workspace slug becomes part of the hostname in multi-workspace mode.
+Masir does not offer a rename operation. This prevents a workspace address
+from changing after people share it.
 
-Four tabs split the rows: **Links**, **Campaigns**, **Members**, and
-**Security**. Each row names who did it, what they did, and when. A row about a
-link carries a chip that opens that link. **Load more** reads the next page.
+## Set a link prefix
 
-Sign-in failures, OAuth errors, and abuse reports belong to an account or to the
-operator, not to a workspace, so they are not listed here.
+A link prefix places all workspace links below one path:
 
-## One workspace or many
+```text
+https://go.example.com/go/pricing
+```
 
-Masir runs in two shapes. One environment variable decides.
+An empty prefix keeps links at the root. Changing the prefix breaks previously
+published paths. Masir warns before it saves the change.
 
-| | Single workspace | Multi-workspace |
-|---|---|---|
-| `NUXT_MULTI_WORKSPACE` | `false` | `true` |
-| Workspaces | One, created by the seed | As many as you like |
-| Address | Your own host | One subdomain per workspace |
-| Wildcard DNS | Not needed | Required |
-| Registration | Closed by default | Usually open |
+## Set the name and logo
 
-In single-workspace mode the server does not look at the hostname. It loads its
-one workspace and serves it on whatever host the request arrived on: a domain,
-a bare IP, or `localhost`. There is nothing to configure.
+The owner can change the display name and upload a PNG, JPEG, GIF, or WebP
+logo. The default upload limit is 2 MiB.
 
-<ReadMore to="/guide/multi-workspace" title="Run many workspaces on subdomains" />
+The database stores a storage key, not a public URL. Operators can move from
+local file storage to S3-compatible storage without changing workspace rows.
 
-## Creating a workspace
+## Review workspace activity
 
-The seed script creates the first workspace together with the first user, so a
-fresh install works right away.
+The owner can filter the activity log by links, campaigns, members, or
+security. Results are newest first and use cursor pagination.
 
-After that, a signed-in user with a verified email can create a workspace from
-the workspace picker. The workspace, its owner membership, and its plan state
-are written in one transaction, so a workspace can never exist without an
-owner.
+Global events without a workspace, such as a failed sign-in, do not appear in
+this view.
 
-In single-workspace mode a second workspace is refused with a `409`. The check
-runs on the server, not by hiding a button.
+## Delete a workspace
 
-## The address is permanent
+Only the owner can delete a workspace. Deletion is soft. Masir refuses to
+delete the only workspace on an instance.
 
-In multi-workspace mode the workspace slug becomes the subdomain, and the
-subdomain is part of every short link published from it. You cannot change it
-after creation, and the form says so before you submit.
+Back up the database and uploads before any administrative deletion.
 
-A slug is 3 to 63 characters of lowercase letters, numbers, and hyphens. It
-cannot start or end with a hyphen. A short list of names is reserved for
-infrastructure and is refused: `www`, `app`, `api`, `admin`, `auth`, `mail`,
-`docs`, `status`, and a few more.
+<ReadMore to="/guide/members" title="Invite people and assign roles" />
 
-The form suggests a slug from the workspace name as you type, but it never
-rewrites what you typed yourself. An invalid value gets an error, not a silent
-correction.
-
-## Link path
-
-By default a short link sits at the root of the workspace host:
-`acme.example.com/abc123`. A workspace can put one path segment in front of
-every slug instead, for example `acme.example.com/go/abc123`. Set it on the
-create form or later in **Settings → Workspace**. Leave it empty to keep the
-root.
-
-The path is 1 to 32 characters of lowercase letters, numbers, and hyphens.
-Names the application uses itself, such as `api`, `links`, and `p`, are
-refused.
-
-Once a path is set, the root paths stop resolving. Changing or clearing the
-path breaks every link and QR code you have already shared, and the settings
-page says so next to the field.
-
-## Name and logo
-
-The owner can rename the workspace and upload a logo from
-**Settings → Workspace**. PNG, JPEG, GIF, and WebP are accepted, up to 2 MiB by
-default. The logo is checked by its bytes, so a renamed file does not get
-through.
-
-## Isolation
-
-Every query that touches workspace data carries the workspace id. Two
-workspaces can hold the same slug, so `acme.example.com/docs` and
-`apple.example.com/docs` are different links that never see each other.
-
-When someone asks for a workspace they do not belong to, the answer is **404,
-never 403**. A `403` would confirm that the workspace exists, which is
-something an outsider should not learn from a URL.
-
-::: tip Tested, not assumed
-The end-to-end suite proves that workspace A cannot read, edit, or delete
-workspace B's link by id, that the link survives the attempt, and that both
-workspaces can hold the same slug.
-:::
-
-## Deleting a workspace
-
-Only the owner can delete a workspace, and the delete is soft. The row stays
-with a `deleted_at` timestamp, every lookup filters it out, the subdomain stops
-resolving, and the links stop working. Nothing is destroyed, so a mistake can
-be undone from the database.
-
-An instance refuses to delete its only workspace.

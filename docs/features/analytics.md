@@ -1,110 +1,81 @@
-# Analytics
+# Measure link traffic
 
-Enough to answer "is this working?" without building a tracking company.
+> Understand how a link performs without storing raw visitor identities.
 
-## What you get
+Every request creates an event after Masir sends the response. Analytics work
+does not delay the redirect.
 
-Open a link and the **Overview** tab shows:
+## Read the summary
 
-- **Total clicks**, the number of successful human redirects over the link's
-  lifetime.
-- **Unique visitors** in the selected period, counted with a rotating hash.
-- **Bot requests** in the period.
-- **Remaining visits**, when the link has a cap.
-- A **timeline** of clicks, hourly for a day and daily beyond that.
-- Breakdowns by **referrer**, **country**, **device**, **browser**, and
-  **outcome**.
+Link analytics include:
 
-Pick a period of 24 hours, 7 days, 30 days, or all time. Switch the traffic
-filter between **human** (the default), **bots**, or **all**.
+- total requests
+- successful human visits
+- daily unique visitors
+- a time series
+- referrer hosts
+- countries
+- devices
+- browsers
+- outcomes
+- bot categories
 
-Campaigns have the same view across all their links, grouped by `utm_source`.
+Use the period filter for 24 hours, 7 days, 30 days, or all retained data. Use
+the traffic filter for humans, bots, or both.
 
-## What is never stored
+Workspace and campaign views aggregate the same event data at a broader level.
 
-No IP addresses. No user agent strings. No cookies on the visitor. No full
-referrer URL, only its host.
+## Understand unique visitors
 
-This is a design choice, not a gap. An analytics table without IP addresses is
-one you can keep, export, and show to anyone without a story.
+Masir creates a salted hash from the link, client address, user agent, and
+current day. It stores the first eight bytes as a number.
 
-## How unique visitors work
+The same person counts once per link each day. The value changes the next day
+and cannot join activity across days.
 
-Each click computes a hash of the secret, the day number, the link id, the
-visitor's IP, and their user agent. The first eight bytes of the digest are
-stored as a 64-bit integer. The column is only ever counted, never compared to
-anything outside the database.
+Set `NUXT_VISITOR_HASH_SECRET` so a session-secret rotation does not reset the
+current daily counts.
 
-The day number is in the hash, so the same person counts once per day for each
-link and the hash rotates at midnight UTC. Yesterday's hashes cannot be matched
-to today's.
+## Know what is stored
 
-The secret is in the hash because the IP address space is small enough to
-search. Without it, anyone holding the table could try every address against a
-hash and recover the visitor. `NUXT_VISITOR_HASH_SECRET` sets it. If you leave
-it empty the session password is used, which means rotating the session
-password also resets visitor counts for the day.
+A click event can store the link and workspace IDs, time, outcome, visitor
+hash, referrer host, country, device, browser, and bot class.
 
-::: info Shared connections merge
-People behind one NAT gateway with the same browser count as one visitor. The
-alternative is storing something that identifies them individually, which is
-the thing this design refuses to do.
-:::
+Masir does not store:
 
-## Outcomes
+- the visitor IP address
+- the full user-agent string
+- a visitor cookie
+- a cross-link visitor identity
+- a third-party analytics request in the redirect path
 
-Every request records why it ended the way it did:
+## Read outcomes
 
-| Outcome | Meaning |
-|---|---|
-| `redirect_success` | Reached the destination |
-| `bot_request` | Classified as a bot |
-| `password_failed` | Wrong password |
-| `scheduled_block` | Before the start date |
-| `disabled_block` | Link switched off |
-| `expired_block` | Past expiry, no fallback |
-| `expired_redirect` | Past expiry, sent to the fallback |
-| `limit_reached` | Visit cap used up, no fallback |
-| `limit_redirect` | Visit cap used up, sent to the fallback |
-| `scheduled_redirect` | Before the start date, sent to the fallback |
+An outcome explains what happened before a redirect:
 
-This turns "the link is broken" into an answer. If `password_failed` dominates,
-people do not have the password. If `bot_request` dominates, the number you
-were proud of was Slack unfurling the URL.
+- success
+- password required or rejected
+- scheduled
+- expired
+- visit limit reached
+- disabled
+- destination or request failure
 
-## Bots
+Successful human redirects increase the visit counter. Other outcomes do not.
 
-Requests are classified from the user agent into four categories: `search`,
-`social_preview`, `monitoring`, and `automation`. Bots still get the redirect,
-so link previews work, but the event is stored with the bot flag set.
+## Understand bots
 
-Bot traffic is recorded, not discarded, and left out of the default view. It
-never adds to the click count and never uses up a visit. Switch the traffic
-filter to see it.
+Masir classifies common crawlers and preview agents. Bot traffic appears
+separately and does not consume a visit limit. Bots use the default
+destination instead of a targeting rule.
 
-## Countries
+## Retention and export
 
-Read from a header your proxy sets. Cloudflare's `cf-ipcountry` and Vercel's
-`x-vercel-ip-country` are recognised without configuration. For anything else,
-name the header:
+Click events use monthly Postgres partitions. The application creates the
+current and next partitions at boot.
 
-```sh [.env]
-NUXT_GEO_COUNTRY_HEADER=x-geo-country
-```
+Masir has no export button. Query Postgres or use the HTTP analytics routes
+when you need data outside the interface.
 
-With no proxy in front, the country breakdown stays empty. Masir does not
-geolocate an IP itself, because that would mean handling the address it has
-chosen not to store.
+<ReadMore to="/reference/data-model#click-events" title="Read the event data model" />
 
-## Recorded after the response
-
-The redirect is sent first. The click is written in the background.
-
-A visitor never waits on an analytics insert, and a database that is slow or
-briefly unavailable delays nothing. The redirect still lands.
-
-## Exporting
-
-Every breakdown is available over the [HTTP API](/reference/api) with the same
-filters as the interface. That is how you get the data into a spreadsheet or a
-warehouse.

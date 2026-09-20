@@ -1,182 +1,197 @@
 # HTTP API
 
-Everything the interface does goes through these routes, and you can call them
-yourself. There is no separate API token yet. Requests authenticate with the
-same session cookie the browser uses.
+> Masir exposes the same JSON routes used by its web interface.
 
-## Authentication
+There is no API-token system. Authenticate with a user session unless a route
+is marked public or uses the jobs bearer secret.
 
-Sign in once and keep the cookie:
+## Session authentication
+
+Sign in and save the cookie:
 
 ```sh
-curl -s -X POST https://go.example.com/api/auth/login \
+curl -sS -X POST https://go.example.com/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"email":"you@example.com","password":"..."}' \
+  -d '{"email":"you@example.com","password":"your-password"}' \
   -c cookie.txt
 ```
 
-Send it with every later request using `-b cookie.txt`.
+Send `-b cookie.txt` with later requests.
 
-In multi-workspace mode, call workspace routes on the workspace's own
-subdomain. The server takes the workspace from the hostname, never from the
-request body.
+In multi-workspace mode, send workspace requests to that workspace's
+subdomain. The host selects the workspace. A request body cannot select one.
 
-### Origin check
+## Request security
 
-A `POST`, `PATCH`, `PUT`, or `DELETE` that carries an `Origin` header must have
-one that matches the `Host`. Browsers always send it on a cross-site request,
-so this stops a cross-site form post. A request without an `Origin`, which is
-what `curl` and most HTTP libraries send, is accepted.
+Unsafe browser requests with an `Origin` header must use an origin that
+matches the request host. This protects cookie-authenticated routes from
+cross-site form requests.
 
-### Errors
+A command-line request without `Origin` is accepted.
 
-Every error is a JSON body with `statusCode` and `statusMessage`. A validation
-error explains which field failed. A request for something you cannot see
-answers `404`, never `403`, so the response does not confirm that the thing
-exists.
+Rate-limited requests return `429` and a `Retry-After` header. Resource
+lookups that the current user cannot access return `404` instead of revealing
+that a row exists.
 
-Rate-limited requests answer `429` with a `Retry-After` header.
+## Permission names
 
-## Health
+| Permission | Owner | Member | Viewer |
+|---|:---:|:---:|:---:|
+| `workspace.manage` | Yes | No | No |
+| `workspace.delete` | Yes | No | No |
+| `members.manage` | Yes | No | No |
+| `links.manage` | Yes | Yes | No |
+| `links.read` | Yes | Yes | Yes |
+| `analytics.read` | Yes | Yes | Yes |
 
-| Method | Route | Notes |
+## Health and host context
+
+| Method | Route | Authentication | Result |
+|---|---|---|---|
+| `GET` | `/api/health` | Public | App and database health, or `503` |
+| `GET` | `/api/host` | Public | Host and deployment context used by the interface |
+
+## Authentication
+
+| Method | Route | Input or result |
 |---|---|---|
-| `GET` | `/api/health` | `{ "ok": true, "database": "up" }`, or `503` when Postgres is unreachable. No session needed |
-
-## Auth
-
-| Method | Route | Notes |
-|---|---|---|
-| `GET` | `/api/auth/providers` | Which sign-in methods are on, and whether registration is open |
-| `POST` | `/api/auth/register` | `email`, `password`. Sends a verification link |
-| `POST` | `/api/auth/demo` | Optional `turnstileToken`. Makes a seeded demo workspace and a session for it. Answers `201 { "url": "..." }`, `200` with the same shape when the session already holds a live demo, `404` unless `NUXT_DEMO_ENABLED` is on, `429` after 3 calls an hour |
-| `POST` | `/api/auth/verify` | `token` from the email |
-| `POST` | `/api/auth/verify/resend` | Send a new verification link |
-| `POST` | `/api/auth/login` | `email`, `password`. Sets the session cookie |
+| `GET` | `/api/auth/providers` | Enabled providers and registration state |
+| `POST` | `/api/auth/register` | `email`, `password` |
+| `POST` | `/api/auth/demo` | Optional `turnstileToken`; creates or resumes a demo |
+| `POST` | `/api/auth/verify` | Verification `token` |
+| `POST` | `/api/auth/verify/resend` | Sends a new verification link |
+| `POST` | `/api/auth/login` | `email`, `password`; sets the session |
 | `POST` | `/api/auth/logout` | Clears the session |
-| `POST` | `/api/auth/forgot` | `email`. Always answers the same way |
-| `POST` | `/api/auth/reset` | `token`, `password`. Signs out every device |
-| `GET` | `/api/auth/google` | Start or finish the Google flow |
-| `GET` | `/api/auth/microsoft` | Start or finish the Microsoft flow |
-| `GET` | `/api/auth/identities` | Sign-in methods connected to your account |
-| `DELETE` | `/api/auth/identities/:id` | Disconnect one. The last one answers `422` |
+| `POST` | `/api/auth/forgot` | `email`; always returns a neutral result |
+| `POST` | `/api/auth/reset` | `token`, `password`; invalidates all sessions |
+| `GET` | `/api/auth/google` | Starts or finishes Google OAuth |
+| `GET` | `/api/auth/microsoft` | Starts or finishes Microsoft OAuth |
+| `GET` | `/api/auth/identities` | Connected sign-in methods |
+| `DELETE` | `/api/auth/identities/:id` | Removes one identity; rejects the last one |
+
+The demo route returns `404` when the feature is off. It returns a workspace
+URL when it creates or resumes a live demo session.
 
 ## Workspaces
 
-| Method | Route | Who | Notes |
+| Method | Route | Required access | Input or result |
 |---|---|---|---|
-| `GET` | `/api/workspaces` | anyone signed in | Your memberships. Each item carries `expiresAt`, set only on a demo workspace |
-| `GET` | `/api/workspaces/analytics` | `analytics.read` | `period` (`24h`, `7d`, `30d`, `all`). Totals, timeline, top five links, and the attention lists |
-| `POST` | `/api/workspaces` | anyone verified | `name`, optional `slug`, optional `linkPrefix`. Refused with `409` in single-workspace mode |
-| `PATCH` | `/api/workspaces` | owner | `name`, `linkPrefix`. An empty prefix puts the links back at the root. A change breaks every published link |
-| `DELETE` | `/api/workspaces` | owner | Soft delete. The only workspace of an instance is refused |
-| `GET` | `/api/workspaces/slug-available?slug=` | anyone | Whether a workspace address is free |
-| `POST` | `/api/workspaces/logo` | owner | Multipart image. PNG, JPEG, GIF, or WebP |
-| `DELETE` | `/api/workspaces/logo` | owner | Remove the logo |
-| `POST` | `/api/workspaces/transfer-ownership` | owner | `userId` of the new owner |
+| `GET` | `/api/workspaces` | Signed in | Current memberships |
+| `POST` | `/api/workspaces` | Verified account | `name`, optional `slug`, optional `linkPrefix` |
+| `PATCH` | `/api/workspaces` | `workspace.manage` | `name`, `linkPrefix` |
+| `DELETE` | `/api/workspaces` | `workspace.delete` | Soft-deletes the current workspace |
+| `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`: `24h`, `7d`, `30d`, or `all` |
+| `GET` | `/api/workspaces/slug-available?slug=` | Signed in | Workspace slug availability |
+| `POST` | `/api/workspaces/logo` | `workspace.manage` | Multipart PNG, JPEG, GIF, or WebP |
+| `DELETE` | `/api/workspaces/logo` | `workspace.manage` | Removes the logo |
+| `POST` | `/api/workspaces/transfer-ownership` | `members.manage` | `userId` |
 
-### Members
+Single-workspace mode rejects another workspace. Masir also rejects deletion
+of the only workspace on an instance.
 
-| Method | Route | Who | Notes |
+## Members and invitations
+
+| Method | Route | Required access | Input or result |
 |---|---|---|---|
-| `GET` | `/api/workspaces/members` | owner | Every membership with `userId`, role, and status |
-| `PATCH` | `/api/workspaces/members/:userId` | owner | `isActive`, `role` (`MEMBER` or `VIEWER`). Both optional. Refused on the owner |
-| `DELETE` | `/api/workspaces/members/:userId` | owner | Remove. Refused on the owner |
+| `GET` | `/api/workspaces/members` | `members.manage` | Memberships |
+| `PATCH` | `/api/workspaces/members/:id` | `members.manage` | Optional `role`, `isActive` |
+| `DELETE` | `/api/workspaces/members/:id` | `members.manage` | Removes a non-owner |
+| `GET` | `/api/workspaces/invitations` | `members.manage` | Open invitations |
+| `POST` | `/api/workspaces/invitations` | `members.manage` | `email`, optional `role` |
+| `POST` | `/api/workspaces/invitations/:id/resend` | `members.manage` | Replaces the token and sends again |
+| `DELETE` | `/api/workspaces/invitations/:id` | `members.manage` | Revokes an invitation |
+| `POST` | `/api/workspaces/invitations/accept` | Invited user | `token` |
 
-### Invitations
-
-| Method | Route | Who | Notes |
-|---|---|---|---|
-| `GET` | `/api/workspaces/invitations` | owner | Open invitations |
-| `POST` | `/api/workspaces/invitations` | owner | `email`, optional `role` (`MEMBER` or `VIEWER`, default `MEMBER`). An open invitation for the same address answers `409` |
-| `POST` | `/api/workspaces/invitations/:id/resend` | owner | New token, new email. The old link stops working |
-| `DELETE` | `/api/workspaces/invitations/:id` | owner | Revoke |
-| `POST` | `/api/workspaces/invitations/accept` | the invited user | `token`. The email must match the signed-in account. The member joins with the role on the invitation |
+An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 
 ## Links
 
-| Method | Route | Notes |
-|---|---|---|
-| `GET` | `/api/links` | `page`, `perPage`, `sort` (`createdAt` or `clicks`), `status`, `search`, `tags`, `destination` (exact match after normalisation) |
-| `POST` | `/api/links` | Create. See the fields below |
-| `GET` | `/api/links/:id` | One link, with its `creator` |
-| `PATCH` | `/api/links/:id` | Update any field. `slug` renames the link and, unless `keepOldSlug` is `false`, keeps the old address as an alias |
-| `DELETE` | `/api/links/:id` | Soft delete. The slug and every alias stay taken |
-| `GET` | `/api/links/:id/analytics` | `period` (`24h`, `7d`, `30d`, `all`), `traffic` (`human`, `bot`, `all`) |
-| `GET` | `/api/links/:id/history` | The last 50 changes, with who and which fields |
-| `POST` | `/api/links/:id/aliases` | `slug`. An extra address for the link. `409` when taken, `422` at ten |
-| `DELETE` | `/api/links/:id/aliases/:slug` | Stop an extra address. The slug stays taken |
-| `GET` | `/api/links/:id/qr` | `format` (`svg` or `png`), `size` (64 to 512) |
-
-A link takes these fields on create and update:
-
-| Field | Type | Notes |
-|---|---|---|
-| `destinationUrl` | string | Required on create. `http` or `https` |
-| `slug` | string | Optional on create, generated when empty. Immutable after |
-| `title` | string or null | |
-| `startsAt` | number or null | Unix milliseconds |
-| `expiresAt` | number or null | Unix milliseconds. Must be after `startsAt` |
-| `expirationDestination` | string or null | Where an expired link redirects |
-| `maximumVisits` | integer or null | At least 1. `null` means no limit |
-| `password` | string or null | Set, replace, or clear |
-| `campaignId` | string or null | Cannot be combined with `utmCampaign` |
-| `utmSource`, `utmCampaign`, `utmTerm`, `utmContent` | string or null | |
-| `tags` | string array | Up to 20 names |
-
-The response carries the link with its `status`, `shortUrl`, `clickCount`, and
-`successfulVisitCount`.
-
-### Visitor routes
-
-These are used by the pages a visitor sees. They need no session.
-
-| Method | Route | Notes |
-|---|---|---|
-| `GET` | `/api/links/public/:slug` | Whether the slug behind the unlock page exists and needs a password |
-| `POST` | `/api/links/verify-password` | `slug`, `password`. Sets the unlock cookie |
-| `POST` | `/api/report` | `slug`, `reason`. Abuse report, always acknowledged |
-
-## Jobs
-
-This route carries a bearer token, not a session. A scheduler calls it.
-
-| Method | Route | Notes |
-|---|---|---|
-| `POST` | `/api/jobs/alerts` | Run the expiry alert sweep. Needs `Authorization: Bearer <NUXT_JOBS_SECRET>`. Answers `404` with no secret set, `401` with a wrong one, and `{ "sent": n, "demosDeleted": n }` otherwise. `demosDeleted` is `0` unless `NUXT_DEMO_ENABLED` is on |
-
-## Tags
-
-| Method | Route | Notes |
-|---|---|---|
-| `GET` | `/api/tags` | Every tag with its link count |
-| `POST` | `/api/tags` | `name`, up to 40 characters |
-| `PATCH` | `/api/tags/:id` | `name` |
-| `DELETE` | `/api/tags/:id` | Removes the tag from every link. The links stay |
-
-## Campaigns
-
-| Method | Route | Notes |
-|---|---|---|
-| `GET` | `/api/campaigns` | |
-| `POST` | `/api/campaigns` | `name`, `utmCampaign`, optional `utmMedium`. A duplicate `utmCampaign` answers `409` |
-| `GET` | `/api/campaigns/:id` | |
-| `PATCH` | `/api/campaigns/:id` | |
-| `DELETE` | `/api/campaigns/:id` | Detaches its links |
-| `GET` | `/api/campaigns/:id/analytics` | Same `period` as a link, grouped by `utm_source` |
-
-## Audit log
-
-| Method | Route | Who | Notes |
+| Method | Route | Required access | Input or result |
 |---|---|---|---|
-| `GET` | `/api/admin/audit-events` | owner | Workspace events, newest first, with `actorEmail` and `linkSlug`. Takes `group` (`links`, `campaigns`, `members`, `security`), `type`, `limit` (default 50, max 200), and `before` for the next page. Answers `nextBefore`, or `null` on the last page |
+| `GET` | `/api/links` | `links.read` | Paginated and filtered links |
+| `POST` | `/api/links` | `links.manage` | Creates a link |
+| `GET` | `/api/links/:id` | `links.read` | Link and creator |
+| `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields |
+| `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
+| `GET` | `/api/links/:id/analytics` | `links.read` | Period and traffic filters |
+| `GET` | `/api/links/:id/history` | `links.read` | Last 50 changes |
+| `POST` | `/api/links/:id/aliases` | `links.manage` | `slug` |
+| `DELETE` | `/api/links/:id/aliases/:slug` | `links.manage` | Revokes the alias |
+| `GET` | `/api/links/:id/qr` | `links.read` | `format` and `size` |
 
-Rows carry `type`, `actorId`, `linkId`, a JSON `detail`, and `createdAt`.
-Events with no workspace, such as sign-in failures and abuse reports, never
-appear here.
+List filters include `page`, `perPage`, `sort`, `status`, `search`,
+`tags`, and exact normalized `destination`.
 
-## Uploads
+### Link input
 
-| Method | Route | Notes |
+| Field | Type | Rule |
 |---|---|---|
-| `GET` | `/uploads/*` | Serves a logo when the file storage provider is in use |
+| `destinationUrl` | string | Required on create; HTTP or HTTPS |
+| `slug` | string | Generated when empty |
+| `title` | string or null | Optional display title |
+| `startsAt` | number or null | Unix milliseconds |
+| `expiresAt` | number or null | Must follow `startsAt` |
+| `scheduledDestination` | string or null | Fallback before opening |
+| `expirationDestination` | string or null | Fallback after expiry |
+| `limitDestination` | string or null | Fallback after the visit cap |
+| `maximumVisits` | integer or null | Minimum 1 |
+| `password` | string or null | Sets, replaces, or clears the password |
+| `campaignId` | string or null | Cannot combine with `utmCampaign` |
+| `utmSource`, `utmCampaign`, `utmTerm`, `utmContent` | string or null | Tracking values |
+| `tags` | string[] | Up to 20 names |
+| `notes` | string or null | Private workspace text |
+| `targeting` | object or null | Country and OS destinations |
+
+A slug change keeps the old slug as an alias unless `keepOldSlug` is false.
+
+## Public visitor routes
+
+| Method | Route | Input or result |
+|---|---|---|
+| `GET` | `/api/links/public/:slug` | Unlock-page link state |
+| `POST` | `/api/links/verify-password` | `slug`, `password`; sets a grant cookie |
+| `POST` | `/api/report` | `slug`, `reason`; neutral acknowledgement |
+
+These routes do not need a user session.
+
+## Tags and campaigns
+
+| Method | Route | Required access |
+|---|---|---|
+| `GET` | `/api/tags` | `links.read` |
+| `POST` | `/api/tags` | `links.manage` |
+| `PATCH` | `/api/tags/:id` | `links.manage` |
+| `DELETE` | `/api/tags/:id` | `links.manage` |
+| `GET` | `/api/campaigns` | `links.read` |
+| `POST` | `/api/campaigns` | `links.manage` |
+| `GET` | `/api/campaigns/:id` | `links.read` |
+| `PATCH` | `/api/campaigns/:id` | `links.manage` |
+| `DELETE` | `/api/campaigns/:id` | `links.manage` |
+| `GET` | `/api/campaigns/:id/analytics` | `links.read` |
+
+A tag input is `name`. A campaign uses `name`, `utmCampaign`, and optional
+`utmMedium`.
+
+## Audit events
+
+`GET /api/admin/audit-events` requires `workspace.manage`.
+
+Filters include `group`, `type`, `limit`, and `before`. The response is
+newest first and includes `nextBefore` for cursor pagination.
+
+## Scheduled jobs
+
+`POST /api/jobs/alerts` uses:
+
+```text
+Authorization: Bearer <NUXT_JOBS_SECRET>
+```
+
+It returns `404` when no secret is set, `401` for a wrong secret, and the
+sent-alert and deleted-demo counts on success.
+
+## Upload delivery
+
+`GET /uploads/*` serves file-storage objects. S3-compatible storage uses the
+configured public base URL instead.
+

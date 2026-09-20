@@ -1,39 +1,41 @@
-# Installation
+# Install Masir
 
-Masir runs as a single container next to a Postgres database. You can have it
-running in about five minutes with Docker Compose. If you would rather run from
-source, that works too.
+> Start Masir with Postgres, create the first owner, and verify the deployment.
 
-## Requirements
+The published Docker image is the recommended production path. A local build
+and a source install are also supported.
 
-- **Postgres 18 or newer.** Masir uses the native `uuidv7()` function for
-  primary keys, and it arrived in Postgres 18. The Compose stack ships the right
-  version.
-- **Docker**, or **Bun 1.4 or newer** if you build from source.
-- **A domain** pointed at the server. Masir needs to know the address people
-  will type, and browsers need HTTPS before they accept the session cookie.
+## Before you begin
+
+You need:
+
+- a Linux server with Docker and Docker Compose, or Bun 1.4 or newer
+- Postgres 18 or newer
+- a domain that points to the server
+- HTTPS for production sign-in
+
+The included Compose stacks use Postgres 18 and keep the database off the
+public network.
 
 ## Quick install
 
-One command on a fresh Linux server. The script installs Docker when the
-machine has none, pulls the published image, writes a `.env` with generated
-secrets, and starts the stack in a `masir` folder.
+The installer supports a new Linux server. It installs Docker when needed,
+downloads the published stack, generates secrets, and starts Masir.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/install.sh | sh
 ```
 
-It asks one question, the address people will type. Read the script first if
-you prefer: it is short and does nothing outside that folder.
+It asks for the public origin, such as `https://go.example.com`. The result is
+stored in a new `masir` directory.
 
-## Docker image
+## Published Docker image
 
-Every release publishes `ghcr.io/hamedniroomand/masir` for `amd64` and
-`arm64`. Use it when you do not want to build.
+Use this path when you want release images from GitHub Container Registry.
 
 <Steps>
 
-### Download the stack
+### Download the deployment files
 
 ```sh
 mkdir masir && cd masir
@@ -41,32 +43,48 @@ curl -fsSLO https://raw.githubusercontent.com/hamedniroomand/masir/main/compose.
 curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/.env.example -o .env
 ```
 
-Open `.env` and set the same three values as below. Set `MASIR_VERSION` too if
-you want to pin a release; it defaults to `latest`.
+### Set the required values
+
+Generate two different secrets:
+
+```sh
+openssl rand -hex 24
+openssl rand -base64 32
+```
+
+Open `.env` and set:
+
+```sh [.env]
+POSTGRES_PASSWORD=<first-secret>
+NUXT_SESSION_PASSWORD=<second-secret>
+NUXT_ROOT_DOMAIN=https://go.example.com
+NUXT_PUBLIC_SHORT_DOMAIN=https://go.example.com
+NUXT_STORAGE_PUBLIC_BASE_URL=https://go.example.com/uploads
+```
+
+Set `MASIR_VERSION` to a release number if you do not want `latest`.
 
 ### Start the stack
 
 ```sh
 docker compose -f compose.image.yaml up -d
+```
+
+### Create the first owner
+
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, then run:
+
+```sh
 docker compose -f compose.image.yaml exec app bun run db:seed:admin
 ```
 
+Change the initial password after you sign in.
+
 </Steps>
 
-To report errors to Sentry, set `NUXT_PUBLIC_SENTRY_DSN` in `.env` and
-restart. Add `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, and the
-container also uploads the source maps of its own build to your project, so
-the stack traces are readable. Your own Sentry works too. See the
-[environment reference](../reference/environment#error-reporting).
+## Build the image
 
-## Build it yourself
-
-Use this when you run a change of your own. Compose builds the image, starts
-Postgres and Masir together, and keeps the data on named volumes.
-
-<Steps>
-
-### Clone and configure
+Use the repository Compose file when you run a fork or an unreleased change.
 
 ```sh
 git clone https://github.com/hamedniroomand/masir.git
@@ -74,71 +92,29 @@ cd masir
 cp .env.example .env
 ```
 
-Open `.env` and set these three values. Everything else has a working default.
-
-```sh [.env]
-# openssl rand -hex 24
-POSTGRES_PASSWORD=
-
-# 32 characters or more. openssl rand -base64 32
-NUXT_SESSION_PASSWORD=
-
-# The address people will type, with protocol
-NUXT_ROOT_DOMAIN=https://go.example.com
-NUXT_PUBLIC_SHORT_DOMAIN=https://go.example.com
-```
-
-### Start the stack
+Set the same required values as the published-image path, then run:
 
 ```sh
 docker compose up -d --build
-```
-
-Masir waits for Postgres to pass its health check, applies the database
-migrations, and starts listening on port 3000.
-
-### Create the first account
-
-```sh
 docker compose exec app bun run db:seed:admin
 ```
 
-The seed reads `ADMIN_EMAIL` and `ADMIN_PASSWORD` from your `.env`. It creates
-the first user, the first workspace, and the owner membership that connects
-them. Sign in at `/login`.
+The stack waits for Postgres, applies pending migrations, and starts Masir on
+port `3000` by default.
 
-</Steps>
+## Run from source
 
-::: tip Migrations run on boot
-Every start applies the migrations the database is missing, under a Postgres
-advisory lock, so several instances apply them once. After an upgrade you
-restart and you are done.
-:::
-
-Postgres is not published to the host. The app reaches it over the Compose
-network. Data lives on the `masir_db-data` volume and uploaded logos on
-`masir_uploads`.
-
-## From source
-
-Use this when you want to run Masir on a machine without Docker, or when you
-plan to work on the code.
+Use this path for development or a host where you manage the runtime.
 
 ```sh
 git clone https://github.com/hamedniroomand/masir.git
 cd masir
 cp .env.example .env
 bun install
+docker compose -f compose.dev.yaml up -d db mail
 ```
 
-Point `NUXT_DATABASE_URL` in `.env` at a Postgres 18 database. If you do not
-have one, the development stack publishes one on localhost:
-
-```sh
-docker compose -f compose.dev.yaml up -d db
-```
-
-Then migrate, seed, and build:
+Set `NUXT_DATABASE_URL` to the Postgres 18 database. Then run:
 
 ```sh
 bun run db:migrate
@@ -147,60 +123,51 @@ bun run build
 bun .output/server/index.mjs
 ```
 
-The server listens on port 3000. For a development server with hot reload, see
-[Development](/project/development).
+Use `bun --bun nuxt dev` instead of the last two commands for hot reload.
 
-## Check that it works
+## Verify the installation
+
+Check the app directly before you configure a reverse proxy:
 
 ```sh
-curl -s http://localhost:3000/api/health
+curl -fsS http://localhost:3000/api/health
 ```
+
+Expected result:
 
 ```json
-{ "ok": true, "database": "up" }
+{"ok":true,"database":"up"}
 ```
 
-A `503` means the app is running but cannot reach Postgres. Check
-`NUXT_DATABASE_URL`.
+A `503` means that Masir is running but cannot reach Postgres. Check
+`NUXT_DATABASE_URL`, the database health, and the container network.
 
-## If it refuses to start
+## Put HTTPS in front
 
-Masir validates its configuration before it does anything else. A missing or
-invalid value stops the process and names the variable in the first log line:
+Point your reverse proxy at port `3000`. Forward the original host and scheme.
+Set `NUXT_TRUSTED_PROXY_DEPTH=1` when exactly one proxy sits in front of Masir.
+
+Keep `NUXT_SESSION_COOKIE_SECURE=true` in production. Plain HTTP is supported
+only on a private network when you set it to `false`.
+
+## Production checklist
+
+- Pin `MASIR_VERSION` to a release.
+- Store `.env` outside version control.
+- Use a different session secret and database password.
+- Configure HTTPS and the correct public origins.
+- Configure mail before you invite users or use password recovery.
+- Back up Postgres and the uploads volume.
+- Test an upgrade on a copy of production data.
+
+## Startup errors
+
+Masir validates its configuration before it accepts traffic. The first error
+line names the invalid variable. Fix it and restart the app.
 
 ```text
 Error: Missing or invalid NUXT_SESSION_PASSWORD (need 32+ characters)
 ```
 
-Fix the value and start again. The [troubleshooting page](/guide/troubleshooting)
-lists the common ones.
+<ReadMore to="/guide/quickstart" title="Create your first link" />
 
-## Next steps
-
-<CardGroup :cols="2">
-
-<Card title="Your first link" icon="rocket" to="/guide/quickstart">
-
-Create a link and change where it points.
-
-</Card>
-
-<Card title="Sending email" icon="key-round" to="/guide/authentication#sending-email">
-
-Invitations and password recovery need a mail provider.
-
-</Card>
-
-<Card title="Self-hosting" icon="server" to="/guide/self-hosting">
-
-Proxies, backups, scaling, and error reporting.
-
-</Card>
-
-<Card title="Environment variables" icon="settings" to="/reference/environment">
-
-Every setting, with its default.
-
-</Card>
-
-</CardGroup>

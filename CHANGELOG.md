@@ -11,6 +11,9 @@ the notes for every version between the one you run and the one you install.
 
 ### Changed
 
+- The documentation site now has task-based navigation for product users,
+  operators, API users, and contributors. Every published page and the
+  VitePress theme were rewritten for the first public release.
 - The Docker image ships with Sentry compiled in and off. `NUXT_PUBLIC_SENTRY_DSN`
   turns it on at run time, with no rebuild. With `SENTRY_AUTH_TOKEN`,
   `SENTRY_ORG`, and `SENTRY_PROJECT` the container also creates the release

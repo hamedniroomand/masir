@@ -3,76 +3,131 @@ layout: home
 
 hero:
   name: Masir
-  text: Short links your team owns.
+  text: Keep every shared link under your control.
   image:
     src: /icon.svg
     alt: Masir
   tagline: >-
-    A self-hosted link manager with workspaces, access control, and analytics
-    that never store a visitor's IP address. Share a link once, then change
-    where it goes whenever you like.
+    An open-source link management platform for teams. Publish short links on
+    your domain, change destinations after sharing, and measure traffic without
+    storing visitor IP addresses.
   actions:
     - theme: brand
-      text: Get started
+      text: Install Masir
       link: /guide/installation
     - theme: alt
-      text: What is Masir?
-      link: /guide/
+      text: Explore the user guide
+      link: /features/
     - theme: alt
-      text: GitHub
+      text: View on GitHub
       link: https://github.com/hamedniroomand/masir
 ---
 
 ```sh
-docker compose up -d --build
-docker compose exec app bun run db:seed:admin
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/install.sh | sh
 ```
 
-## Why teams pick Masir
+## Start with your role
 
-<CardGroup :cols="2">
+<CardGroup :cols="3">
 
-<Card title="The link outlives the destination" icon="link">
+<Card title="I want to try Masir" icon="rocket" to="/guide/">
 
-Print `go.acme.com/pricing` on a poster. Point it somewhere new next year.
-Every slide, email, and QR code you already sent keeps working.
-
-</Card>
-
-<Card title="Links belong to the team" icon="building-2">
-
-A workspace owns its links. When someone leaves, you remove the person and
-keep the links. One owner, any number of members and read-only viewers, and the
-database itself refuses a second owner.
+Choose an install path and create your first short link.
 
 </Card>
 
-<Card title="Analytics you can show a lawyer" icon="chart-line">
+<Card title="I use Masir" icon="link" to="/features/">
 
-Clicks, unique visitors, referrers, countries, devices, and browsers. No IP
-addresses, no user agents, no third party in the request path. Bots are counted
-on their own row.
+Manage links, access rules, targeting, analytics, and campaigns.
 
 </Card>
 
-<Card title="Links that lock, wait, and expire" icon="shield-check">
+<Card title="I operate Masir" icon="server" to="/guide/self-hosting">
 
-Put a password on a link, hold it until a launch date, retire it after an
-event, or cap it at a number of visits. A one-time link is a cap of one.
+Configure domains, email, storage, backups, monitoring, and upgrades.
+
+</Card>
+
+<Card title="I integrate with Masir" icon="braces" to="/reference/api">
+
+Use the same HTTP API as the Masir interface.
+
+</Card>
+
+<Card title="I contribute to Masir" icon="folder-git-2" to="/project/">
+
+Set up the repository, run its checks, and understand the architecture.
+
+</Card>
+
+<Card title="I need an exact value" icon="settings" to="/reference/">
+
+Look up environment variables, scripts, routes, and the data model.
 
 </Card>
 
 </CardGroup>
 
-## One codebase, two shapes
+## Built for links that must last
 
-**Single workspace.** One team, your own domain, nothing else to set up. This
-is the default.
+<CardGroup :cols="2">
 
-**Multi-workspace.** Every workspace gets its own subdomain behind one wildcard
-DNS record and one wildcard certificate. Creating a workspace is a database
-insert. No DNS API, no certificate automation.
+<Card title="Change the destination, not the link" icon="link">
 
-The schema is the same in both. One environment variable picks the shape.
+Keep a URL printed on a poster, QR code, email, or document. Update where it
+goes without asking people to use a new address.
 
-<ReadMore to="/guide/installation" title="Install Masir in five minutes" />
+</Card>
+
+<Card title="Give links to a team" icon="users">
+
+Workspaces keep links with the organization. Owners, members, and viewers get
+clear permissions.
+
+</Card>
+
+<Card title="Control when a link works" icon="shield-check">
+
+Add a password, opening date, expiry date, visit limit, or fallback
+destination. A visit limit of one creates a one-time link.
+
+</Card>
+
+<Card title="Measure without keeping raw identities" icon="chart-line">
+
+See clicks, daily unique visitors, referrers, countries, devices, browsers,
+and bots. Masir stores neither visitor IP addresses nor user-agent strings.
+
+</Card>
+
+</CardGroup>
+
+## One service, two deployment models
+
+Masir runs as one application beside Postgres.
+
+- **Single workspace** is the default. One team uses one domain.
+- **Multi-workspace** gives each workspace a subdomain behind wildcard DNS and
+  a wildcard certificate.
+
+Docker Compose is the recommended production path. You can also build the
+image yourself, run from source, or deploy the Bun server on Vercel.
+
+```mermaid
+flowchart LR
+  V[Visitor] --> M[Masir]
+  T[Team member] --> M
+  M --> P[(Postgres)]
+  M --> S[(File or S3 storage)]
+  M --> E[SMTP or Resend]
+```
+
+## Know the current limits
+
+Masir does not include billing, API tokens, two-factor authentication, or a
+custom domain for each workspace. The HTTP API uses the same session cookie as
+the interface. Analytics cover link traffic, not funnels or session replay.
+
+<ReadMore to="/guide/" title="Choose the right way to start" />
+
