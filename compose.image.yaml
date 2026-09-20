@@ -29,7 +29,8 @@ services:
       - '${MASIR_APP_PORT:-3000}:3000'
     env_file: .env
     environment:
-      NUXT_DATABASE_URL: postgres://masir:${POSTGRES_PASSWORD}@db:5432/masir
+      NUXT_DATABASE_URL: postgres://masir@db:5432/masir
+      PGPASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - uploads:/app/data/uploads
     depends_on:

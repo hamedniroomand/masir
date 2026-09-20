@@ -75,7 +75,7 @@ cp .env.example .env
 Open `.env` and set these three values. Everything else has a working default.
 
 ```sh [.env]
-# Letters and digits only. openssl rand -hex 24
+# openssl rand -hex 24
 POSTGRES_PASSWORD=
 
 # 32 characters or more. openssl rand -base64 32

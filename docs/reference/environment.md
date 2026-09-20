@@ -284,9 +284,9 @@ Read by Docker Compose from `.env`, never by the server.
 | `MASIR_MAIL_SMTP_PORT` | `1025` | development |
 | `MASIR_MAIL_UI_PORT` | `8025` | development |
 
-`POSTGRES_PASSWORD` goes into a connection string unescaped, so use letters and
-digits only: `openssl rand -hex 24`. Changing it after the first start does not
-change the password inside the existing volume.
+Compose hands `POSTGRES_PASSWORD` to the app as `PGPASSWORD`, outside the
+connection string, so any character works. Changing it after the first start
+does not change the password inside the existing volume.
 
 `MASIR_VERSION` picks the tag of `ghcr.io/hamedniroomand/masir` that
 `compose.image.yaml` runs, such as `1.2.0`, `1.2`, or `1`.
