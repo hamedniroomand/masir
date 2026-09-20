@@ -1,9 +1,10 @@
 name: ci
 
-# Tag pushes run through release.yml, which calls this workflow.
+# main pushes run through deploy.yml and tag pushes through release.yml.
+# Both call this workflow, so main is excluded here to stop a double run.
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!main']
   workflow_call:
 
 jobs:
