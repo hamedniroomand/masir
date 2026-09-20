@@ -11,6 +11,8 @@ the notes for every version between the one you run and the one you install.
 
 ### Changed
 
+- The app and documentation site now include branded social preview images for
+  Open Graph and X cards.
 - The documentation site now has task-based navigation for product users,
   operators, API users, and contributors. Every published page and the
   VitePress theme were rewritten for the first public release.

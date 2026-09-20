@@ -32,9 +32,15 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/masir/icon.svg' }],
     ['meta', { name: 'theme-color', content: '#2566f0' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Masir' }],
+    ['meta', { property: 'og:title', content: 'Masir Documentation' }],
     ['meta', { property: 'og:description', content: DESCRIPTION }],
+    ['meta', { property: 'og:image', content: 'https://hamedniroomand.github.io/masir/og-image.png' }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: 'Masir Documentation' }],
+    ['meta', { name: 'twitter:description', content: DESCRIPTION }],
+    ['meta', { name: 'twitter:image', content: 'https://hamedniroomand.github.io/masir/og-image.png' }],
   ],
 
   markdown: {
