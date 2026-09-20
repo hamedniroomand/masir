@@ -61,33 +61,20 @@ jobs:
   deploy:
     needs: image
     runs-on: ubuntu-latest
-    env:
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
-      DIR: ${{ vars.VPS_PATH || 'masir' }}
     steps:
-      - name: SSH key
-        env:
-          KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$KEY" > ~/.ssh/id
-          chmod 600 ~/.ssh/id
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-
       - name: Pull and restart
-        # The clone also holds compose.yaml, which builds from source. -f keeps
-        # the VPS on the published image.
-        # --wait holds until the healthcheck passes, but it does not roll back.
-        # A bad image leaves the old container stopped: push a fix, or pin
-        # MASIR_VERSION to a release tag on the VPS.
-        run: |
-          ssh -i ~/.ssh/id "$VPS_USER@$VPS_HOST" "set -eu
-            cd '$DIR'
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd "${{ vars.VPS_PATH || 'masir' }}"
             git fetch origin main
             git reset --hard origin/main
-            docker compose -f compose.image.yaml pull
-            docker compose -f compose.image.yaml up -d --wait
-            docker image prune -f"
+            MASIR_VERSION=main docker compose -f compose.image.yaml pull
+            MASIR_VERSION=main docker compose -f compose.image.yaml up -d --wait
+            docker image prune -f
