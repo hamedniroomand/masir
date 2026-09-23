@@ -41,6 +41,17 @@ const route = useRoute();
 const config = useRuntimeConfig();
 const mobileOpen = ref(false);
 const domain = computed(() => new URL(config.public.shortDomain).host);
+const isOperator = ref(false);
+const { $api } = useNuxtApp();
+
+onMounted(async () => {
+  try {
+    const res = await $api('/api/admin/status');
+    if (res)
+      isOperator.value = true;
+  }
+  catch {}
+});
 
 const workspaceNav = computed(() => [
   { label: 'Overview', icon: 'i-lucide-layout-dashboard', to: '/dashboard', active: route.path === '/dashboard' },
@@ -48,15 +59,19 @@ const workspaceNav = computed(() => [
   { label: 'Campaigns', icon: 'i-lucide-megaphone', to: '/campaigns', active: route.path.startsWith('/campaigns') },
 ]);
 
-// Every entry here needs workspace.manage, which only an owner holds. A member
-// who sees the link would reach a 403.
-const adminNav = computed(() => (isOwner.value
-  ? [
-      { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
-      { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
-      { label: 'Activity log', icon: 'i-lucide-scroll-text', to: '/settings/security', active: route.path === '/settings/security' },
-    ]
-  : []));
+// Every entry here needs workspace.manage or operator access.
+const adminNav = computed(() => {
+  const items = isOwner.value
+    ? [
+        { label: 'Workspace', icon: 'i-lucide-settings', to: '/settings/workspace', active: route.path === '/settings/workspace' },
+        { label: 'Members', icon: 'i-lucide-users', to: '/settings/members', active: route.path === '/settings/members' },
+        { label: 'Activity log', icon: 'i-lucide-scroll-text', to: '/settings/security', active: route.path === '/settings/security' },
+      ]
+    : [];
+  if (isOperator.value)
+    items.push({ label: 'System status', icon: 'i-lucide-activity', to: '/settings/status', active: route.path === '/settings/status' });
+  return items;
+});
 
 const section = computed(() => [...workspaceNav.value, ...adminNav.value].find(item => item.active)?.label ?? 'All links');
 

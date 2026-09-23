@@ -28,6 +28,10 @@ the notes for every version between the one you run and the one you install.
   event write fails, the redirect reports the error without delay and sets
   the `event_write` signal to `failed`. A subsequent successful insert resets
   the signal to `ok`.
+- A restricted operator status endpoint `GET /api/admin/status` and page
+  `/settings/status` for viewing maintenance jobs, service signals, and
+  partition boundaries. `NUXT_OPERATOR_EMAILS` configures authorized user
+  emails.
 
 ### Changed
 

@@ -50,7 +50,7 @@ export async function ensureClickEventPartitions(db: AppDatabase, now = new Date
 // The exclusive upper bound of the newest click_events partition, read from
 // pg_inherits instead of computed from `now`, so the report reflects what the
 // database actually has.
-async function newestPartitionEnd(db: AppDatabase) {
+export async function newestPartitionEnd(db: AppDatabase) {
   const [row] = await db.execute<{ relname: string }>(sql`
     select c.relname
     from pg_inherits i

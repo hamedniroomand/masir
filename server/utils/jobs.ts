@@ -32,6 +32,14 @@ export function registerJob(job: Job) {
   jobs.set(job.name, job);
 }
 
+export function getRegisteredJobInterval(name: string): number | undefined {
+  return jobs.get(name)?.intervalMs;
+}
+
+export function listRegisteredJobNames(): string[] {
+  return Array.from(jobs.keys());
+}
+
 // The claim is a short transaction, so a pool of one connection is enough.
 // ponytail: the lock lives only for the claim. A job with an interval of 0 is
 // due again at once, so two calls can run it at the same time. The current

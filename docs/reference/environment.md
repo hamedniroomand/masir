@@ -137,6 +137,7 @@ before you run several instances.
 |---|---|---|
 | `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | In-process sweep interval; zero disables it |
 | `NUXT_JOBS_SECRET` | empty | Bearer secret for `POST /api/jobs/alerts` |
+| `NUXT_OPERATOR_EMAILS` | empty | Comma-separated user emails allowed to access operator routes |
 
 The maximum interval is 35,000 minutes. Serverless deployments use zero and an
 external scheduler.

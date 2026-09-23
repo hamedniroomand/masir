@@ -197,8 +197,50 @@ runs every 24 hours. Its `count` is the number of months it checked, and its
 newest `click_events` partition. When a job fails, the other jobs still run
 and the route returns `500` after the other jobs ran.
 
+## Operator status
+
+`GET /api/admin/status` uses either:
+
+- A session cookie for a user whose email is in `NUXT_OPERATOR_EMAILS`
+- `Authorization: Bearer <NUXT_JOBS_SECRET>`
+
+It returns `404` when the user is not in `NUXT_OPERATOR_EMAILS`, when no secret
+is set, or for an invalid bearer token. On success, it returns:
+
+```json
+{
+  "version": "1.0.1",
+  "jobs": [
+    {
+      "job": "expiry_alerts",
+      "lastStartedAt": "2026-09-23T20:00:00.000Z",
+      "lastSuccessAt": "2026-09-23T20:00:01.000Z",
+      "lastErrorAt": null,
+      "lastError": null,
+      "nextDueAt": "2026-09-23T20:15:00.000Z",
+      "overdue": false,
+      "status": "ok",
+      "nextAction": null
+    }
+  ],
+  "signals": [
+    {
+      "key": "event_write",
+      "state": "ok",
+      "detail": null,
+      "updatedAt": "2026-09-23T20:00:00.000Z"
+    }
+  ],
+  "partitionsReadyThrough": "2026-12-01T00:00:00.000Z"
+}
+```
+
+An overdue job (whose `nextDueAt` is older than two intervals) has
+`overdue: true`, `status: "failed"`, and a recommended `nextAction`.
+
 ## Upload delivery
 
 `GET /uploads/*` serves file-storage objects. S3-compatible storage uses the
 configured public base URL instead.
+
 
