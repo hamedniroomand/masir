@@ -35,6 +35,9 @@ the notes for every version between the one you run and the one you install.
 
 ### Changed
 
+- Redirect decision logic is extracted into a pure `decideRedirect` function in
+  `shared/redirect-decision.ts`. The redirect middleware now uses pure decisions
+  for targeting rules, expiration, schedules, limits, and password gates.
 - Boot prepares the current month and the next two `click_events` partitions,
   up from the next one.
 - The internal loop checks every minute for due jobs and runs the first check

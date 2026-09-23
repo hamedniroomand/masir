@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3';
-import type { ResolvedLink } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
@@ -12,8 +11,7 @@ import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
 import { visitorHashForLink } from '#server/utils/visitor-hash';
 
-import { deriveLinkStatus } from '#shared/link-status';
-import { resolveDestination } from '#shared/link-targeting';
+import { decideLimitFallback, decideRedirect } from '#shared/redirect-decision';
 import { RESERVED_SLUGS } from '#shared/slug';
 import { buildDestination, utmParamsFor } from '#shared/utm';
 
@@ -22,18 +20,6 @@ function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outco
     ? visitorHashForLink(event, linkId)
     : null;
   event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(reportEventWriteFailure));
-}
-
-// Both the derived status and a lost race with consumeVisit end here. A
-// fallback never counts as a click and never uses a visit.
-async function sendLimitFallback(event: H3Event, workspaceId: string, link: ResolvedLink, meta: RequestMeta) {
-  if (link.limitDestination) {
-    logLinkEvent(event, workspaceId, link.id, 'limit_redirect', meta);
-    await sendRedirect(event, link.limitDestination, 302);
-    return;
-  }
-  logLinkEvent(event, workspaceId, link.id, 'limit_reached', meta);
-  throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'limit_reached' } });
 }
 
 export default defineEventHandler(async (event) => {
@@ -90,14 +76,6 @@ export default defineEventHandler(async (event) => {
   if (!link)
     throw createError({ statusCode: 404, statusMessage: 'Link not found' });
 
-  const status = deriveLinkStatus({
-    isEnabled: link.isEnabled,
-    expiresAt: link.expiresAt,
-    startsAt: link.startsAt,
-    maximumVisits: link.maximumVisits,
-    clickCount: link.clickCount,
-  });
-
   // Set once above every branch rather than on each path that reaches a
   // redirect. Nitro's error handler replaces Cache-Control with no-cache on a
   // thrown 404, so a blocked link answers with that instead; no-cache still
@@ -105,64 +83,49 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'X-Robots-Tag', 'noindex, nofollow');
   setResponseHeader(event, 'Cache-Control', 'private, no-store');
   const meta = parseRequestMeta(event);
+  const hasPasswordGrant = Boolean(link.passwordHash)
+    && hasValidPasswordGrant(event, workspace.id, segment, config.sessionPassword);
 
-  if (status === 'disabled') {
-    logLinkEvent(event, workspace.id, link.id, 'disabled_block', meta);
-    throw createError({ statusCode: 404, statusMessage: 'Link unavailable', data: { linkState: 'disabled' } });
-  }
-  if (status === 'expired') {
-    if (link.expirationDestination) {
-      logLinkEvent(event, workspace.id, link.id, 'expired_redirect', meta);
-      await sendRedirect(event, link.expirationDestination, 302);
-      return;
-    }
-    logLinkEvent(event, workspace.id, link.id, 'expired_block', meta);
-    throw createError({ statusCode: 404, statusMessage: 'Link expired', data: { linkState: 'expired' } });
-  }
-  if (status === 'limit_reached') {
-    await sendLimitFallback(event, workspace.id, link, meta);
+  let decision = decideRedirect(link, { meta, now: Date.now(), hasPasswordGrant });
+
+  if (decision.kind === 'password') {
+    await sendRedirect(event, `/p/${segment}`, 302);
     return;
   }
-  if (status === 'scheduled') {
-    if (link.scheduledDestination) {
-      logLinkEvent(event, workspace.id, link.id, 'scheduled_redirect', meta);
-      await sendRedirect(event, link.scheduledDestination, 302);
-      return;
-    }
-    logLinkEvent(event, workspace.id, link.id, 'scheduled_block', meta);
+
+  if (decision.kind === 'block') {
+    logLinkEvent(event, workspace.id, link.id, decision.outcome, meta);
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Link unavailable',
-      data: { linkState: 'scheduled', startsAt: link.startsAt?.toISOString() ?? null },
+      statusCode: decision.statusCode,
+      statusMessage: decision.outcome === 'expired_block' ? 'Link expired' : 'Link unavailable',
+      data: { linkState: decision.linkState, ...(decision.startsAt != null && { startsAt: decision.startsAt }) },
     });
   }
 
-  if (link.passwordHash) {
-    const granted = hasValidPasswordGrant(event, workspace.id, segment, config.sessionPassword);
-    if (!granted) {
-      await sendRedirect(event, `/p/${segment}`, 302);
-      return;
-    }
-  }
-
-  if (meta.isBot) {
-    logLinkEvent(event, workspace.id, link.id, 'bot_request', meta);
-  }
-  else {
+  if (decision.consumesVisit) {
     const consumed = await consumeVisit(link.id);
     if (consumed == null) {
-      // A visit between the status check above and this statement used the last
-      // one, so the fallback applies here too.
-      await sendLimitFallback(event, workspace.id, link, meta);
-      return;
+      decision = decideLimitFallback(link);
+      if (decision.kind === 'block') {
+        logLinkEvent(event, workspace.id, link.id, decision.outcome, meta);
+        throw createError({
+          statusCode: decision.statusCode,
+          statusMessage: 'Link unavailable',
+          data: { linkState: decision.linkState },
+        });
+      }
     }
-    logLinkEvent(event, workspace.id, link.id, 'redirect_success', meta);
-    // The cached row says whether the alert went out already, so the claim
-    // statement runs once per cache lifetime, not on every click past the line.
-    if (link.capAlertSentAt == null && meetsCapThreshold(consumed, link.maximumVisits))
-      event.waitUntil(sendCapAlert(link.id).catch(() => {}));
+    else {
+      // The cached row says whether the alert went out already, so the claim
+      // statement runs once per cache lifetime, not on every click past the line.
+      if (link.capAlertSentAt == null && meetsCapThreshold(consumed, link.maximumVisits))
+        event.waitUntil(sendCapAlert(link.id).catch(() => {}));
+    }
   }
 
-  const destination = buildDestination(resolveDestination(link, meta), utmParamsFor(link), inboundQuery);
+  logLinkEvent(event, workspace.id, link.id, decision.outcome, meta);
+  const destination = (decision.rule === 'default' || decision.rule === 'country' || decision.rule === 'os')
+    ? buildDestination(decision.destination, utmParamsFor(link), inboundQuery)
+    : decision.destination;
   await sendRedirect(event, destination, 302);
 });
