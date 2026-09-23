@@ -12,12 +12,16 @@ export default defineEventHandler(async (event) => {
   if (!campaign)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const periodRaw = getQuery(event).period;
+  const query = getQuery(event);
+  const periodRaw = query.period;
   const period = periodRaw === '24h' || periodRaw === '7d' || periodRaw === '30d' || periodRaw === 'all'
     ? periodRaw
     : '7d';
 
-  const data = await getCampaignAnalytics(campaign.id, workspaceId, period);
+  const attributionRaw = query.attribution;
+  const attribution = attributionRaw === 'recorded' ? 'recorded' : 'current';
+
+  const data = await getCampaignAnalytics(campaign.id, workspaceId, period, attribution);
   if (!data)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 

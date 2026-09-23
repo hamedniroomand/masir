@@ -120,7 +120,14 @@ export async function getLinkAnalytics(linkId: string, workspaceId: string, peri
   };
 }
 
-export async function getCampaignAnalytics(campaignId: string, workspaceId: string, period: Period) {
+export type CampaignAttributionMode = 'current' | 'recorded';
+
+export async function getCampaignAnalytics(
+  campaignId: string,
+  workspaceId: string,
+  period: Period,
+  attribution: CampaignAttributionMode = 'current',
+) {
   const db = await getDb();
   const campaignRows = await db.select().from(campaigns).where(and(eq(campaigns.id, campaignId), eq(campaigns.workspaceId, workspaceId))).limit(1);
   const campaign = campaignRows[0];
@@ -140,18 +147,90 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
   }).from(links).where(and(eq(links.campaignId, campaignId), eq(links.workspaceId, workspaceId)));
   const liveRows = linkRows.filter(row => row.deletedAt == null);
 
+  const windowStart = periodStart(period, Date.now());
+  const inWindow = windowFilter(windowStart);
+
+  if (attribution === 'recorded') {
+    const scope = and(eq(clickEvents.workspaceId, workspaceId), eq(clickEvents.campaignId, campaignId)) ?? sql`1=1`;
+
+    const [totalRow] = await db.select({ count: countAll }).from(clickEvents).where(and(scope, humanFilter));
+    const totalClicks = Number(totalRow?.count ?? 0);
+
+    const [legacyRow] = await db.select({ count: countAll }).from(clickEvents).where(and(scope, inWindow, humanFilter, isNull(clickEvents.attributionVersion)));
+    const legacyCount = Number(legacyRow?.count ?? 0);
+
+    const sourceRows = await db.select({
+      label: clickEvents.utmSource,
+      count: countAll,
+    })
+      .from(clickEvents)
+      .where(and(scope, inWindow, humanFilter))
+      .groupBy(clickEvents.utmSource)
+      .orderBy(desc(countAll));
+
+    const mediumRows = await db.select({
+      label: clickEvents.utmMedium,
+      count: countAll,
+    })
+      .from(clickEvents)
+      .where(and(scope, inWindow, humanFilter))
+      .groupBy(clickEvents.utmMedium)
+      .orderBy(desc(countAll));
+
+    const linkClickRows = await db.select({
+      id: clickEvents.linkId,
+      count: countAll,
+    })
+      .from(clickEvents)
+      .where(and(scope, inWindow, humanFilter))
+      .groupBy(clickEvents.linkId);
+    const periodByLink = new Map(linkClickRows.map(row => [row.id, Number(row.count)]));
+
+    const analytics = await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human');
+
+    return {
+      totalClicks,
+      linkCount: liveRows.length,
+      bySource: sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+      byMedium: mediumRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+      topLinks: liveRows
+        .map(row => ({
+          id: row.id,
+          slug: row.slug,
+          title: row.title,
+          utmSource: row.utmSource,
+          utmContent: row.utmContent,
+          totalClicks: row.clickCount,
+          periodClicks: periodByLink.get(row.id) ?? 0,
+        }))
+        .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
+      ...analytics,
+      meta: {
+        attribution,
+        legacyCount,
+      },
+    };
+  }
+
   if (!linkRows.length) {
     return {
       totalClicks: 0,
       linkCount: 0,
       bySource: [],
+      byMedium: [],
       topLinks: [],
       ...await buildAnalytics(sql`1=0`, period, campaign.createdAt.getTime(), 'human'),
+      meta: {
+        attribution,
+        legacyCount: 0,
+      },
     };
   }
 
   const scope = inArray(clickEvents.linkId, linkRows.map(row => row.id));
-  const windowStart = periodStart(period, Date.now());
+
+  const [legacyRow] = await db.select({ count: countAll }).from(clickEvents).where(and(scope, inWindow, humanFilter, isNull(clickEvents.attributionVersion)));
+  const legacyCount = Number(legacyRow?.count ?? 0);
 
   const sourceRows = await db.select({
     label: links.utmSource,
@@ -164,10 +243,17 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
   }).from(clickEvents).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(clickEvents.linkId);
   const periodByLink = new Map(linkClickRows.map(row => [row.id, Number(row.count)]));
 
+  const analytics = await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human');
+
+  const byMedium = analytics.periodClicks > 0 && campaign.utmMedium
+    ? [{ label: campaign.utmMedium, count: analytics.periodClicks }]
+    : [];
+
   return {
     totalClicks: linkRows.reduce((sum, row) => sum + row.clickCount, 0),
     linkCount: liveRows.length,
     bySource: sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+    byMedium,
     topLinks: liveRows
       .map(row => ({
         id: row.id,
@@ -179,7 +265,11 @@ export async function getCampaignAnalytics(campaignId: string, workspaceId: stri
         periodClicks: periodByLink.get(row.id) ?? 0,
       }))
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
-    ...await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human'),
+    ...analytics,
+    meta: {
+      attribution,
+      legacyCount,
+    },
   };
 }
 

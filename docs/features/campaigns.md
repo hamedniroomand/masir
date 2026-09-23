@@ -40,7 +40,14 @@ same key.
 ## Read campaign analytics
 
 Campaign analytics use the same periods as link analytics. The view summarizes
-campaign traffic and groups it by `utm_source`.
+campaign traffic and groups it by source and medium.
+
+You can select two attribution modes:
+
+- **Current membership**: Evaluates clicks on links that currently belong to the campaign.
+- **Recorded at click**: Evaluates clicks recorded with this campaign at redirect time. When a link moves to a new campaign or changes UTM parameters, previous clicks stay with the campaign and source recorded when the click occurred.
+
+Clicks recorded before attribution existed appear only under current membership.
 
 ## Choose the right tool
 
