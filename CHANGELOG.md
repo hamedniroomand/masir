@@ -48,6 +48,11 @@ the notes for every version between the one you run and the one you install.
   prefix with `pathMode: 'preserve'`, the previous prefix is retained in `workspace_link_prefixes`,
   allowing published URLs and QR codes under the previous path to continue resolving. Retained
   paths can be viewed and revoked under workspace settings.
+- Configurable link cache TTLs (`NUXT_LINK_CACHE_TTL_SECONDS`,
+  `NUXT_LINK_CACHE_MISS_TTL_SECONDS`) and shared invalidation across instances
+  using Redis pub/sub (`NUXT_LINK_CACHE_SHARED_INVALIDATION`). A failed or
+  disconnected Redis connection sets the `link_cache` operational signal to
+  `degraded`.
 
 
 
