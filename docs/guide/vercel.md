@@ -48,7 +48,7 @@ Country targeting and analytics will then use the platform value.
 
 Set `NUXT_ALERTS_INTERVAL_MINUTES=0` and a strong `NUXT_JOBS_SECRET`.
 
-Configure a scheduler to send `POST /api/jobs/alerts` with:
+Configure a daily scheduler to send `POST /api/jobs/alerts` with:
 
 ```text
 Authorization: Bearer <NUXT_JOBS_SECRET>
@@ -71,4 +71,3 @@ secret.
 - Migrations must run outside request startup.
 
 <ReadMore to="/reference/environment" title="Review every runtime value" />
-
