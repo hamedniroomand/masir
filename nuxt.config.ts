@@ -136,8 +136,8 @@ export default defineNuxtConfig({
     public: {
       shortDomain: 'http://localhost:3000',
       turnstileSiteKey: '',
-      // Declared so NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL can bind.
-      scripts: { umamiAnalytics: { hostUrl: '' } },
+      // Declared so the Umami host and replay env vars can bind.
+      scripts: { umamiAnalytics: { hostUrl: '', replays: false } },
       sentry: {
         dsn: '',
         environment: '',

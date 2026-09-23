@@ -18,5 +18,15 @@ export default defineNuxtPlugin(() => {
     // TRACKER_SCRIPT_NAME set needs a script src setting.
     const hostUrl = umami.hostUrl?.replace(/\/+$/, '');
     useScriptUmamiAnalytics({ hostUrl, scriptInput: hostUrl ? { src: `${hostUrl}/script.js` } : undefined });
+    // The recorder reads the session from the tracker above. Without a host
+    // it sends to Umami Cloud, so a self-hosted Umami must pass its own.
+    if (umami.replays) {
+      useScript({
+        key: 'umamiRecorder',
+        src: `${hostUrl || 'https://cloud.umami.is'}/recorder.js`,
+        'data-website-id': umami.websiteId,
+        'data-host-url': hostUrl || undefined,
+      });
+    }
   }
 });

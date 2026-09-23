@@ -148,6 +148,7 @@ external scheduler.
 | `NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID` | empty | GA4 measurement ID |
 | `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID` | empty | Umami website ID |
 | `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL` | empty | Self-hosted Umami origin |
+| `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_REPLAYS` | `false` | Loads the Umami recorder |
 
 Each tool turns on when its ID is set. You can use both at the same time.
 
@@ -155,6 +156,14 @@ For Umami Cloud, set only the website ID. For a self-hosted Umami, also set
 the host URL. The browser then loads `script.js` from that host and sends
 events to it. A host that renames the tracker with `TRACKER_SCRIPT_NAME` is
 not supported.
+
+Replays and heatmaps need Umami 3.1.0 or later. Set the replay variable to
+`true`, then turn on Replays & Heatmaps in the Umami website settings. The
+sample rate, mask level, and block selector are set in Umami. The default
+mask level masks only input fields, and the dashboard shows emails and link
+destinations. Use the `strict` mask level to mask all text. The heatmap page
+preview does not load, because Masir blocks framing and the preview has no
+session.
 
 This tracks application page views. It does not run on short-link visitor
 responses.
