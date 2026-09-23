@@ -191,8 +191,11 @@ It runs every maintenance job that is due. It returns `404` when no secret is
 set and `401` for a wrong secret. On success it returns `sent`, the number of
 alerts sent, and `demosDeleted`, the number of demos deleted. `jobs` holds one
 report for each job, with `job`, `status` (`ran`, `skipped`, or `failed`), and
-an optional `count` or `error`. When a job fails, the other jobs still run and
-the route returns `500` after the other jobs ran.
+an optional `count`, `detail`, or `error`. The `click_event_partitions` job
+runs every 24 hours. Its `count` is the number of months it checked, and its
+`detail` holds `partitionsReadyThrough`, the exclusive end date of the
+newest `click_events` partition. When a job fails, the other jobs still run
+and the route returns `500` after the other jobs ran.
 
 ## Upload delivery
 

@@ -130,8 +130,10 @@ keys that name them.
 ## Alerts and maintenance jobs
 
 Masir runs its maintenance work as jobs. The expiry alert sweep and the demo
-sweep are jobs. A long-running instance checks every minute for jobs that are
-due. Each job runs every 15 minutes by default.
+sweep are jobs. So is the `click_event_partitions` job. A long-running
+instance checks every minute for jobs that are due. The alert and demo jobs
+run every 15 minutes by default. The partitions job runs every 24 hours and
+does not depend on `NUXT_ALERTS_INTERVAL_MINUTES`.
 
 `POST /api/jobs/alerts` is the single maintenance entry point. Set
 `NUXT_JOBS_SECRET` and call:
@@ -142,8 +144,10 @@ curl -X POST https://go.example.com/api/jobs/alerts \
 ```
 
 When the internal loop is on, a call runs only the jobs that are due. Set
-`NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop. Each call then
-runs every job, and your scheduler sets the interval.
+`NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop for the alert
+and demo jobs. Each call then runs both of them, and your scheduler sets
+their interval. The partitions job keeps its fixed 24-hour interval either
+way.
 
 Many instances can call the route at the same time. When the internal loop is
 on, a database lock makes sure that each job runs one time for each due time.

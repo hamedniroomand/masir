@@ -21,9 +21,14 @@ the notes for every version between the one you run and the one you install.
   lock makes sure that each job runs one time for each due time, also when
   many instances run it at the same time. `POST /api/jobs/alerts` also returns `jobs`, one
   report for each job.
+- A `click_event_partitions` job, fixed at every 24 hours, keeps
+  `click_events` inserts working on an instance that never restarts. Its job
+  report includes `partitionsReadyThrough`.
 
 ### Changed
 
+- Boot prepares the current month and the next two `click_events` partitions,
+  up from the next one.
 - The internal loop checks every minute for due jobs and runs the first check
   30 seconds after boot. When the loop is on, `POST /api/jobs/alerts` runs
   only the jobs that are due. A failed job no longer stops the other jobs. The

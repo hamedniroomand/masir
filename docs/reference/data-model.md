@@ -122,8 +122,9 @@ The visitor hash is a salted daily `bigint`. It supports daily unique counts
 for one link and cannot join a visitor across days.
 
 Events use monthly range partitions. Database preparation creates the current
-and next partitions. Retention can drop a partition instead of deleting rows
-one at a time.
+month and the next two. A daily job repeats this, so a long-running instance
+always has a partition ready. Retention can drop a partition instead of
+deleting rows one at a time.
 
 ## Audit events
 

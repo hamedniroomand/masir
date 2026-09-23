@@ -2,17 +2,23 @@ import { eq, sql } from 'drizzle-orm';
 import { jobRuns } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 
+export type JobDetail = Record<string, unknown>;
+
+// A job returns how many items it processed, or that count with extra detail
+// for the report.
+type JobResult = number | { count: number; detail?: JobDetail };
+
 type Job = {
   name: string;
   intervalMs: number;
-  // Returns how many items the job processed.
-  run: () => Promise<number>;
+  run: (now: Date) => Promise<JobResult>;
 };
 
 export type JobReport = {
   job: string;
   status: 'ran' | 'skipped' | 'failed';
   count?: number;
+  detail?: JobDetail;
   error?: string;
 };
 
@@ -62,9 +68,10 @@ async function runJob(job: Job, now: Date): Promise<JobReport> {
 
   const db = await getDb();
   try {
-    const count = await job.run();
+    const result = await job.run(now);
+    const { count, detail } = typeof result === 'number' ? { count: result, detail: undefined } : result;
     await db.update(jobRuns).set({ lastSuccessAt: new Date() }).where(eq(jobRuns.job, job.name));
-    return { job: job.name, status: 'ran', count };
+    return { job: job.name, status: 'ran', count, ...(detail && { detail }) };
   }
   catch (failure) {
     console.error(`[jobs] ${job.name} failed`, failure);

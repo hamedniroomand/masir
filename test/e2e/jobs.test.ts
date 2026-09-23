@@ -20,7 +20,7 @@ function runJobs() {
 
 async function alertJobRow() {
   const db = openTestDatabase(TEST_DB);
-  const [row] = await db.select().from(jobRuns).where(eq(jobRuns.job, 'expiry-alerts'));
+  const [row] = await db.select().from(jobRuns).where(eq(jobRuns.job, 'expiry_alerts'));
   return row;
 }
 
@@ -40,7 +40,7 @@ describe('job runner', async () => {
     // The boot run can take the job first. Then both calls skip. Either way,
     // at most one call runs it and one mail goes out.
     const results = await Promise.all([runJobs(), runJobs()]);
-    const statuses = results.map(result => result.jobs.find(report => report.job === 'expiry-alerts')?.status);
+    const statuses = results.map(result => result.jobs.find(report => report.job === 'expiry_alerts')?.status);
     expect(statuses.filter(status => status === 'ran').length).toBeLessThanOrEqual(1);
 
     const db = openTestDatabase(TEST_DB);
@@ -56,7 +56,7 @@ describe('job runner', async () => {
 
     // The job is not due again for an hour.
     const later = await runJobs();
-    expect(later.jobs.find(report => report.job === 'expiry-alerts')?.status).toBe('skipped');
+    expect(later.jobs.find(report => report.job === 'expiry_alerts')?.status).toBe('skipped');
     expect((await alertJobRow())?.lastSuccessAt).toEqual(first!.lastSuccessAt);
   });
 });

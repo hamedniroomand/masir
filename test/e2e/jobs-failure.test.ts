@@ -24,7 +24,11 @@ describe('job route with a pool of one', async () => {
   });
 
   it('runs the jobs', async () => {
-    expect(await runJobs()).toMatchObject({ sent: 0, demosDeleted: 0, jobs: [{ job: 'expiry-alerts', status: 'ran' }] });
+    expect(await runJobs()).toMatchObject({
+      sent: 0,
+      demosDeleted: 0,
+      jobs: [{ job: 'expiry_alerts', status: 'ran' }, { job: 'click_event_partitions', status: 'ran' }],
+    });
   });
 
   it('answers 500 with the job reports when a job fails', async () => {
@@ -35,7 +39,9 @@ describe('job route with a pool of one', async () => {
       const failure = await runJobs().catch(error => error);
       expect(failure).toMatchObject({
         statusCode: 500,
-        data: { data: { jobs: [{ job: 'expiry-alerts', status: 'failed' }] } },
+        // The partition job already ran in the previous test and is not due
+        // again for 24 hours.
+        data: { data: { jobs: [{ job: 'expiry_alerts', status: 'failed' }, { job: 'click_event_partitions', status: 'skipped' }] } },
       });
     }
     finally {

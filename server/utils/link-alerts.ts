@@ -123,7 +123,7 @@ export function meetsCapThreshold(clickCount: number, maximumVisits: number | nu
   return clickCount >= Math.ceil(CAP_ALERT_RATIO * maximumVisits);
 }
 
-export const EXPIRY_ALERT_JOB = 'expiry-alerts';
+export const EXPIRY_ALERT_JOB = 'expiry_alerts';
 
 export async function runExpiryAlertSweep() {
   const db = await getDb();

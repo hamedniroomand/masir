@@ -1,3 +1,5 @@
+import { CLICK_EVENT_PARTITIONS_JOB, runClickEventPartitionSweep } from '#server/database/migrate';
+import { getDb } from '#server/utils/db';
 import { DEMO_SWEEP_JOB, runDemoSweep } from '#server/utils/demo';
 import { registerJob, runDueJobs } from '#server/utils/jobs';
 import { EXPIRY_ALERT_JOB, runExpiryAlertSweep } from '#server/utils/link-alerts';
@@ -6,6 +8,9 @@ import { EXPIRY_ALERT_JOB, runExpiryAlertSweep } from '#server/utils/link-alerts
 // the job interval would miss every second run.
 const TICK_MS = 60_000;
 const BOOT_DELAY_MS = 30_000;
+// Fixed, not the alerts interval. An instance that never restarts still needs
+// next month's click_events partition ready well before it starts.
+const PARTITION_INTERVAL_MS = 24 * 3_600_000;
 
 export default defineNitroPlugin((nitro) => {
   const { serverless, alertsIntervalMinutes, demoEnabled } = useRuntimeConfig();
@@ -19,6 +24,11 @@ export default defineNitroPlugin((nitro) => {
   registerJob({ name: EXPIRY_ALERT_JOB, intervalMs, run: runExpiryAlertSweep });
   if (demoEnabled)
     registerJob({ name: DEMO_SWEEP_JOB, intervalMs, run: runDemoSweep });
+  registerJob({
+    name: CLICK_EVENT_PARTITIONS_JOB,
+    intervalMs: PARTITION_INTERVAL_MS,
+    run: async now => runClickEventPartitionSweep(await getDb(), now),
+  });
 
   if (!timerOn)
     return;
