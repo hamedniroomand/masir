@@ -14,7 +14,7 @@ type Dashboard = {
 
 const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
 const createOpen = ref(false);
-const { canManageLinks } = useCurrentWorkspace();
+const { current, canManageLinks } = useCurrentWorkspace();
 
 const { data, pending, error, refresh } = useApi<Dashboard>('/api/workspaces/analytics', {
   query: computed(() => ({ period: period.value })),
@@ -58,6 +58,12 @@ function noteFor(group: string, link: Summary) {
       </div>
       <USelect v-model="period" :items="periodItems" aria-label="Analytics period" size="sm" class="w-40 shrink-0" />
     </div>
+
+    <FirstUseChecklist
+      v-if="canManageLinks && current"
+      :workspace-id="current.id"
+      @create-link="createOpen = true"
+    />
 
     <div v-if="pending" class="space-y-4" role="status" aria-label="Loading the overview">
       <USkeleton v-for="n in 3" :key="n" class="h-24 w-full" /><span class="sr-only">Loading the overview</span>

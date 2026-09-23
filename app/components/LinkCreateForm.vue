@@ -111,6 +111,7 @@ const config = useRuntimeConfig();
 const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
+const qrOpen = ref(false);
 
 function openGroupsFor(names: (string | undefined)[]) {
   for (const name of names) {
@@ -223,9 +224,61 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       <p class="break-all text-sm font-medium text-highlighted">
         {{ created.shortUrl }}
       </p>
-      <div class="flex flex-wrap gap-2">
-        <UButton size="sm" :label="copied ? 'Copied' : 'Copy'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" @click="copy(created.shortUrl)" /><UButton size="sm" label="View link" icon="i-lucide-external-link" color="neutral" variant="outline" :to="`/links/${created.id}`" /><UButton size="sm" label="Create another" icon="i-lucide-plus" variant="ghost" @click="created = null" />
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="inline-flex -space-x-px rounded-md shadow-xs">
+          <UButton
+            size="sm"
+            :label="copied ? 'Copied' : 'Copy link'"
+            :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+            color="neutral"
+            variant="outline"
+            class="rounded-e-none"
+            @click="copy(created.shortUrl)"
+          />
+          <UButton
+            size="sm"
+            label="Download QR"
+            icon="i-lucide-qr-code"
+            color="neutral"
+            variant="outline"
+            class="rounded-none"
+            @click="qrOpen = true"
+          />
+          <UTooltip text="Preview routing will be available in Release 2">
+            <UButton
+              size="sm"
+              label="Preview routing"
+              icon="i-lucide-play"
+              color="neutral"
+              variant="outline"
+              class="rounded-s-none opacity-60"
+              disabled
+            />
+          </UTooltip>
+        </div>
+        <UButton
+          size="sm"
+          label="View link"
+          icon="i-lucide-external-link"
+          color="neutral"
+          variant="outline"
+          :to="`/links/${created.id}`"
+        />
+        <UButton
+          size="sm"
+          label="Create another"
+          icon="i-lucide-plus"
+          variant="ghost"
+          @click="created = null"
+        />
       </div>
+      <LinkQrSlideover
+        v-if="created"
+        v-model:open="qrOpen"
+        :link-id="created.id"
+        :short-url="created.shortUrl"
+        :label="created.title || created.slug"
+      />
     </div>
     <UForm
       ref="form"
