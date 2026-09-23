@@ -269,6 +269,7 @@ export const clickEvents = pgTable('click_events', {
   visitorHash: bigint('visitor_hash', { mode: 'bigint' }),
   workspaceId: uuid('workspace_id').notNull(),
   linkId: uuid('link_id').notNull(),
+  campaignId: uuid('campaign_id'),
   referrerHost: integer('referrer_host').references(() => hosts.id),
   outcome: smallint('outcome').notNull(),
   device: smallint('device').notNull(),
@@ -276,10 +277,16 @@ export const clickEvents = pgTable('click_events', {
   botCategory: smallint('bot_category'),
   country: char('country', { length: 2 }),
   isBot: boolean('is_bot').notNull(),
+  attributionVersion: smallint('attribution_version'),
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  utmContent: text('utm_content'),
 }, table => [
   primaryKey({ columns: [table.createdAt, table.id] }),
   index('click_events_link_created_idx').on(table.linkId, table.createdAt),
   index('click_events_workspace_created_idx').on(table.workspaceId, table.createdAt),
+  index('click_events_campaign_created_idx').on(table.campaignId, table.createdAt).where(sql`campaign_id is not null`),
 ]);
 
 // No reader yet. The table ships with the first tag so the hourly rollup can

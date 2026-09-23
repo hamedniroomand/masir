@@ -44,7 +44,7 @@ describe('redirect middleware', async () => {
 
   it('applies the link and campaign utm params', async () => {
     const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'launch', utmMedium: 'social' });
-    await insertTestLink(TEST_DB, {
+    const linkId = await insertTestLink(TEST_DB, {
       workspaceId,
       slug: 'utm-test',
       destinationUrl: 'https://example.com/here',
@@ -57,10 +57,21 @@ describe('redirect middleware', async () => {
     expect(location.searchParams.get('utm_source')).toBe('twitter');
     expect(location.searchParams.get('utm_medium')).toBe('social');
     expect(location.searchParams.get('utm_campaign')).toBe('launch');
+
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 1,
+    );
+    expect(events[0]?.campaignId).toBe(campaignId);
+    expect(events[0]?.utmSource).toBe('twitter');
+    expect(events[0]?.utmMedium).toBe('social');
+    expect(events[0]?.utmCampaign).toBe('launch');
+    expect(events[0]?.attributionVersion).toBe(1);
   });
 
   it('lets an inbound utm param override the stored one', async () => {
-    await insertTestLink(TEST_DB, {
+    const linkId = await insertTestLink(TEST_DB, {
       workspaceId,
       slug: 'override-test',
       destinationUrl: 'https://example.com/here',
@@ -69,14 +80,64 @@ describe('redirect middleware', async () => {
     const res = await fetch('/override-test?utm_source=email', { redirect: 'manual' });
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('https://example.com/here?utm_source=email');
+
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 1,
+    );
+    expect(events[0]?.utmSource).toBe('email');
+    expect(events[0]?.attributionVersion).toBe(1);
   });
 
-  it('returns 404 with disabled linkState', async () => {
-    await insertTestLink(TEST_DB, { workspaceId, slug: 'off-test', isEnabled: false });
+  it('returns 404 with disabled linkState and null attribution_version', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'off-test', isEnabled: false });
     const res = await fetch('/off-test', { headers: { accept: 'application/json' } });
     expect(res.status).toBe(404);
     const body = await res.json() as { data?: { linkState?: string } };
     expect(body.data?.linkState).toBe('disabled');
+
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 1,
+    );
+    expect(events[0]?.outcome).toBe(OUTCOME.disabled_block);
+    expect(events[0]?.attributionVersion).toBeNull();
+  });
+
+  it('supports an old writer shape without new columns side by side with a redirect', async () => {
+    const linkId = await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'old-writer-test',
+      destinationUrl: 'https://example.com/target',
+    });
+
+    const db = openTestDatabase(TEST_DB);
+    await db.insert(clickEvents).values({
+      workspaceId,
+      linkId,
+      referrerHost: null,
+      outcome: OUTCOME.redirect_success,
+      device: DEVICE.desktop,
+      browser: BROWSER.chrome,
+      country: 'US',
+      isBot: false,
+    });
+
+    const res = await fetch('/old-writer-test', { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('https://example.com/target');
+
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 2,
+    );
+    expect(events).toHaveLength(2);
+    const legacyRow = events.find(event => event.attributionVersion === null);
+    const modernRow = events.find(event => event.attributionVersion === 1);
+    expect(legacyRow).toBeDefined();
+    expect(modernRow).toBeDefined();
   });
 
   it('returns 404 with expired linkState', async () => {

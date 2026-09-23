@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3';
+import type { EventAttribution } from '#server/utils/analytics';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
@@ -9,17 +10,24 @@ import { consumeVisit, findLinkBySlug } from '#server/utils/link-repo';
 import { hasValidPasswordGrant } from '#server/utils/password-grant';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 import { parseRequestMeta } from '#server/utils/request-meta';
-import { visitorHashForLink } from '#server/utils/visitor-hash';
 
+import { visitorHashForLink } from '#server/utils/visitor-hash';
 import { decideLimitFallback, decideRedirect } from '#shared/redirect-decision';
 import { RESERVED_SLUGS } from '#shared/slug';
-import { buildDestination, utmParamsFor } from '#shared/utm';
+import { applyUtm, utmParamsFor } from '#shared/utm';
 
-function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outcome: OutcomeLabel, meta: RequestMeta) {
+function logLinkEvent(
+  event: H3Event,
+  workspaceId: string,
+  linkId: string,
+  outcome: OutcomeLabel,
+  meta: RequestMeta,
+  attribution?: EventAttribution | null,
+) {
   const visitorHash = !meta.isBot && outcome === 'redirect_success'
     ? visitorHashForLink(event, linkId)
     : null;
-  event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(reportEventWriteFailure));
+  event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash, attribution).catch(reportEventWriteFailure));
 }
 
 export default defineEventHandler(async (event) => {
@@ -123,9 +131,22 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  logLinkEvent(event, workspace.id, link.id, decision.outcome, meta);
-  const destination = (decision.rule === 'default' || decision.rule === 'country' || decision.rule === 'os')
-    ? buildDestination(decision.destination, utmParamsFor(link), inboundQuery)
-    : decision.destination;
+  const needsUtm = decision.rule === 'default' || decision.rule === 'country' || decision.rule === 'os';
+  const { url: destination, effective } = needsUtm
+    ? applyUtm(decision.destination, utmParamsFor(link), inboundQuery)
+    : { url: decision.destination, effective: null };
+
+  const isSuccessOrBot = decision.outcome === 'redirect_success' || decision.outcome === 'bot_request';
+  const attribution: EventAttribution | null = isSuccessOrBot
+    ? {
+        campaignId: link.campaignId,
+        utmSource: effective?.utm_source,
+        utmMedium: effective?.utm_medium,
+        utmCampaign: effective?.utm_campaign,
+        utmContent: effective?.utm_content,
+      }
+    : null;
+
+  logLinkEvent(event, workspace.id, link.id, decision.outcome, meta, attribution);
   await sendRedirect(event, destination, 302);
 });

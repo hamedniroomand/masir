@@ -30,6 +30,20 @@ export async function reportEventWriteFailure(error: unknown) {
   await setSignal('event_write', 'failed', { message, at: new Date().toISOString() });
 }
 
+export type EventAttribution = {
+  campaignId?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmContent?: string | null;
+};
+
+function truncate(value: string | null | undefined, max = 120): string | null {
+  if (!value)
+    return null;
+  return value.slice(0, max);
+}
+
 // One insert, no transaction. consumeVisit already raised the counter inside
 // its own guard, so there is nothing here to keep in step with it.
 export async function recordEvent(
@@ -38,6 +52,7 @@ export async function recordEvent(
   meta: RequestMeta,
   outcome: OutcomeLabel,
   visitorHash: bigint | null = null,
+  attribution?: EventAttribution | null,
 ) {
   const db = await getDb();
   const referrerHost = await hostId(meta.referrerHost);
@@ -52,6 +67,12 @@ export async function recordEvent(
     botCategory: meta.botCategory == null ? null : BOT_CATEGORY[meta.botCategory],
     country: meta.country,
     isBot: meta.isBot,
+    campaignId: attribution?.campaignId ?? null,
+    attributionVersion: attribution ? 1 : null,
+    utmSource: truncate(attribution?.utmSource),
+    utmMedium: truncate(attribution?.utmMedium),
+    utmCampaign: truncate(attribution?.utmCampaign),
+    utmContent: truncate(attribution?.utmContent),
   });
 
   if (hasRecordedEventWriteFailure) {

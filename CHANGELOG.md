@@ -32,6 +32,10 @@ the notes for every version between the one you run and the one you install.
   `/settings/status` for viewing maintenance jobs, service signals, and
   partition boundaries. `NUXT_OPERATOR_EMAILS` configures authorized user
   emails.
+- An attribution snapshot on `click_events` (`campaign_id`, `attribution_version`,
+  `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`) with a partial index
+  on `(campaign_id, created_at)`. Successful redirects snapshot effective UTM
+  parameters and campaign ID at click time.
 
 ### Changed
 
