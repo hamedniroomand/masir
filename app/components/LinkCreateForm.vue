@@ -112,6 +112,26 @@ const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
+const { current } = useCurrentWorkspace();
+const domain = computed(() => {
+  try {
+    return new URL(config.public.shortDomain).host;
+  }
+  catch {
+    return config.public.shortDomain;
+  }
+});
+
+const isDirty = computed(() => Boolean(
+  state.destinationUrl.trim()
+  || state.slug.trim()
+  || state.title.trim()
+  || state.notes.trim()
+  || state.password
+  || state.tags.length > 0,
+));
+
+defineExpose({ isDirty, reset });
 
 function openGroupsFor(names: (string | undefined)[]) {
   for (const name of names) {
@@ -217,6 +237,10 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 <template>
   <div>
+    <div class="mb-4 flex items-center justify-between gap-2 border-b border-default pb-3 text-xs text-muted">
+      <span class="truncate font-medium text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
+      <span class="truncate">{{ domain }}</span>
+    </div>
     <div v-if="created" role="status" class="mb-5 space-y-3 rounded-panel border border-success/25 bg-success/5 p-4">
       <p class="flex items-center gap-2 text-sm font-medium text-success">
         <UIcon name="i-lucide-circle-check" class="size-4" />Link created

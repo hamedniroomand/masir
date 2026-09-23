@@ -35,8 +35,11 @@ function onCreated(link: LinkItem) {
       variant="soft"
       icon="i-lucide-circle-alert"
     />
-    <div v-else class="surface p-5">
-      <LinkCreateForm :initial="initial" @created="onCreated" />
+    <div v-else class="space-y-6">
+      <div class="surface p-5">
+        <LinkCreateForm :initial="initial" @created="onCreated" />
+      </div>
+      <QuickCreateCard />
     </div>
   </div>
 </template>

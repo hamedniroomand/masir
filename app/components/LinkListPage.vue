@@ -5,6 +5,23 @@ const shortDomain = computed(() => new URL(config.public.shortDomain).host);
 useHead({ title: 'All links · Masir' });
 const createOpen = ref(false);
 const { canManageLinks } = useCurrentWorkspace();
+const createFormRef = ref<{ isDirty: boolean; reset: () => void } | null>(null);
+const createButtonRef = useTemplateRef('createButton');
+
+const { handleOpenUpdate } = useConfirmDiscard(
+  () => createFormRef.value?.isDirty ?? false,
+  createOpen,
+);
+
+watch(createOpen, (isOpen) => {
+  if (!isOpen) {
+    nextTick(() => {
+      const el = (createButtonRef.value as { $el?: HTMLElement })?.$el ?? (createButtonRef.value as HTMLElement | null);
+      el?.focus?.();
+    });
+  }
+});
+
 const { data, pending, refresh, error, status, page, sort, selectedTags, tagList, toggleTag } = useLinksList();
 const searchInput = ref((route.query.q as string) ?? '');
 
@@ -42,19 +59,20 @@ function clearFilters() {
           Create, share, and keep your links up to date.
         </p>
       </div>
-      <UButton v-if="canManageLinks" label="Create link" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
+      <UButton v-if="canManageLinks" ref="createButton" label="Create link" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
     </div>
 
     <USlideover
       v-if="canManageLinks"
-      v-model:open="createOpen"
+      :open="createOpen"
       title="Create a link"
       description="A short address for your next destination."
       :unmount-on-hide="false"
       :ui="{ content: 'sm:max-w-[480px]' }"
+      @update:open="handleOpenUpdate"
     >
       <template #body>
-        <LinkCreateForm @created="refresh()" />
+        <LinkCreateForm ref="createFormRef" @created="refresh()" />
       </template>
     </USlideover>
 
@@ -116,7 +134,10 @@ function clearFilters() {
           {{ hasFilters ? 'Try another search, status, or tag.' : 'Create a short link for a campaign, a document, or a resource you share often.' }}
         </p>
         <UButton v-if="hasFilters" class="mt-4" label="Clear filters" icon="i-lucide-x" color="neutral" variant="outline" size="sm" @click="clearFilters" />
-        <UButton v-else-if="canManageLinks" class="mt-4" label="Create your first link" icon="i-lucide-plus" size="sm" @click="createOpen = true" />
+        <template v-else-if="canManageLinks">
+          <UButton class="mt-4" label="Create your first link" icon="i-lucide-plus" size="sm" @click="createOpen = true" />
+          <QuickCreateCard class="mx-auto mt-6 max-w-sm text-left" />
+        </template>
       </div>
       <div v-else class="divide-y divide-default">
         <div class="link-grid column-heading hidden md:grid" aria-hidden="true">

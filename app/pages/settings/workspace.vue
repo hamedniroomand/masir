@@ -6,14 +6,7 @@ const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
 const current = computed(() => data.value?.items.find(workspace => workspace.id === data.value?.currentId) ?? null);
-const { canManageLinks } = useCurrentWorkspace();
-
-// A bookmarklet cannot read anything from this page, so the whole action lives
-// in the href. The browser runs it on whatever page the person is reading.
-const bookmarklet = computed(() => {
-  const base = current.value?.url ?? '';
-  return `javascript:location.href='${base}/links/new?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)`;
-});
+const { can } = useCurrentWorkspace();
 const name = ref('');
 const linkPrefix = ref('');
 const pathMode = ref<'preserve' | 'replace'>('preserve');
@@ -155,7 +148,7 @@ async function remove() {
     </div>
 
     <div class="space-y-5">
-      <UFormField v-if="current?.role === 'OWNER'" label="Logo">
+      <UFormField v-if="can('workspace.manage')" label="Logo">
         <WorkspaceLogoField v-model="logoFile" :name="name" :url="current?.logoUrl ?? null" :busy="logoBusy" @remove="removeLogo" />
       </UFormField>
       <UFormField label="Workspace name">
@@ -232,28 +225,11 @@ async function remove() {
       </ul>
     </div>
 
-    <USeparator />
+    <QuickCreateCard v-if="can('links.manage')" />
 
-    <div v-if="canManageLinks" class="space-y-3">
-      <h2 class="text-sm font-semibold text-highlighted">
-        Quick create
-      </h2>
-      <p class="text-sm text-muted">
-        Drag this button to your bookmarks bar. Press it on any page and Masir
-        opens the create form with that address and title already filled.
-      </p>
-      <a
-        :href="bookmarklet"
-        class="inline-flex items-center gap-2 rounded-lg border border-default bg-muted/40 px-3 py-2 text-sm font-medium text-highlighted"
-        @click.prevent
-      >
-        <UIcon name="i-lucide-bookmark" class="size-4 text-primary" />Shorten with Masir
-      </a>
-    </div>
+    <USeparator v-if="can('links.manage')" />
 
-    <USeparator v-if="canManageLinks" />
-
-    <div v-if="current?.role === 'OWNER' && data?.multiWorkspace" class="space-y-3">
+    <div v-if="can('workspace.delete') && data?.multiWorkspace" class="space-y-3">
       <h2 class="text-sm font-medium text-highlighted">
         Delete this workspace
       </h2>
