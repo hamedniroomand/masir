@@ -187,8 +187,12 @@ newest first and includes `nextBefore` for cursor pagination.
 Authorization: Bearer <NUXT_JOBS_SECRET>
 ```
 
-It returns `404` when no secret is set, `401` for a wrong secret, and the
-sent-alert and deleted-demo counts on success.
+It runs every maintenance job that is due. It returns `404` when no secret is
+set and `401` for a wrong secret. On success it returns `sent`, the number of
+alerts sent, and `demosDeleted`, the number of demos deleted. `jobs` holds one
+report for each job, with `job`, `status` (`ran`, `skipped`, or `failed`), and
+an optional `count` or `error`. When a job fails, the other jobs still run and
+the route returns `500` after the other jobs ran.
 
 ## Upload delivery
 

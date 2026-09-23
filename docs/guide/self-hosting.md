@@ -127,18 +127,28 @@ Test a restore on another host. A database dump without the uploads loses
 workspace logos. An uploads archive without the database loses the storage
 keys that name them.
 
-## Alerts
+## Alerts and maintenance jobs
 
-A long-running instance checks for expiry and visit-limit alerts every 15
-minutes by default.
+Masir runs its maintenance work as jobs. The expiry alert sweep and the demo
+sweep are jobs. A long-running instance checks every minute for jobs that are
+due. Each job runs every 15 minutes by default.
 
-Set `NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop. On a
-serverless host, set `NUXT_JOBS_SECRET` and call:
+`POST /api/jobs/alerts` is the single maintenance entry point. Set
+`NUXT_JOBS_SECRET` and call:
 
 ```sh
 curl -X POST https://go.example.com/api/jobs/alerts \
   -H 'Authorization: Bearer <jobs-secret>'
 ```
+
+When the internal loop is on, a call runs only the jobs that are due. Set
+`NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop. Each call then
+runs every job, and your scheduler sets the interval.
+
+Many instances can call the route at the same time. When the internal loop is
+on, a database lock makes sure that each job runs one time for each due time.
+The `job_runs` table records the last start, the last success, and the last
+error of each job.
 
 ## Add monitoring
 

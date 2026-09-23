@@ -130,6 +130,8 @@ export async function findLiveDemo(userId: string): Promise<Workspace | null> {
   return rows[0]?.workspace ?? null;
 }
 
+export const DEMO_SWEEP_JOB = 'demo-sweep';
+
 // Deletes every demo whose time has passed. links, campaigns, tags, aliases,
 // members, and audit rows cascade from the workspace. click_events have no
 // foreign key by design and age out with their partition.

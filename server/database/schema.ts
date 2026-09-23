@@ -321,6 +321,17 @@ export const mailOutbox = pgTable('mail_outbox', {
   createdAt: timestampTz('created_at').notNull().defaultNow(),
 });
 
+// One row for each maintenance job. The runner reads next_due_at under the
+// job lock, so two runners never run the same job for one due time.
+export const jobRuns = pgTable('job_runs', {
+  job: text('job').primaryKey(),
+  lastStartedAt: timestampTz('last_started_at'),
+  lastSuccessAt: timestampTz('last_success_at'),
+  lastErrorAt: timestampTz('last_error_at'),
+  lastError: text('last_error'),
+  nextDueAt: timestampTz('next_due_at'),
+});
+
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;

@@ -62,6 +62,9 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     NUXT_ROOT_DOMAIN: origin,
     NUXT_PUBLIC_SHORT_DOMAIN: origin,
     NUXT_MAIL_DRIVER: 'outbox',
+    // A test sweeps demos through the bridge. A timer sweep between two steps
+    // would take the work first.
+    NUXT_ALERTS_INTERVAL_MINUTES: '0',
     // Every test signs in from one loopback address inside one minute. The
     // default of 10 refuses the eleventh test.
     NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '100',

@@ -16,6 +16,9 @@ const sharedEnv = {
   NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '200',
   // Test files run together. A pool of 10 for each would exhaust Postgres.
   NUXT_DATABASE_POOL_MAX: '2',
+  // The job timer would send mail 30 s after boot, in the middle of a test.
+  // A file that needs the timer sets its own value.
+  NUXT_ALERTS_INTERVAL_MINUTES: '0',
 };
 
 // The Nuxt server migrates on boot, so the database must exist before setup().

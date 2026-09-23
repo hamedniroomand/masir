@@ -17,9 +17,17 @@ the notes for every version between the one you run and the one you install.
   self-hosted Umami. `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_REPLAYS=true` also
   loads the Umami recorder for replays and heatmaps. Short-link visitor
   responses do not load either script.
+- A job runner for maintenance work, with a new `job_runs` table. A database
+  lock makes sure that each job runs one time for each due time, also when
+  many instances run it at the same time. `POST /api/jobs/alerts` also returns `jobs`, one
+  report for each job.
 
 ### Changed
 
+- The internal loop checks every minute for due jobs and runs the first check
+  30 seconds after boot. When the loop is on, `POST /api/jobs/alerts` runs
+  only the jobs that are due. A failed job no longer stops the other jobs. The
+  route still returns `500` after a failure.
 - The app and documentation site now include branded social preview images for
   Open Graph and X cards.
 - The documentation site now has task-based navigation for product users,
