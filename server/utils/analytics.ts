@@ -113,10 +113,17 @@ export async function getLinkAnalytics(linkId: string, workspaceId: string, peri
 
   return {
     totalClicks: link.clickCount,
+    lifetimeClicks: link.clickCount,
     remainingVisits,
     maximumVisits: link.maximumVisits,
     successfulVisitCount: link.clickCount,
+    usedVisits: link.clickCount,
     ...analytics,
+    meta: {
+      timezone: 'UTC',
+      period,
+      traffic,
+    },
   };
 }
 
@@ -206,6 +213,9 @@ export async function getCampaignAnalytics(
         .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
       ...analytics,
       meta: {
+        timezone: 'UTC',
+        period,
+        traffic: 'human',
         attribution,
         legacyCount,
       },
@@ -221,6 +231,9 @@ export async function getCampaignAnalytics(
       topLinks: [],
       ...await buildAnalytics(sql`1=0`, period, campaign.createdAt.getTime(), 'human'),
       meta: {
+        timezone: 'UTC',
+        period,
+        traffic: 'human',
         attribution,
         legacyCount: 0,
       },
@@ -267,6 +280,9 @@ export async function getCampaignAnalytics(
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
     ...analytics,
     meta: {
+      timezone: 'UTC',
+      period,
+      traffic: 'human',
       attribution,
       legacyCount,
     },
@@ -352,6 +368,11 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
     timeline: analytics.series,
     topLinks: topRows.map(row => ({ id: row.id, slug: row.slug, title: row.title, clicks: Number(row.clicks) })),
     attention: { expiringSoon, nearCap, stopped },
+    meta: {
+      timezone: 'UTC',
+      period,
+      traffic: 'human',
+    },
   };
 }
 

@@ -120,7 +120,7 @@ function noteFor(group: string, link: Summary) {
               Needs attention
             </h2>
             <p v-if="!needsAttention" class="px-5 py-8 text-center text-sm text-muted">
-              Every link is fine.
+              No expiry or visit-cap alerts.
             </p>
             <template v-else>
               <div v-for="group in attentionGroups" :key="group.key">

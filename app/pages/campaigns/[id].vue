@@ -17,7 +17,21 @@ const { canManageLinks } = useCurrentWorkspace();
 
 const { data: campaign, error, refresh: refreshCampaign } = await useApi<CampaignItem>(() => `/api/campaigns/${id.value}`);
 
-const { data: analytics, refresh: refreshAnalytics } = useApi(() => `/api/campaigns/${id.value}/analytics`, {
+type CampaignAnalytics = {
+  totalClicks: number;
+  linkCount: number;
+  periodClicks: number;
+  series: { bucket: string; count: number }[];
+  bySource: { label: string; count: number }[];
+  byMedium?: { label: string; count: number }[];
+  topReferrers: { label: string; count: number }[];
+  topCountries: { label: string; count: number }[];
+  devices: { label: string; count: number; percentage: number }[];
+  topLinks: { id: string; slug: string; title: string | null; utmSource: string | null; utmContent: string | null; totalClicks: number; periodClicks: number }[];
+  meta: { attribution: string; legacyCount: number; timezone?: string; period?: string; traffic?: string };
+};
+
+const { data: analytics, pending: analyticsPending, error: analyticsError, refresh: refreshAnalytics } = useApi<CampaignAnalytics>(() => `/api/campaigns/${id.value}/analytics`, {
   query: computed(() => ({ period: period.value, attribution: attribution.value })),
   watch: [period, attribution],
 });
@@ -91,7 +105,51 @@ async function removeCampaign() {
       </template>
     </UModal>
 
-    <template v-if="analytics">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold text-highlighted">
+          Campaign activity
+        </h2>
+        <p class="mt-0.5 text-xs text-muted">
+          Clicks on every link in this campaign.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <USelect
+          v-model="attribution"
+          :items="[{ label: 'Current membership', value: 'current' }, { label: 'Recorded at click', value: 'recorded' }]"
+          aria-label="Attribution mode"
+          class="w-48"
+        />
+        <USelect
+          v-model="period"
+          :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]"
+          aria-label="Analytics period"
+          class="w-40"
+        />
+      </div>
+    </div>
+
+    <div v-if="analyticsPending" class="space-y-4" role="status" aria-label="Loading campaign activity">
+      <div class="metric-grid">
+        <USkeleton v-for="n in 4" :key="n" class="h-24 w-full" />
+      </div>
+      <USkeleton class="h-64 w-full" />
+      <span class="sr-only">Loading campaign activity</span>
+    </div>
+
+    <div v-else-if="analyticsError" class="surface p-5">
+      <UAlert
+        title="Could not load campaign activity"
+        description="Try again to load this campaign's numbers."
+        color="error"
+        variant="soft"
+        icon="i-lucide-circle-alert"
+      />
+      <UButton label="Try again" variant="outline" size="sm" class="mt-4" @click="refreshAnalytics()" />
+    </div>
+
+    <template v-else-if="analytics">
       <div class="metric-grid">
         <MetricStat size="md" class="p-5" label="Clicks in this period" :value="analytics.periodClicks.toLocaleString()" />
         <MetricStat size="md" class="border-l border-default p-5" label="All-time clicks" :value="analytics.totalClicks.toLocaleString()" />
@@ -102,30 +160,6 @@ async function removeCampaign() {
       </div>
 
       <section class="space-y-5 rounded-panel border border-default bg-default p-4 sm:p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="font-semibold text-highlighted">
-              Campaign activity
-            </h2>
-            <p class="mt-1 text-xs text-muted">
-              Clicks on every link in this campaign.
-            </p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <USelect
-              v-model="attribution"
-              :items="[{ label: 'Current membership', value: 'current' }, { label: 'Recorded at click', value: 'recorded' }]"
-              aria-label="Attribution mode"
-              class="w-48"
-            />
-            <USelect
-              v-model="period"
-              :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]"
-              aria-label="Analytics period"
-              class="w-40"
-            />
-          </div>
-        </div>
         <div v-if="analytics.periodClicks === 0" class="py-9 text-center">
           <UIcon name="i-lucide-chart-no-axes-column-increasing" class="mb-3 size-7 text-muted" />
           <h3 class="text-sm font-medium">
@@ -134,7 +168,7 @@ async function removeCampaign() {
           <p class="mt-2 text-sm text-muted">
             Share a link from this campaign or choose another period.
           </p>
-          <p v-if="analytics.meta?.legacyCount > 0" class="mt-3 text-xs text-muted">
+          <p v-if="analytics.meta.legacyCount > 0" class="mt-3 text-xs text-muted">
             {{ analytics.meta.legacyCount === 1 ? '1 click was' : `${analytics.meta.legacyCount} clicks were` }} recorded before attribution existed. They appear only under current membership.
           </p>
         </div>
@@ -147,7 +181,7 @@ async function removeCampaign() {
             <BreakdownList title="Countries" :items="analytics.topCountries" />
             <BreakdownList title="Devices" :items="analytics.devices" />
           </div>
-          <p v-if="analytics.meta?.legacyCount > 0" class="text-xs text-muted">
+          <p v-if="analytics.meta.legacyCount > 0" class="text-xs text-muted">
             {{ analytics.meta.legacyCount === 1 ? '1 click was' : `${analytics.meta.legacyCount} clicks were` }} recorded before attribution existed. They appear only under current membership.
           </p>
         </template>

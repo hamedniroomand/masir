@@ -180,4 +180,46 @@ describe('link analytics', async () => {
     const month = String(lastMonth.getUTCMonth() + 1).padStart(2, '0');
     expect(rows[0]!.table).toBe(`click_events_${lastMonth.getUTCFullYear()}_${month}`);
   });
+
+  it('returns explicit metric fields and response metadata', async () => {
+    const linkId = await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'an-meta-fields',
+      maximumVisits: 10,
+    });
+    for (let i = 0; i < 3; i++) {
+      await fetch('/an-meta-fields', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+    }
+
+    const cookie = await loginCookie();
+    const linkStats = await $fetch<{
+      totalClicks: number;
+      lifetimeClicks: number;
+      usedVisits: number;
+      remainingVisits: number;
+      maximumVisits: number;
+      meta: { timezone: string; period: string; traffic: string };
+    }>(`/api/links/${linkId}/analytics`, { query: { period: '7d', traffic: 'human' }, headers: { cookie } });
+
+    expect(linkStats.lifetimeClicks).toBe(3);
+    expect(linkStats.totalClicks).toBe(3);
+    expect(linkStats.usedVisits).toBe(3);
+    expect(linkStats.remainingVisits).toBe(7);
+    expect(linkStats.maximumVisits).toBe(10);
+    expect(linkStats.meta).toEqual({
+      timezone: 'UTC',
+      period: '7d',
+      traffic: 'human',
+    });
+
+    const wsStats = await $fetch<{
+      meta: { timezone: string; period: string; traffic: string };
+    }>('/api/workspaces/analytics', { query: { period: '7d' }, headers: { cookie } });
+
+    expect(wsStats.meta).toEqual({
+      timezone: 'UTC',
+      period: '7d',
+      traffic: 'human',
+    });
+  });
 });

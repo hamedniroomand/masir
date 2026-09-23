@@ -40,6 +40,11 @@ the notes for every version between the one you run and the one you install.
   `GET /api/campaigns/:id/analytics?attribution=...`. Recorded mode scopes to
   clicks recorded with the campaign at redirect time and groups by snapshot UTM
   values. The response reports `meta: { attribution, legacyCount }`.
+- Explicit analytics metric definitions in `shared/analytics-metrics.ts` and response
+  metadata (`lifetimeClicks`, `usedVisits`, `meta: { timezone, period, traffic }`).
+  The link analytics panel presents period clicks, lifetime clicks, daily unique visitor
+  explanations, remaining visits, loading skeletons, and retryable error states.
+
 
 ### Changed
 

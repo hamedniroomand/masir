@@ -25,6 +25,19 @@ the traffic filter for humans, bots, or both.
 
 Workspace and campaign views aggregate the same event data at a broader level.
 
+## Response fields
+
+The HTTP route `GET /api/links/:id/analytics` returns:
+
+- `periodClicks`: redirects in the selected period
+- `lifetimeClicks`: all-time successful redirects on the link (equals `totalClicks`)
+- `usedVisits`: visits counted toward the limit (equals `successfulVisitCount`)
+- `remainingVisits`: visits remaining before the limit takes effect
+- `maximumVisits`: configured visit limit
+- `uniqueVisitors`: daily unique visitors in the period
+- `botRequests`: crawler and preview requests in the period
+- `meta`: `{ timezone: 'UTC', period, traffic }`
+
 ## Understand unique visitors
 
 Masir creates a salted hash from the link, client address, user agent, and
