@@ -58,6 +58,7 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@nuxt/test-utils": "^4.3.2",
     "@playwright/test": "^1.63.0",
+    "@sentry/cli": "^2.58.6",
     "@types/bun": "^1.4.2",
     "@types/nodemailer": "^8.0.2",
     "@vitest/coverage-v8": "^5.0.1",
