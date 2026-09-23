@@ -53,15 +53,30 @@ export default defineEventHandler(async (event) => {
 
   // Short links live only inside a workspace. The root host serves none, and
   // without SSR the Vue app cannot answer 404 itself, so the server does.
-  const workspace = event.context.workspace as { id: string; linkPrefix: string | null } | undefined;
+  const workspace = event.context.workspace as {
+    id: string;
+    linkPrefix: string | null;
+    retainedPrefixes?: Set<string>;
+  } | undefined;
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Link not found' });
 
+  const retained = workspace.retainedPrefixes ?? new Set<string>();
+
   // With a prefix the slug is the second segment and the root paths stay
   // with the app. Without one, only a single segment is a slug.
-  const segment = workspace.linkPrefix
-    ? (first === workspace.linkPrefix && segments.length === 2 ? segments[1] : undefined)
-    : (segments.length === 1 ? first : undefined);
+  let segment: string | undefined;
+  if (segments.length === 2) {
+    if (first === workspace.linkPrefix || retained.has(first)) {
+      segment = segments[1];
+    }
+  }
+  else if (segments.length === 1) {
+    if (!workspace.linkPrefix || retained.has('')) {
+      segment = first;
+    }
+  }
+
   if (!segment)
     return;
 
@@ -97,7 +112,7 @@ export default defineEventHandler(async (event) => {
   let decision = decideRedirect(link, { meta, now: Date.now(), hasPasswordGrant });
 
   if (decision.kind === 'password') {
-    await sendRedirect(event, `/p/${segment}`, 302);
+    await sendRedirect(event, `/p/${segment}?path=${encodeURIComponent(pathname)}`, 302);
     return;
   }
 

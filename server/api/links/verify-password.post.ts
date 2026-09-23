@@ -12,12 +12,13 @@ import { deriveLinkStatus } from '#shared/link-status';
 const bodySchema = v.object({
   slug: v.pipe(v.string(), v.minLength(1)),
   password: v.pipe(v.string(), v.minLength(1)),
+  requestedPath: v.optional(v.string()),
 });
 
 export default defineEventHandler(async (event) => {
   // This route is public. The workspace comes from the hostname, never from
   // the caller, or a password for one workspace could unlock another.
-  const workspace = event.context.workspace as { id: string } | undefined;
+  const workspace = event.context.workspace as { id: string; linkPrefix?: string | null } | undefined;
   if (!workspace)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
@@ -60,5 +61,8 @@ export default defineEventHandler(async (event) => {
   }
 
   setPasswordGrant(event, workspace.id, link.slug, config.sessionPassword);
-  return { ok: true, redirectTo: `/${link.slug}` };
+  const redirectTo = body.requestedPath && body.requestedPath.startsWith('/')
+    ? body.requestedPath
+    : (workspace.linkPrefix ? `/${workspace.linkPrefix}/${link.slug}` : `/${link.slug}`);
+  return { ok: true, redirectTo };
 });

@@ -44,6 +44,11 @@ the notes for every version between the one you run and the one you install.
   metadata (`lifetimeClicks`, `usedVisits`, `meta: { timezone, period, traffic }`).
   The link analytics panel presents period clicks, lifetime clicks, daily unique visitor
   explanations, remaining visits, loading skeletons, and retryable error states.
+- Retained link paths and prefix migration management. When changing a workspace link
+  prefix with `pathMode: 'preserve'`, the previous prefix is retained in `workspace_link_prefixes`,
+  allowing published URLs and QR codes under the previous path to continue resolving. Retained
+  paths can be viewed and revoked under workspace settings.
+
 
 
 ### Changed

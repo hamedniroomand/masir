@@ -78,8 +78,10 @@ URL when it creates or resumes a live demo session.
 |---|---|---|---|
 | `GET` | `/api/workspaces` | Signed in | Current memberships |
 | `POST` | `/api/workspaces` | Verified account | `name`, optional `slug`, optional `linkPrefix` |
-| `PATCH` | `/api/workspaces` | `workspace.manage` | `name`, `linkPrefix` |
+| `PATCH` | `/api/workspaces` | `workspace.manage` | `name`, `linkPrefix`, optional `pathMode: 'preserve' \| 'replace'` |
 | `DELETE` | `/api/workspaces` | `workspace.delete` | Soft-deletes the current workspace |
+| `GET` | `/api/workspaces/link-prefixes` | `workspace.manage` | Retained link paths |
+| `DELETE` | `/api/workspaces/link-prefixes/:prefix` | `workspace.manage` | Revokes a retained link path |
 | `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`: `24h`, `7d`, `30d`, or `all` |
 | `GET` | `/api/workspaces/slug-available?slug=` | Signed in | Workspace slug availability |
 | `POST` | `/api/workspaces/logo` | `workspace.manage` | Multipart PNG, JPEG, GIF, or WebP |

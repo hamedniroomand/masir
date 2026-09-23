@@ -26,6 +26,19 @@ Turn off **Keep old slug** only when the old address must stop resolving. The
 old slug still stays reserved. Masir never gives a previously used address to
 another link.
 
+## Change link path
+
+A workspace can set or change its link path under workspace settings.
+
+By default, Masir preserves old link paths (`pathMode: 'preserve'`). Old links
+and QR codes continue to resolve alongside new links.
+
+Selecting `replace` stops the old link path from resolving immediately.
+
+You can view and revoke retained paths under workspace settings. Revoking a
+path permanently stops old links from resolving under that path.
+
+
 ## Add aliases
 
 An alias is another slug for the same link. A link can have up to 10 active

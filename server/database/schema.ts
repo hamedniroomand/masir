@@ -113,6 +113,16 @@ export const workspaces = pgTable('workspaces', {
   index('workspaces_expires_at_idx').on(table.expiresAt).where(sql`expires_at is not null`),
 ]);
 
+export const workspaceLinkPrefixes = pgTable('workspace_link_prefixes', {
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  prefix: text('prefix').notNull(),
+  state: text('state').notNull(),
+  createdAt: timestampTz('created_at').notNull().defaultNow(),
+  revokedAt: timestampTz('revoked_at'),
+}, table => [
+  primaryKey({ columns: [table.workspaceId, table.prefix] }),
+]);
+
 export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -348,6 +358,7 @@ export const serviceSignals = pgTable('service_signals', {
 });
 
 export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceLinkPrefix = typeof workspaceLinkPrefixes.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
 export type User = typeof users.$inferSelect;
