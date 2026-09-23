@@ -53,6 +53,8 @@ the notes for every version between the one you run and the one you install.
   using Redis pub/sub (`NUXT_LINK_CACHE_SHARED_INVALIDATION`). A failed or
   disconnected Redis connection sets the `link_cache` operational signal to
   `degraded`.
+- QR code preview fidelity, client-side PNG rasterization matching SVG styling and logo,
+  and scanner contrast ratio warnings.
 
 
 
