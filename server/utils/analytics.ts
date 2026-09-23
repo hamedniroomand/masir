@@ -1,14 +1,34 @@
 import type { SQL } from 'drizzle-orm';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
+import * as Sentry from '@sentry/nuxt';
 import { and, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, hosts, links, workspaces } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { hostId } from '#server/utils/host-repo';
+import { setSignal } from '#server/utils/service-signals';
 import { BOT_CATEGORY, BROWSER, browserLabel, DEVICE, deviceLabel, OUTCOME } from '#shared/codes';
+import { sentryEnabled } from '#shared/sentry';
 
 // Postgres returns bigint as a string. The cast keeps every count a number.
 const countAll = sql<number>`count(*)::int`;
+
+let hasRecordedEventWriteFailure = false;
+let eventWriteFailureCount = 0;
+
+export function getEventWriteFailureCount() {
+  return eventWriteFailureCount;
+}
+
+export async function reportEventWriteFailure(error: unknown) {
+  eventWriteFailureCount++;
+  hasRecordedEventWriteFailure = true;
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[event-write-failure] ${message}`, error);
+  if (sentryEnabled())
+    Sentry.captureException(error);
+  await setSignal('event_write', 'failed', { message, at: new Date().toISOString() });
+}
 
 // One insert, no transaction. consumeVisit already raised the counter inside
 // its own guard, so there is nothing here to keep in step with it.
@@ -33,6 +53,11 @@ export async function recordEvent(
     country: meta.country,
     isBot: meta.isBot,
   });
+
+  if (hasRecordedEventWriteFailure) {
+    hasRecordedEventWriteFailure = false;
+    await setSignal('event_write', 'ok', { recoveredAt: new Date().toISOString() });
+  }
 }
 
 type Period = '24h' | '7d' | '30d' | 'all';

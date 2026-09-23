@@ -24,6 +24,10 @@ the notes for every version between the one you run and the one you install.
 - A `click_event_partitions` job, fixed at every 24 hours, keeps
   `click_events` inserts working on an instance that never restarts. Its job
   report includes `partitionsReadyThrough`.
+- A `service_signals` table and operational signal reporting. When a background
+  event write fails, the redirect reports the error without delay and sets
+  the `event_write` signal to `failed`. A subsequent successful insert resets
+  the signal to `ok`.
 
 ### Changed
 

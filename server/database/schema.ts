@@ -332,6 +332,14 @@ export const jobRuns = pgTable('job_runs', {
   nextDueAt: timestampTz('next_due_at'),
 });
 
+// Single-row status indicators for operational health and background errors.
+export const serviceSignals = pgTable('service_signals', {
+  key: text('key').primaryKey(),
+  state: text('state').notNull(),
+  detail: jsonb('detail'),
+  updatedAt: timestampTz('updated_at').notNull().defaultNow(),
+});
+
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
@@ -343,3 +351,4 @@ export type Campaign = typeof campaigns.$inferSelect;
 export type ResolvedLink = Link & { utmMedium: string | null; utmCampaign: string | null };
 export type ClickEvent = typeof clickEvents.$inferSelect;
 export type AuditEvent = typeof auditEvents.$inferSelect;
+export type ServiceSignal = typeof serviceSignals.$inferSelect;

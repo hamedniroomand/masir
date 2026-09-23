@@ -3,7 +3,7 @@ import type { ResolvedLink } from '#server/database/schema';
 import type { RequestMeta } from '#server/utils/request-meta';
 import type { OutcomeLabel } from '#shared/codes';
 import { setResponseHeader } from 'h3';
-import { recordEvent } from '#server/utils/analytics';
+import { recordEvent, reportEventWriteFailure } from '#server/utils/analytics';
 import { meetsCapThreshold, sendCapAlert } from '#server/utils/link-alerts';
 import { getCachedLink, setCachedLink } from '#server/utils/link-cache';
 import { consumeVisit, findLinkBySlug } from '#server/utils/link-repo';
@@ -21,7 +21,7 @@ function logLinkEvent(event: H3Event, workspaceId: string, linkId: string, outco
   const visitorHash = !meta.isBot && outcome === 'redirect_success'
     ? visitorHashForLink(event, linkId)
     : null;
-  event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(() => {}));
+  event.waitUntil(recordEvent(workspaceId, linkId, meta, outcome, visitorHash).catch(reportEventWriteFailure));
 }
 
 // Both the derived status and a lost race with consumeVisit end here. A
