@@ -55,6 +55,8 @@ the notes for every version between the one you run and the one you install.
   `degraded`.
 - QR code preview fidelity, client-side PNG rasterization matching SVG styling and logo,
   and scanner contrast ratio warnings.
+- Release 1 verification test fixtures for published address migration compatibility and
+  attribution history, along with redirect latency benchmark script (`scripts/bench-redirect.ts`).
 
 
 

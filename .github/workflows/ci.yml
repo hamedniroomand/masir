@@ -49,6 +49,9 @@ jobs:
           TEST_DATABASE_URL: postgres://masir:masir@127.0.0.1:5432/masir_test
           NUXT_PUBLIC_SHORT_DOMAIN: http://localhost:3000
 
+      - name: Redirect benchmark
+        run: bun run scripts/bench-redirect.ts -n 50
+
   browser:
     runs-on: ubuntu-latest
 
