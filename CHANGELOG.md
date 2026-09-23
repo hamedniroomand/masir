@@ -9,6 +9,13 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
+### Added
+
+- Optional Umami analytics for application page views.
+  `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID` turns it on with Umami
+  Cloud. `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL` points it at a
+  self-hosted Umami. Short-link visitor responses do not load it.
+
 ### Changed
 
 - The app and documentation site now include branded social preview images for

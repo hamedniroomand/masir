@@ -50,6 +50,44 @@ describe('assertRuntimeConfig', () => {
     })).not.toThrow();
   });
 
+  it('throws for an umami website id that is not a UUID', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: 'abc' } } },
+    })).toThrow(/NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID/);
+  });
+
+  it('throws for an umami host that is not an http(s) URL', () => {
+    expect(() => assertRuntimeConfig({
+      sessionPassword: '0'.repeat(32),
+      databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+      deploymentMode: 'SELF_HOSTED' as const,
+      rootDomain: 'http://localhost:3000',
+      multiWorkspace: false,
+      allowRegistration: false,
+      public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: '94db1cb1-74f4-4a40-ad6c-962362670409', hostUrl: 'umami.example.com' } } },
+    })).toThrow(/NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL/);
+  });
+
+  it('accepts umami cloud and self-hosted settings', () => {
+    for (const hostUrl of ['', 'https://example.com/umami/']) {
+      expect(() => assertRuntimeConfig({
+        sessionPassword: '0'.repeat(32),
+        databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
+        deploymentMode: 'SELF_HOSTED' as const,
+        rootDomain: 'http://localhost:3000',
+        multiWorkspace: false,
+        allowRegistration: false,
+        public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: '94DB1CB1-74F4-4A40-AD6C-962362670409', hostUrl } } },
+      })).not.toThrow();
+    }
+  });
+
   it('accepts an empty Sentry DSN', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),

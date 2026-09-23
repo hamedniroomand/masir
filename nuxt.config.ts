@@ -136,6 +136,8 @@ export default defineNuxtConfig({
     public: {
       shortDomain: 'http://localhost:3000',
       turnstileSiteKey: '',
+      // Declared so NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL can bind.
+      scripts: { umamiAnalytics: { hostUrl: '' } },
       sentry: {
         dsn: '',
         environment: '',
@@ -208,6 +210,9 @@ export default defineNuxtConfig({
     },
     registry: {
       googleAnalytics: { proxy: false },
+      // The proxy covers only Umami Cloud. A bundled copy of the Cloud
+      // tracker would replace the self-hosted script src.
+      umamiAnalytics: { proxy: false, bundle: false },
     },
     security: false,
   },

@@ -2,6 +2,7 @@ import type { DeploymentConfig } from '#shared/deployment';
 import { assertDeploymentConfig } from '#shared/deployment';
 
 const GA4_MEASUREMENT_ID = /^G-[A-Z0-9]+$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const MAX_ALERTS_INTERVAL_MINUTES = 35_000;
 
 export function assertRuntimeConfig(config: DeploymentConfig & {
@@ -13,7 +14,10 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   oauth?: { microsoft?: { clientId?: string; tenant?: string } };
   public: {
     shortDomain: string;
-    scripts?: { googleAnalytics?: { id?: string } };
+    scripts?: {
+      googleAnalytics?: { id?: string };
+      umamiAnalytics?: { websiteId?: string; hostUrl?: string };
+    };
     sentry?: { dsn?: string; tracesSampleRate?: number | string };
   };
 }) {
@@ -56,6 +60,12 @@ export function assertRuntimeConfig(config: DeploymentConfig & {
   const googleAnalyticsId = config.public.scripts?.googleAnalytics?.id;
   if (googleAnalyticsId && !GA4_MEASUREMENT_ID.test(googleAnalyticsId))
     throw new Error('Missing or invalid NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID (must be a GA4 measurement ID, G-XXXXXXXX)');
+
+  const umami = config.public.scripts?.umamiAnalytics;
+  if (umami?.websiteId && !UUID.test(umami.websiteId))
+    throw new Error('Missing or invalid NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID (must be an Umami website ID, a UUID)');
+  if (umami?.hostUrl && !['http:', 'https:'].includes(URL.parse(umami.hostUrl)?.protocol ?? ''))
+    throw new Error('Missing or invalid NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL (must be an http(s) URL of a self-hosted Umami)');
 
   const dsn = config.public.sentry?.dsn?.trim();
   if (dsn) {
