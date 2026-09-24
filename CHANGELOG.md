@@ -9,16 +9,15 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the routing preview from link detail and link creation.
+
 ### Fixed
 
-- Routing preview country select no longer crashes when the first item (No country)
-  is selected. Empty-string SelectItem values are replaced with a sentinel.
-
-- Date pickers in routing preview and analytics custom range use the Nuxt
-  Calendar component instead of native browser date inputs.
-
-- Routing preview fields align on the same baseline when one field has helper
-  text and siblings do not.
+- Campaign detail now opens the shared link creation drawer with its campaign selected.
+- Campaign detail and analytics responses now report current link counts. The
+  campaign list refreshes after link assignments change.
 
 ### Added
 
@@ -48,11 +47,6 @@ the notes for every version between the one you run and the one you install.
   traffic, attribution, `earliestEventAt`, `signals`, and a warning when `from`
   is before retained partitions. The three report views add a range picker,
   comparison toggle, metadata line, and "No prior data" when percent is null.
-
-- Routing preview for authorized members. `POST /api/links/:id/preview` runs
-  `decideRedirect` with a simulated country, device, and time. It does not
-  consume visits, write events, set a password cookie, or touch the link cache.
-  The link overview and create-success state show `LinkRoutingPreview`.
 
 - Link trash, restore, and undo. `GET /api/links?trashed=true` lists soft-deleted
   links. `POST /api/links/:id/restore` clears `deleted_at`, invalidates the slug

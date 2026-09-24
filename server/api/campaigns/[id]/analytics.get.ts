@@ -1,7 +1,7 @@
 import { getCampaignAnalytics } from '#server/utils/analytics';
 import { readAnalyticsOptions } from '#server/utils/analytics-query';
 import { requireWorkspaceMember } from '#server/utils/auth';
-import { campaignToDto, findCampaignForWorkspace } from '#server/utils/campaign-repo';
+import { campaignToDto, findCampaignForWorkspace, getCampaignStats } from '#server/utils/campaign-repo';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
@@ -21,5 +21,5 @@ export default defineEventHandler(async (event) => {
   if (!data)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  return { campaign: campaignToDto(campaign), ...data };
+  return { campaign: campaignToDto(campaign, await getCampaignStats(id, workspaceId)), ...data };
 });

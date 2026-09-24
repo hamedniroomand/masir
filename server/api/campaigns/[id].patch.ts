@@ -2,7 +2,7 @@ import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { campaignToDto, findCampaignForWorkspace, updateCampaign } from '#server/utils/campaign-repo';
+import { campaignToDto, findCampaignForWorkspace, getCampaignStats, updateCampaign } from '#server/utils/campaign-repo';
 import { CampaignTakenError } from '#server/utils/errors';
 import { emptyToNull, utmValueSchema } from '#shared/utm';
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     await writeAuditEvent('campaign_updated', { fields: Object.keys(patch) }, { workspaceId, actor: user.id });
     if (!updated)
       throw createError({ statusCode: 404, statusMessage: 'Campaign not found' });
-    return campaignToDto(updated);
+    return campaignToDto(updated, await getCampaignStats(id, workspaceId));
   }
   catch (error) {
     if (error instanceof CampaignTakenError)
