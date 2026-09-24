@@ -126,6 +126,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `POST` | `/api/links/:id/aliases` | `links.manage` | `slug` |
 | `DELETE` | `/api/links/:id/aliases/:slug` | `links.manage` | Revokes the alias |
 | `GET` | `/api/links/:id/qr` | `links.read` | `format` and `size` |
+| `POST` | `/api/links/:id/preview` | `links.read` | Simulated routing decision |
 
 List filters include `page`, `perPage`, `sort`, `status`, `q`,
 `tags`, exact normalized `destination`, `campaignId`, `createdBy` (`me` or a
@@ -162,6 +163,14 @@ change. The response is `{ affected, results }`. One audit event
 | `targeting` | object or null | Country and OS destinations |
 
 A slug change keeps the old slug as an alias unless `keepOldSlug` is false.
+
+### Routing preview
+
+`POST /api/links/:id/preview` accepts `{ country?, os?, at? }`. `country` is a
+two-letter code. `os` is `ios`, `android`, `desktop`, or `other`. `at` is an
+ISO 8601 timestamp. The response is the `decideRedirect` decision plus `rule`
+and `linkState`. The call does not consume a visit, write an event, set a
+password cookie, or update the cache.
 
 ### Batch create
 

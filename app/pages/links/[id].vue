@@ -40,6 +40,7 @@ const creatorName = computed(() => {
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
+const previewOpen = ref(false);
 const showError = useErrorToast();
 const { $api } = useNuxtApp();
 const { offerUndo } = useLinkUndoToast();
@@ -92,7 +93,7 @@ onMounted(() => {
         </p>
       </div>
       <div class="flex shrink-0 gap-2">
-        <UButton :label="copied ? 'Copied' : 'Copy link'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" size="sm" @click="copy(link.shortUrl)" /><UButton label="QR code" icon="i-lucide-qr-code" color="neutral" variant="outline" size="sm" @click="qrOpen = true" />
+        <UButton :label="copied ? 'Copied' : 'Copy link'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" size="sm" @click="copy(link.shortUrl)" /><UButton label="QR code" icon="i-lucide-qr-code" color="neutral" variant="outline" size="sm" @click="qrOpen = true" /><UButton label="Preview routing" icon="i-lucide-play" color="neutral" variant="outline" size="sm" @click="previewOpen = true" />
         <UButton
           v-if="canManageLinks"
           :label="link.archived ? 'Unarchive' : 'Archive'"
@@ -114,6 +115,16 @@ onMounted(() => {
     </div>
 
     <LinkQrSlideover v-model:open="qrOpen" :link-id="link.id" :short-url="link.shortUrl" :label="link.title || link.slug" />
+    <USlideover
+      v-model:open="previewOpen"
+      title="Preview routing"
+      description="See which rule a visitor would hit."
+      :ui="{ content: 'sm:max-w-[640px]' }"
+    >
+      <template #body>
+        <LinkRoutingPreview :link-id="link.id" />
+      </template>
+    </USlideover>
 
     <UTabs
       v-model="tab"

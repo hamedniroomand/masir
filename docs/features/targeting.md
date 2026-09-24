@@ -46,8 +46,12 @@ must not be able to choose its own country.
 
 ## Test a rule
 
-Use a browser or proxy that sends the same headers as production. Confirm the
-`Location` response:
+Open the link and use **Preview routing**. Choose a country, device, and time.
+The panel shows the matched rule and the destination. The preview does not
+count as a visit and does not check that the destination works.
+
+You can also send the same headers as production and confirm the `Location`
+response:
 
 ```sh
 curl -I https://go.example.com/download \

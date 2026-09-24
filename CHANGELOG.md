@@ -11,6 +11,11 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Routing preview for authorized members. `POST /api/links/:id/preview` runs
+  `decideRedirect` with a simulated country, device, and time. It does not
+  consume visits, write events, set a password cookie, or touch the link cache.
+  The link overview and create-success state show `LinkRoutingPreview`.
+
 - Link trash, restore, and undo. `GET /api/links?trashed=true` lists soft-deleted
   links. `POST /api/links/:id/restore` clears `deleted_at`, invalidates the slug
   and aliases, and writes `link_restored`. The library adds a Trash view with

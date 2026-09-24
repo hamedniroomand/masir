@@ -115,6 +115,7 @@ const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
+const previewOpen = ref(false);
 const { current } = useCurrentWorkspace();
 const domain = computed(() => {
   try {
@@ -274,17 +275,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
             class="rounded-none"
             @click="qrOpen = true"
           />
-          <UTooltip text="Preview routing will be available in Release 2">
-            <UButton
-              size="sm"
-              label="Preview routing"
-              icon="i-lucide-play"
-              color="neutral"
-              variant="outline"
-              class="rounded-s-none opacity-60"
-              disabled
-            />
-          </UTooltip>
+          <UButton
+            size="sm"
+            label="Preview routing"
+            icon="i-lucide-play"
+            color="neutral"
+            variant="outline"
+            class="rounded-s-none"
+            @click="previewOpen = true"
+          />
         </div>
         <UButton
           size="sm"
@@ -309,6 +308,17 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         :short-url="created.shortUrl"
         :label="created.title || created.slug"
       />
+      <USlideover
+        v-if="created"
+        v-model:open="previewOpen"
+        title="Preview routing"
+        description="See which rule a visitor would hit."
+        :ui="{ content: 'sm:max-w-[640px]' }"
+      >
+        <template #body>
+          <LinkRoutingPreview :link-id="created.id" />
+        </template>
+      </USlideover>
     </div>
     <UForm
       ref="form"
