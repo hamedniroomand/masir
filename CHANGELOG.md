@@ -11,6 +11,14 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Library filters for `campaignId`, `createdBy` (`me` or a user id), and
+  `archived` (default `false`) on `GET /api/links` and `listLinks`.
+- `POST /api/links/bulk` for tag, untag, and assign-campaign actions on a set
+  of ids or on a filter (cap 500). Cross-workspace ids answer 404. One audit
+  event `links_bulk_action` is written per request.
+- Link library selection, campaign and creator filters, a searchable tag menu
+  above 15 tags, the **My links** view, and custom views in localStorage.
+
 - Shared CSV parse and write helpers in `shared/csv.ts` with formula-safe cells, plus `csvResponse` for download responses.
 - A link-level `utm_medium` override. A link value wins over its campaign
   medium; clearing it returns to the campaign value.

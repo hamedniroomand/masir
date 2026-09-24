@@ -90,6 +90,19 @@ Masir evaluates status in this order:
 
 The first matching state wins.
 
+## Filter and change many links
+
+Filter the library by search, status, tags, campaign, or creator. Open **My
+links** to show only the links you created.
+
+Select rows on the page, or select every link that matches the current
+filters (up to 500). Add a tag, remove a tag, or assign a campaign in one
+action. The confirm step shows the workspace name and short domain before the
+change.
+
+Custom views store the current filters in the browser under
+`masir:views:{workspaceId}`.
+
 ## Delete a link
 
 Deletion is soft. The link leaves normal lists and stops resolving. Its slug,

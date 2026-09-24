@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import type { LinkItem } from '~/composables/useLinks';
 
-const props = defineProps<{ link: LinkItem }>();
+const props = defineProps<{
+  link: LinkItem;
+  selected?: boolean;
+  selectable?: boolean;
+}>();
 
-const emit = defineEmits<{ refresh: [] }>();
+const emit = defineEmits<{ refresh: []; 'update:selected': [value: boolean] }>();
 
 const { $api } = useNuxtApp();
 
@@ -62,6 +66,14 @@ async function remove() {
 
 <template>
   <article class="link-grid group px-5 py-4 transition-colors hover:bg-muted/60">
+    <div v-if="selectable" class="flex items-center">
+      <UCheckbox
+        :model-value="selected"
+        :aria-label="`Select ${name}`"
+        @update:model-value="emit('update:selected', $event === true)"
+      />
+    </div>
+    <div v-else />
     <div class="flex min-w-0 items-center gap-3.5">
       <div class="record-icon" aria-hidden="true">
         {{ link.destinationHost.replace(/^www\./, '').charAt(0).toUpperCase() }}

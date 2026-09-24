@@ -69,7 +69,7 @@ Clicks recorded before attribution existed appear only under current membership.
 | Need | Use |
 |---|---|
 | Group links in several ways | Tags |
-| Filter the link list | Tags |
+| Filter the link list | Tags or campaign |
 | Share one campaign name | Campaign |
 | Compare sources in one promotion | Campaign |
 | Add private context | Link notes |

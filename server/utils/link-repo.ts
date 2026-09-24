@@ -301,15 +301,24 @@ export async function tagNamesByLinkIds(linkIds: string[]) {
   return map;
 }
 
-export async function listLinks(workspaceId: string, query: {
+export type LinkListQuery = {
   q?: string;
   destination?: string;
   status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   tags?: string[];
+  campaignId?: string;
+  createdBy?: string;
+  // Defaults to false at the API. Without archived_at (Task R2.6), true matches
+  // nothing and false applies no archive filter.
+  archived?: boolean;
   page: number;
   perPage: number;
   sort: 'createdAt' | 'clicks';
-}) {
+};
+
+export const BULK_LINK_CAP = 500;
+
+export async function listLinks(workspaceId: string, query: LinkListQuery) {
   const db = await getDb();
   const now = new Date();
   const filters = [eq(links.workspaceId, workspaceId), isNull(links.deletedAt)];
@@ -330,6 +339,24 @@ export async function listLinks(workspaceId: string, query: {
 
   if (query.destination)
     filters.push(eq(links.destinationUrl, query.destination));
+
+  if (query.campaignId) {
+    if (isUuid(query.campaignId))
+      filters.push(eq(links.campaignId, query.campaignId));
+    else
+      filters.push(sql`1=0`);
+  }
+
+  if (query.createdBy) {
+    if (isUuid(query.createdBy))
+      filters.push(eq(links.createdBy, query.createdBy));
+    else
+      filters.push(sql`1=0`);
+  }
+
+  // archived_at lands in Task R2.6. Until then every live row is not archived.
+  if (query.archived === true)
+    filters.push(sql`1=0`);
 
   if (query.tags?.length) {
     for (const raw of query.tags) {

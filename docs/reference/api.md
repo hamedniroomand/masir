@@ -113,6 +113,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `GET` | `/api/links` | `links.read` | Paginated and filtered links |
 | `POST` | `/api/links` | `links.manage` | Creates a link |
 | `POST` | `/api/links/batch` | `links.manage` | Creates up to 20 rows in one request |
+| `POST` | `/api/links/bulk` | `links.manage` | Tags, untags, or assigns a campaign on many links |
 | `GET` | `/api/links/:id` | `links.read` | Link and creator |
 | `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
@@ -122,8 +123,16 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `DELETE` | `/api/links/:id/aliases/:slug` | `links.manage` | Revokes the alias |
 | `GET` | `/api/links/:id/qr` | `links.read` | `format` and `size` |
 
-List filters include `page`, `perPage`, `sort`, `status`, `search`,
-`tags`, and exact normalized `destination`.
+List filters include `page`, `perPage`, `sort`, `status`, `q`,
+`tags`, exact normalized `destination`, `campaignId`, `createdBy` (`me` or a
+user id), and `archived` (default `false`; archived rows need Task R2.6).
+
+A bulk request sends `{ selection: { ids } | { filter }, action, tagId?,
+campaignId? }`. `action` is `tag`, `untag`, `assignCampaign`, or `archive`.
+The server resolves a filter inside the workspace, caps the set at 500, and
+answers 422 above the cap. Ids outside the workspace answer 404 with no
+change. The response is `{ affected, results }`. One audit event
+`links_bulk_action { action, count }` is written.
 
 ### Link input
 

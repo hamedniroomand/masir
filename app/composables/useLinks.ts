@@ -32,6 +32,15 @@ export type LinkItem = {
   creator?: { email: string; firstName: string | null; lastName: string | null } | null;
 };
 
+export type LinkListFilter = {
+  q?: string;
+  status?: string;
+  tags?: string[];
+  campaignId?: string;
+  createdBy?: string;
+  sort?: string;
+};
+
 export function useLinksList() {
   const route = useRoute();
   const search = computed({
@@ -69,18 +78,43 @@ export function useLinksList() {
     }),
   });
 
+  const campaignId = computed({
+    get: () => (route.query.campaignId as string) || 'all',
+    set: (v: string) => navigateTo({
+      query: { ...route.query, campaignId: !v || v === 'all' ? undefined : v, page: undefined },
+    }),
+  });
+
+  const createdBy = computed({
+    get: () => (route.query.createdBy as string) || 'all',
+    set: (v: string) => navigateTo({
+      query: { ...route.query, createdBy: !v || v === 'all' ? undefined : v, page: undefined },
+    }),
+  });
+
+  const listFilter = computed<LinkListFilter>(() => ({
+    q: search.value || undefined,
+    status: status.value === 'all' ? undefined : status.value,
+    tags: selectedTags.value.length ? selectedTags.value : undefined,
+    campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
+    createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
+    sort: sort.value,
+  }));
+
   const { data, pending, refresh, error } = useApi(() => '/api/links', {
     query: computed(() => ({
       q: search.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
       tags: selectedTags.value.length ? selectedTags.value : undefined,
+      campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
+      createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
       page: page.value,
       perPage: 20,
       sort: sort.value,
     })),
   });
 
-  const { data: tagList } = useApi<{ items: { name: string }[] }>(() => '/api/tags');
+  const { data: tagList } = useApi<{ items: { id: string; name: string }[] }>(() => '/api/tags');
 
   function toggleTag(name: string) {
     const set = new Set(selectedTags.value);
@@ -91,5 +125,20 @@ export function useLinksList() {
     selectedTags.value = [...set];
   }
 
-  return { data, pending, refresh, error, search, status, page, sort, selectedTags, tagList, toggleTag };
+  return {
+    data,
+    pending,
+    refresh,
+    error,
+    search,
+    status,
+    page,
+    sort,
+    selectedTags,
+    campaignId,
+    createdBy,
+    listFilter,
+    tagList,
+    toggleTag,
+  };
 }
