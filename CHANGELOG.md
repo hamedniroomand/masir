@@ -11,8 +11,10 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
-- Release 2 task study fixtures for three-channel campaign launch and CSV
-  import retry, with recruitment and results in `docs/product/task-study.md`.
+- Release 2 task study for the four PRD §3 tasks (first link, three-channel
+  launch, classify 20 links, explain a report), with recruitment criteria,
+  targets, recording sheet, and results table in `docs/product/task-study.md`.
+  Browser fixtures cover three-channel launch and CSV import retry.
 
 - Analytics CSV download for link, campaign, and workspace reports.
   `GET /api/links/:id/analytics.csv`, `GET /api/campaigns/:id/analytics.csv`, and
