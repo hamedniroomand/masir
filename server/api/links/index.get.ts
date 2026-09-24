@@ -40,8 +40,9 @@ export default defineEventHandler(async (event) => {
     createdBy = query.createdBy === 'me' ? user.id : query.createdBy;
   }
 
-  // Default false. Only an explicit true asks for archived rows (Task R2.6).
+  // Default false. Only an explicit true asks for archived rows.
   const archived = query.archived === 'true' || query.archived === true;
+  const needsReview = query.needsReview === 'true' || query.needsReview === true;
 
   const { items, total } = await listLinks(workspaceId, {
     q: typeof query.q === 'string' ? query.q : undefined,
@@ -51,6 +52,7 @@ export default defineEventHandler(async (event) => {
     campaignId,
     createdBy,
     archived,
+    needsReview: needsReview || undefined,
     page,
     perPage,
     sort,

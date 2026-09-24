@@ -16,12 +16,18 @@ const FIELD_LABELS: Record<string, string> = {
   title: 'title',
   expiresAt: 'expiry date',
   isEnabled: 'availability',
+  responsibleUserId: 'responsible member',
+  reviewAt: 'review date',
+  archived: 'archive state',
 };
 
 const ICONS: Record<string, string> = {
   link_created: 'i-lucide-plus',
   link_updated: 'i-lucide-pencil',
   link_disabled_by_admin: 'i-lucide-shield-alert',
+  link_responsible_changed: 'i-lucide-user-cog',
+  link_archived: 'i-lucide-archive',
+  link_unarchived: 'i-lucide-archive-restore',
 };
 
 function describe(item: HistoryEvent) {
@@ -29,6 +35,12 @@ function describe(item: HistoryEvent) {
     return 'Created this link';
   if (item.type === 'link_disabled_by_admin')
     return 'Disabled this link';
+  if (item.type === 'link_responsible_changed')
+    return 'Changed who is responsible';
+  if (item.type === 'link_archived')
+    return 'Archived this link';
+  if (item.type === 'link_unarchived')
+    return 'Removed this link from the archive';
   const changed = item.fields?.map(field => FIELD_LABELS[field] ?? field) ?? [];
   if (!changed.length)
     return 'Updated this link';

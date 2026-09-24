@@ -219,6 +219,11 @@ export const links = pgTable('links', {
   utmContent: text('utm_content'),
   importId: uuid('import_id').references(() => linkImports.id, { onDelete: 'set null' }),
   importRow: integer('import_row'),
+  // Who owns follow-up for this link. Cleared when that member leaves.
+  responsibleUserId: uuid('responsible_user_id').references(() => users.id, { onDelete: 'set null' }),
+  reviewAt: timestampTz('review_at'),
+  // Hidden from default lists. The redirect path does not read this column.
+  archivedAt: timestampTz('archived_at'),
   // A deleted link keeps its slug and its click history. Soft delete replaces
   // the reserved slug table.
   deletedAt: timestampTz('deleted_at'),

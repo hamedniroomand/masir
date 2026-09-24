@@ -96,6 +96,7 @@ of the only workspace on an instance.
 | Method | Route | Required access | Input or result |
 |---|---|---|---|
 | `GET` | `/api/workspaces/members` | `members.manage` | Memberships |
+| `GET` | `/api/workspaces/members/options` | `links.manage` | Active members for assignment |
 | `PATCH` | `/api/workspaces/members/:id` | `members.manage` | Optional `role`, `isActive` |
 | `DELETE` | `/api/workspaces/members/:id` | `members.manage` | Removes a non-owner |
 | `GET` | `/api/workspaces/invitations` | `members.manage` | Open invitations |
@@ -113,12 +114,12 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `GET` | `/api/links` | `links.read` | Paginated and filtered links |
 | `POST` | `/api/links` | `links.manage` | Creates a link |
 | `POST` | `/api/links/batch` | `links.manage` | Creates up to 20 rows in one request |
-| `POST` | `/api/links/bulk` | `links.manage` | Tags, untags, or assigns a campaign on many links |
+| `POST` | `/api/links/bulk` | `links.manage` | Tags, untags, assigns a campaign, or archives many links |
 | `POST` | `/api/links/import/preview` | `links.manage` | Multipart CSV preview (max 1 MB, 1000 rows) |
 | `POST` | `/api/links/import` | `links.manage` | Creates rows from a previewed import |
 | `GET` | `/api/links/export.csv` | `links.read` | CSV of the current list filters |
 | `GET` | `/api/links/:id` | `links.read` | Link and creator |
-| `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields |
+| `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields, including responsibility and archive |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
 | `GET` | `/api/links/:id/analytics` | `links.read` | Period and traffic filters |
 | `GET` | `/api/links/:id/history` | `links.read` | Last 50 changes |
@@ -128,7 +129,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 
 List filters include `page`, `perPage`, `sort`, `status`, `q`,
 `tags`, exact normalized `destination`, `campaignId`, `createdBy` (`me` or a
-user id), and `archived` (default `false`; archived rows need Task R2.6).
+user id), `archived` (default `false`), and `needsReview`.
 
 A bulk request sends `{ selection: { ids } | { filter }, action, tagId?,
 campaignId? }`. `action` is `tag`, `untag`, `assignCampaign`, or `archive`.
@@ -153,6 +154,9 @@ change. The response is `{ affected, results }`. One audit event
 | `password` | string or null | Sets, replaces, or clears the password |
 | `campaignId` | string or null | Cannot combine with `utmCampaign` |
 | `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent` | string or null | Tracking values; `utmMedium` overrides the campaign medium |
+| `responsibleUserId` | string or null | Active workspace member |
+| `reviewAt` | number or null | Unix milliseconds |
+| `archived` | boolean | Sets or clears `archived_at` |
 | `tags` | string[] | Up to 20 names |
 | `notes` | string or null | Private workspace text |
 | `targeting` | object or null | Country and OS destinations |

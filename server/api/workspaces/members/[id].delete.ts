@@ -1,5 +1,6 @@
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
+import { clearLinkResponsibility } from '#server/utils/link-repo';
 import { findMember, removeMember } from '#server/utils/workspace-repo';
 
 export default defineEventHandler(async (event) => {
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await removeMember(workspaceId, userId);
+  await clearLinkResponsibility(workspaceId, userId);
   await writeAuditEvent('member_removed', { userId }, { workspaceId, actor: user.id });
   return { ok: true };
 });

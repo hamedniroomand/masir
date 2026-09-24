@@ -26,6 +26,9 @@ export type LinkItem = {
   successfulVisitCount: number;
   tags: string[];
   aliases: string[];
+  responsibleUserId: string | null;
+  reviewAt: string | null;
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
   // Only the detail route sends this.
@@ -38,6 +41,8 @@ export type LinkListFilter = {
   tags?: string[];
   campaignId?: string;
   createdBy?: string;
+  archived?: boolean;
+  needsReview?: boolean;
   sort?: string;
 };
 
@@ -92,12 +97,17 @@ export function useLinksList() {
     }),
   });
 
+  const archived = computed(() => route.query.archived === 'true');
+  const needsReview = computed(() => route.query.needsReview === 'true');
+
   const listFilter = computed<LinkListFilter>(() => ({
     q: search.value || undefined,
     status: status.value === 'all' ? undefined : status.value,
     tags: selectedTags.value.length ? selectedTags.value : undefined,
     campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
     createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
+    archived: archived.value || undefined,
+    needsReview: needsReview.value || undefined,
     sort: sort.value,
   }));
 
@@ -108,6 +118,8 @@ export function useLinksList() {
       tags: selectedTags.value.length ? selectedTags.value : undefined,
       campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
       createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
+      archived: archived.value ? 'true' : undefined,
+      needsReview: needsReview.value ? 'true' : undefined,
       page: page.value,
       perPage: 20,
       sort: sort.value,
@@ -137,6 +149,8 @@ export function useLinksList() {
     selectedTags,
     campaignId,
     createdBy,
+    archived,
+    needsReview,
     listFilter,
     tagList,
     toggleTag,

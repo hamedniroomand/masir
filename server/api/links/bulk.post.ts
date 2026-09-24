@@ -24,6 +24,7 @@ const filterSchema = v.object({
   campaignId: v.optional(v.string()),
   createdBy: v.optional(v.string()),
   archived: v.optional(v.boolean()),
+  needsReview: v.optional(v.boolean()),
   sort: v.optional(v.union([v.literal('createdAt'), v.literal('clicks')])),
 });
 
@@ -48,11 +49,6 @@ export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
   const body = await readValidBody(event, bodySchema);
-
-  if (body.action === 'archive') {
-    const reason = 'Archive is not available.';
-    throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
-  }
 
   if ((body.action === 'tag' || body.action === 'untag') && !body.tagId) {
     const reason = 'A tag is required.';
@@ -127,6 +123,20 @@ export default defineEventHandler(async (event) => {
           continue;
         }
       }
+      else if (body.action === 'archive') {
+        const existing = await findLinkById(id, workspaceId);
+        if (!existing) {
+          results.push({ id, status: 'error', error: 'Not found.' });
+          continue;
+        }
+        if (existing.archivedAt == null) {
+          const updated = await updateLink(id, workspaceId, { archivedAt: new Date() });
+          if (!updated) {
+            results.push({ id, status: 'error', error: 'Not found.' });
+            continue;
+          }
+        }
+      }
       results.push({ id, status: 'ok' });
       affected += 1;
     }
@@ -183,6 +193,7 @@ async function resolveFilter(
     campaignId: filter.campaignId,
     createdBy,
     archived: filter.archived ?? false,
+    needsReview: filter.needsReview || undefined,
     page: 1,
     perPage: 1,
     sort: filter.sort ?? 'createdAt',

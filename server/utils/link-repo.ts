@@ -1,6 +1,6 @@
 import type { DeploymentConfig } from '#shared/deployment';
 import type { LinkTargeting } from '#shared/link-targeting';
-import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, linkAliases, links, linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
 import { AliasLimitError, AlreadyImportedError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
@@ -51,6 +51,9 @@ export function linkToDto(link: typeof links.$inferSelect, workspace: ShortUrlWo
     utmContent: link.utmContent,
     tags: tagNames,
     aliases,
+    responsibleUserId: link.responsibleUserId,
+    reviewAt: link.reviewAt,
+    archived: link.archivedAt != null,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
     shortUrl: shortUrlFor(workspace, link.slug),
@@ -326,9 +329,9 @@ export type LinkListQuery = {
   tags?: string[];
   campaignId?: string;
   createdBy?: string;
-  // Defaults to false at the API. Without archived_at (Task R2.6), true matches
-  // nothing and false applies no archive filter.
+  // Defaults to false at the API: hide archived rows from normal lists.
   archived?: boolean;
+  needsReview?: boolean;
   page: number;
   perPage: number;
   sort: 'createdAt' | 'clicks';
@@ -372,9 +375,23 @@ export async function listLinks(workspaceId: string, query: LinkListQuery) {
       filters.push(sql`1=0`);
   }
 
-  // archived_at lands in Task R2.6. Until then every live row is not archived.
   if (query.archived === true)
-    filters.push(sql`1=0`);
+    filters.push(isNotNull(links.archivedAt));
+  else
+    filters.push(isNull(links.archivedAt));
+
+  if (query.needsReview) {
+    filters.push(sql`(
+      ${links.responsibleUserId} is null
+      or (${links.reviewAt} is not null and ${links.reviewAt} <= ${now})
+      or not exists (
+        select 1 from workspace_members wm
+        where wm.workspace_id = ${links.workspaceId}
+          and wm.user_id = ${links.responsibleUserId}
+          and wm.deactivated_at is null
+      )
+    )`);
+  }
 
   if (query.tags?.length) {
     for (const raw of query.tags) {
@@ -443,6 +460,9 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
+  responsibleUserId?: string | null;
+  reviewAt?: Date | null;
+  archivedAt?: Date | null;
 }) {
   const existing = await findLinkById(id, workspaceId);
   if (!existing)
@@ -492,6 +512,12 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.utmTerm = patch.utmTerm;
   if (patch.utmContent !== undefined)
     values.utmContent = patch.utmContent;
+  if (patch.responsibleUserId !== undefined)
+    values.responsibleUserId = patch.responsibleUserId;
+  if (patch.reviewAt !== undefined)
+    values.reviewAt = patch.reviewAt;
+  if (patch.archivedAt !== undefined)
+    values.archivedAt = patch.archivedAt;
 
   // A concurrent redirect can raise the click count after the caller read it.
   // The guard makes the limit check and the write one statement.
@@ -549,6 +575,18 @@ export async function renameLinkSlug(id: string, workspaceId: string, slug: stri
   invalidateLink(workspaceId, slug);
   invalidateLinkById(id);
   return findLinkById(id, workspaceId);
+}
+
+// Member removal clears responsibility so the links show up in needsReview.
+export async function clearLinkResponsibility(workspaceId: string, userId: string) {
+  const db = await getDb();
+  await db.update(links)
+    .set({ responsibleUserId: null, updatedAt: new Date() })
+    .where(and(
+      eq(links.workspaceId, workspaceId),
+      eq(links.responsibleUserId, userId),
+      isNull(links.deletedAt),
+    ));
 }
 
 export async function deleteLink(id: string, workspaceId: string) {

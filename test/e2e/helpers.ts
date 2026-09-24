@@ -135,6 +135,9 @@ export async function insertTestLink(databaseUrl: string, input: {
   targeting?: Record<string, unknown> | null;
   maximumVisits?: number | null;
   clickCount?: number;
+  responsibleUserId?: string | null;
+  reviewAt?: Date | null;
+  archivedAt?: Date | null;
 }) {
   const db = openTestDatabase(databaseUrl);
   const [link] = await db.insert(links).values({
@@ -158,6 +161,9 @@ export async function insertTestLink(databaseUrl: string, input: {
     utmMedium: input.utmMedium ?? null,
     utmContent: input.utmContent ?? null,
     clickCount: input.clickCount ?? 0,
+    responsibleUserId: input.responsibleUserId ?? null,
+    reviewAt: input.reviewAt ?? null,
+    archivedAt: input.archivedAt ?? null,
   }).returning();
   return link!.id;
 }

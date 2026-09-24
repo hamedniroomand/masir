@@ -16,6 +16,7 @@ const { copy, copied } = useClipboard();
 const showError = useErrorToast();
 const { saving: togglingEnabled, patch } = useLinkPatch(() => props.link.id);
 const deleting = ref(false);
+const archiving = ref(false);
 const modal = ref(false);
 const qrOpen = ref(false);
 
@@ -33,6 +34,7 @@ const menuItems = computed(() => {
     [{ label: 'Edit link', icon: 'i-lucide-pencil', to: `/links/${props.link.id}?tab=settings` }, ...read],
     [
       { label: props.link.isEnabled ? 'Disable link' : 'Enable link', icon: props.link.isEnabled ? 'i-lucide-pause' : 'i-lucide-play', disabled: togglingEnabled.value, onSelect: toggleEnabled },
+      { label: props.link.archived ? 'Unarchive' : 'Archive', icon: props.link.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive', disabled: archiving.value, onSelect: toggleArchive },
       { label: 'Delete link', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => { modal.value = true; } },
     ],
   ];
@@ -45,6 +47,20 @@ async function toggleEnabled() {
   }
   catch (error) {
     showError(error);
+  }
+}
+
+async function toggleArchive() {
+  archiving.value = true;
+  try {
+    await patch({ archived: !props.link.archived });
+    emit('refresh');
+  }
+  catch (error) {
+    showError(error);
+  }
+  finally {
+    archiving.value = false;
   }
 }
 

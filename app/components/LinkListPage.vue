@@ -41,6 +41,8 @@ const {
   selectedTags,
   campaignId,
   createdBy,
+  archived,
+  needsReview,
   listFilter,
   tagList,
   toggleTag,
@@ -81,7 +83,9 @@ const hasFilters = computed(() =>
   || status.value !== 'all'
   || selectedTags.value.length > 0
   || campaignId.value !== 'all'
-  || createdBy.value !== 'all',
+  || createdBy.value !== 'all'
+  || archived.value
+  || needsReview.value,
 );
 
 function clearFilters() {
@@ -145,7 +149,7 @@ function clearSelection() {
 }
 
 const bulkOpen = ref(false);
-const bulkAction = ref<'tag' | 'untag' | 'assignCampaign'>('tag');
+const bulkAction = ref<'tag' | 'untag' | 'assignCampaign' | 'archive'>('tag');
 const bulkTagId = ref<string | undefined>();
 const bulkCampaignId = ref<string | null>(null);
 const bulkSaving = ref(false);
@@ -154,7 +158,7 @@ const tagOptions = computed(() =>
   (tagList.value?.items ?? []).map(tag => ({ label: tag.name, value: tag.id })),
 );
 
-function openBulk(action: 'tag' | 'untag' | 'assignCampaign') {
+function openBulk(action: 'tag' | 'untag' | 'assignCampaign' | 'archive') {
   bulkAction.value = action;
   bulkTagId.value = tagOptions.value[0]?.value;
   bulkCampaignId.value = null;
@@ -210,6 +214,10 @@ function cleanFilter(filter: LinkListFilter) {
     out.campaignId = filter.campaignId;
   if (filter.createdBy)
     out.createdBy = filter.createdBy;
+  if (filter.archived)
+    out.archived = true;
+  if (filter.needsReview)
+    out.needsReview = true;
   if (filter.sort && filter.sort !== 'createdAt')
     out.sort = filter.sort;
   return out;
@@ -241,7 +249,15 @@ function persistViews() {
 }
 
 function applyMyLinks() {
-  navigateTo({ query: { ...route.query, createdBy: 'me', page: undefined } });
+  navigateTo({ query: { createdBy: 'me', sort: route.query.sort } });
+}
+
+function applyArchived() {
+  navigateTo({ query: { archived: 'true', sort: route.query.sort } });
+}
+
+function applyNeedsReview() {
+  navigateTo({ query: { needsReview: 'true', sort: route.query.sort } });
 }
 
 function applyView(view: SavedView) {
@@ -291,6 +307,10 @@ const exportHref = computed(() => {
     params.set('campaignId', campaignId.value);
   if (createdBy.value && createdBy.value !== 'all')
     params.set('createdBy', createdBy.value);
+  if (archived.value)
+    params.set('archived', 'true');
+  if (needsReview.value)
+    params.set('needsReview', 'true');
   if (sort.value === 'clicks')
     params.set('sort', 'clicks');
   const query = params.toString();
@@ -302,6 +322,8 @@ const bulkActionLabel = computed(() => {
     return 'Add tag';
   if (bulkAction.value === 'untag')
     return 'Remove tag';
+  if (bulkAction.value === 'archive')
+    return 'Archive';
   return 'Assign campaign';
 });
 </script>
@@ -363,6 +385,20 @@ const bulkActionLabel = computed(() => {
             :variant="createdBy === 'me' ? 'soft' : 'ghost'"
             :color="createdBy === 'me' ? 'primary' : 'neutral'"
             @click="applyMyLinks"
+          />
+          <UButton
+            label="Needs review"
+            size="xs"
+            :variant="needsReview ? 'soft' : 'ghost'"
+            :color="needsReview ? 'primary' : 'neutral'"
+            @click="applyNeedsReview"
+          />
+          <UButton
+            label="Archived"
+            size="xs"
+            :variant="archived ? 'soft' : 'ghost'"
+            :color="archived ? 'primary' : 'neutral'"
+            @click="applyArchived"
           />
           <UButton
             v-for="view in savedViews"
@@ -442,6 +478,7 @@ const bulkActionLabel = computed(() => {
           <UButton label="Add tag" size="xs" variant="soft" @click="openBulk('tag')" />
           <UButton label="Remove tag" size="xs" color="neutral" variant="soft" @click="openBulk('untag')" />
           <UButton label="Assign campaign" size="xs" color="neutral" variant="soft" @click="openBulk('assignCampaign')" />
+          <UButton label="Archive" size="xs" color="neutral" variant="soft" @click="openBulk('archive')" />
         </div>
       </div>
 
@@ -549,12 +586,15 @@ const bulkActionLabel = computed(() => {
             placeholder="Choose a tag"
           />
           <USelect
-            v-else
+            v-else-if="bulkAction === 'assignCampaign'"
             v-model="bulkCampaignId"
             :items="campaignOptions"
             aria-label="Campaign"
             placeholder="Choose a campaign"
           />
+          <p v-else class="text-sm text-muted">
+            Archived links leave the default library. Public short links keep working.
+          </p>
         </div>
       </template>
       <template #footer>
@@ -562,7 +602,7 @@ const bulkActionLabel = computed(() => {
         <UButton
           :label="bulkActionLabel"
           :loading="bulkSaving"
-          :disabled="(bulkAction !== 'assignCampaign' && !bulkTagId)"
+          :disabled="(bulkAction === 'tag' || bulkAction === 'untag') && !bulkTagId"
           @click="runBulk"
         />
       </template>

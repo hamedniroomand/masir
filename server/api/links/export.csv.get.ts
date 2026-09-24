@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const archived = query.archived === 'true' || query.archived === true;
+  const needsReview = query.needsReview === 'true' || query.needsReview === true;
   const includeNotes = can(role, 'links.manage');
 
   const listQuery = {
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
     campaignId,
     createdBy,
     archived,
+    needsReview: needsReview || undefined,
     sort: sort as 'createdAt' | 'clicks',
   };
 

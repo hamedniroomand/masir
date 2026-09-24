@@ -93,6 +93,9 @@ Important columns include:
 | `notes` | Private workspace text |
 | `utm_medium` | Optional link-level medium that overrides the campaign value |
 | `import_id`, `import_row` | Optional CSV import identity; unique together |
+| `responsible_user_id` | Optional member who follows up; set null on user delete or member removal |
+| `review_at` | Optional date when the link should be checked again |
+| `archived_at` | Hidden from default lists; redirects still work |
 | `deleted_at` | Soft-delete marker |
 
 Status is derived at read time. A scheduled link becomes active without a job.

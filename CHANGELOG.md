@@ -11,6 +11,13 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Link responsibility, review date, and archive. `links` gains
+  `responsible_user_id`, `review_at`, and `archived_at`. Patch accepts
+  `responsibleUserId`, `reviewAt`, and `archived`. List filters add working
+  `archived` and `needsReview`. Bulk `archive` is available. Member removal
+  clears responsibility. Audit events: `link_responsible_changed`,
+  `link_archived`, `link_unarchived`. `GET /api/workspaces/members/options`
+  lists active members for link editors who assign responsibility.
 - CSV link import and export. `POST /api/links/import/preview` and
   `POST /api/links/import` create links from a CSV with preview errors and
   idempotent retries. `GET /api/links/export.csv` downloads the current library
