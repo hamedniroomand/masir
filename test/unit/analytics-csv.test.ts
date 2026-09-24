@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAnalyticsCsvRows,
   compareMetrics,
+  labelCountBreakdowns,
   metaMetrics,
+  topLinkRows,
 } from '#server/utils/analytics-csv';
 import { parseCsv, toCsv } from '#shared/csv';
 
@@ -29,6 +31,33 @@ describe('buildAnalyticsCsvRows', () => {
     expect(seriesAt).toBeGreaterThan(0);
     expect(rows[seriesAt + 1]).toEqual(['2026-09-01T00:00:00.000Z', 1]);
     expect(rows[seriesAt + 2]).toEqual(['2026-09-02T00:00:00.000Z', 2]);
+  });
+
+  it('appends breakdown and top-link sections when present', () => {
+    const rows = buildAnalyticsCsvRows({
+      metrics: [{ key: 'periodClicks', value: 3 }],
+      series: [{ bucket: '2026-09-01T00:00:00.000Z', count: 3 }],
+      breakdowns: labelCountBreakdowns({
+        referrer: [{ label: 'direct', count: 2 }],
+        device: [{ label: 'desktop', count: 3 }],
+      }),
+      topLinks: topLinkRows([
+        { slug: 'launch', title: '=Offer', clicks: 3 },
+        { slug: 'press', title: null, periodClicks: 1 },
+      ]),
+    });
+    const breakdownAt = rows.findIndex(row => row[0] === 'section' && row[1] === 'label');
+    expect(breakdownAt).toBeGreaterThan(0);
+    expect(rows[breakdownAt + 1]).toEqual(['referrer', 'direct', 2]);
+    expect(rows[breakdownAt + 2]).toEqual(['device', 'desktop', 3]);
+    const topAt = rows.findIndex(row => row[0] === 'slug' && row[1] === 'title');
+    expect(topAt).toBeGreaterThan(breakdownAt);
+    expect(rows[topAt + 1]).toEqual(['launch', '=Offer', 3]);
+    expect(rows[topAt + 2]).toEqual(['press', '', 1]);
+    const body = toCsv(rows);
+    expect(body).toContain('\'=Offer');
+    expect(parseCsv(body).some(row => row.includes('notes'))).toBe(false);
+    expect(parseCsv(body).some(row => row.includes('id'))).toBe(false);
   });
 
   it('prefixes formula-like cells through toCsv', () => {

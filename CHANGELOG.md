@@ -21,9 +21,13 @@ the notes for every version between the one you run and the one you install.
   `GET /api/workspaces/analytics.csv` reuse the JSON range filters (`period` or
   `from`/`to`, optional `compare=previous`, plus `traffic` / `attribution`).
   Each file starts with a definition header (`key`, `label`, `definition`, `value`)
-  for metrics and report meta, then a `bucket,count` series. Report views add a
-  Download CSV button. Totals match the JSON routes. Notes are never included.
-  Formula-like cells stay prefixed by the shared CSV writer.
+  for metrics and report meta, then a `bucket,count` series, then breakdown
+  rows (`section,label,count`) and workspace/campaign top links
+  (`slug,title,clicks`). The value-bearing header is kept instead of a
+  `# metric,definition,range,traffic` comment line so totals sit next to their
+  definitions; range and traffic stay in meta rows. Report views add a
+  Download CSV button. Totals match the JSON routes. Notes and link ids are
+  never included. Formula-like cells stay prefixed by the shared CSV writer.
 
 - Custom analytics ranges, previous-period comparison, and report metadata.
   Link, campaign, and workspace analytics accept `from`/`to` (`YYYY-MM-DD`, UTC,

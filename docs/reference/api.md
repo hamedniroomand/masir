@@ -231,7 +231,13 @@ Campaign analytics accepts `period` or `from`/`to`, `attribution`, and optional
 `GET /api/campaigns/:id/analytics.csv`, `GET /api/links/:id/analytics.csv`, and
 `GET /api/workspaces/analytics.csv` download the same range as CSV. The file
 starts with `key,label,definition,value` rows for metrics and report meta, then
-a blank line, then `bucket,count` series rows. Notes are never included.
+a blank line, then `bucket,count` series rows. When the JSON report has
+breakdowns, a `section,label,count` block follows (referrer, country, device,
+browser; campaign also includes source and medium). Workspace and campaign
+files add a `slug,title,clicks` top-links block. Notes and link ids are never
+included. The value-bearing header is intentional; range and traffic live in
+meta rows and in `shared/analytics-metrics.ts` rather than a `# metric,...`
+comment line.
 
 A tag input is `name`. A campaign uses `name`, `utmCampaign`, and optional
 `utmMedium`.

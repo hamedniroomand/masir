@@ -3,6 +3,7 @@ import {
   buildAnalyticsCsvRows,
   compareMetrics,
   metaMetrics,
+  topLinkRows,
 } from '#server/utils/analytics-csv';
 import { readAnalyticsOptions } from '#server/utils/analytics-query';
 import { requireWorkspaceMember } from '#server/utils/auth';
@@ -30,5 +31,6 @@ export default defineEventHandler(async (event) => {
   return csvResponse(event, 'workspace-analytics.csv', buildAnalyticsCsvRows({
     metrics,
     series: analytics.timeline,
+    topLinks: topLinkRows(analytics.topLinks),
   }));
 });

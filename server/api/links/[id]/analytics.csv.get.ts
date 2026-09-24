@@ -2,6 +2,7 @@ import { getLinkAnalytics } from '#server/utils/analytics';
 import {
   buildAnalyticsCsvRows,
   compareMetrics,
+  labelCountBreakdowns,
   metaMetrics,
 } from '#server/utils/analytics-csv';
 import { readAnalyticsOptions } from '#server/utils/analytics-query';
@@ -37,5 +38,11 @@ export default defineEventHandler(async (event) => {
   return csvResponse(event, 'link-analytics.csv', buildAnalyticsCsvRows({
     metrics,
     series: data.series,
+    breakdowns: labelCountBreakdowns({
+      referrer: data.topReferrers,
+      country: data.topCountries,
+      device: data.devices,
+      browser: data.browsers,
+    }),
   }));
 });

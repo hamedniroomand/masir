@@ -95,9 +95,17 @@ Click events use monthly Postgres partitions. The application creates the
 current and next partitions at boot.
 
 Use **Download CSV** on the link, campaign, or workspace report to save the
-current range. The file starts with metric definitions and report meta, then
-the time series. Totals match the on-screen JSON report. Notes are never
-included. Formula-like cells are prefixed so spreadsheets do not run them.
+current range. The file starts with metric definitions and report meta
+(`key,label,definition,value`), then the time series, then the breakdowns the
+report shows (referrers, countries, devices, browsers; campaign source and
+medium when present). Workspace and campaign files also list top links as
+`slug,title,clicks` only — no link id and no notes. Totals match the on-screen
+JSON report. Formula-like cells are prefixed so spreadsheets do not run them.
+
+The plan suggested a `# metric,definition,range,traffic` comment header. This
+export keeps `key,label,definition,value` so each metric row carries its value
+next to its definition. Range and traffic stay in the meta rows and in
+`shared/analytics-metrics.ts`.
 
 <ReadMore to="/reference/data-model#click-events" title="Read the event data model" />
 

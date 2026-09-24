@@ -41,7 +41,20 @@ function seriesSum(table: string[][]) {
   const start = table.findIndex(row => row[0] === 'bucket' && row[1] === 'count');
   if (start < 0)
     return 0;
-  return table.slice(start + 1).reduce((sum, row) => sum + Number(row[1] || 0), 0);
+  const body: string[][] = [];
+  for (const row of table.slice(start + 1)) {
+    if (!row[0] || row[0] === 'section' || row[0] === 'slug')
+      break;
+    body.push(row);
+  }
+  return body.reduce((sum, row) => sum + Number(row[1] || 0), 0);
+}
+
+function sectionRows(table: string[][], section: string) {
+  const start = table.findIndex(row => row[0] === 'section' && row[1] === 'label');
+  if (start < 0)
+    return [];
+  return table.slice(start + 1).filter(row => row[0] === section);
 }
 
 describe('analytics csv download', async () => {
@@ -91,6 +104,8 @@ describe('analytics csv download', async () => {
       uniqueVisitors: number;
       botRequests: number;
       series: { bucket: string; count: number }[];
+      devices: { label: string; count: number }[];
+      topReferrers: { label: string; count: number }[];
     }>(`/api/links/${linkId}/analytics`, {
       query: { period: '7d', traffic: 'human' },
       headers: { cookie },
@@ -109,10 +124,17 @@ describe('analytics csv download', async () => {
     expect(linkCsv).not.toContain('secret-note-should-not-export');
     expect(linkTable[0]).not.toContain('notes');
     expect(linkCsv).not.toContain('=1+1');
+    expect(linkTable.some(row => row[0] === 'section' && row[1] === 'label')).toBe(true);
+    if (linkJson.devices.length)
+      expect(sectionRows(linkTable, 'device').length).toBeGreaterThan(0);
+    if (linkJson.topReferrers.length)
+      expect(sectionRows(linkTable, 'referrer').length).toBeGreaterThan(0);
 
     const campaignJson = await $fetch<{
       periodClicks: number;
       series: { bucket: string; count: number }[];
+      bySource: { label: string; count: number }[];
+      topLinks: { slug: string; title: string | null; periodClicks: number }[];
     }>(`/api/campaigns/${campaignId}/analytics`, {
       query: { period: '7d' },
       headers: { cookie },
@@ -126,10 +148,17 @@ describe('analytics csv download', async () => {
     expect(Number(metricValue(campaignTable, 'periodClicks'))).toBe(campaignJson.periodClicks);
     expect(seriesSum(campaignTable)).toBe(campaignJson.periodClicks);
     expect(campaignTable[0]).not.toContain('notes');
+    if (campaignJson.bySource.length)
+      expect(sectionRows(campaignTable, 'source').length).toBeGreaterThan(0);
+    const campaignTopAt = campaignTable.findIndex(row => row[0] === 'slug' && row[1] === 'title');
+    expect(campaignTopAt).toBeGreaterThan(0);
+    expect(campaignTable[campaignTopAt + 1]?.[0]).toBe('csv-link');
+    expect(campaignCsv).not.toContain(linkId);
 
     const workspaceJson = await $fetch<{
       clicks: number;
       timeline: { bucket: string; count: number }[];
+      topLinks: { slug: string; title: string | null; clicks: number }[];
     }>('/api/workspaces/analytics', {
       query: { period: '7d' },
       headers: { cookie },
@@ -143,11 +172,16 @@ describe('analytics csv download', async () => {
     expect(Number(metricValue(workspaceTable, 'clicks'))).toBe(workspaceJson.clicks);
     expect(seriesSum(workspaceTable)).toBe(workspaceJson.clicks);
     expect(workspaceTable[0]).not.toContain('notes');
+    const workspaceTopAt = workspaceTable.findIndex(row => row[0] === 'slug' && row[1] === 'title');
+    expect(workspaceTopAt).toBeGreaterThan(0);
+    expect(workspaceTable[workspaceTopAt + 1]?.[0]).toBe('csv-link');
+    expect(workspaceTable[workspaceTopAt + 1]?.[2]).toBe(String(workspaceJson.topLinks[0]?.clicks));
+    expect(workspaceCsv).not.toContain(linkId);
   });
 
-  it('lets a viewer download CSV without notes', async () => {
+  it('lets a viewer download workspace CSV without notes', async () => {
     const cookie = await loginCookie(VIEWER_EMAIL, TEST_PASSWORD);
-    const body = await $fetch<string>(`/api/links/${linkId}/analytics.csv`, {
+    const body = await $fetch<string>('/api/workspaces/analytics.csv', {
       query: { period: '7d' },
       headers: { cookie },
       responseType: 'text',
@@ -156,7 +190,10 @@ describe('analytics csv download', async () => {
     expect(table[0]).toEqual(['key', 'label', 'definition', 'value']);
     expect(table.some(row => row.includes('notes'))).toBe(false);
     expect(body).not.toContain('secret-note-should-not-export');
-    expect(Number(metricValue(table, 'periodClicks'))).toBeGreaterThan(0);
+    expect(Number(metricValue(table, 'clicks'))).toBeGreaterThan(0);
+    const topAt = table.findIndex(row => row[0] === 'slug' && row[1] === 'title');
+    expect(topAt).toBeGreaterThan(0);
+    expect(table[topAt]).toEqual(['slug', 'title', 'clicks']);
   });
 
   it('aligns custom range meta with the JSON report', async () => {

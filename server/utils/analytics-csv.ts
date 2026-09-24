@@ -13,8 +13,22 @@ export type AnalyticsCsvSeriesPoint = {
   count: number;
 };
 
+export type AnalyticsCsvBreakdown = {
+  section: string;
+  label: string;
+  count: number;
+};
+
+export type AnalyticsCsvTopLink = {
+  slug: string;
+  title: string | null;
+  clicks: number;
+};
+
 const DEFINITION_HEADER = ['key', 'label', 'definition', 'value'] as const;
 const SERIES_HEADER = ['bucket', 'count'] as const;
+const BREAKDOWN_HEADER = ['section', 'label', 'count'] as const;
+const TOP_LINKS_HEADER = ['slug', 'title', 'clicks'] as const;
 
 function metricRow(metric: AnalyticsCsvMetric): unknown[] {
   const catalog = getMetricDefinition(metric.definitionKey ?? metric.key);
@@ -26,9 +40,36 @@ function metricRow(metric: AnalyticsCsvMetric): unknown[] {
   ];
 }
 
+export function labelCountBreakdowns(
+  sections: Record<string, { label: string; count: number }[] | undefined>,
+): AnalyticsCsvBreakdown[] {
+  const rows: AnalyticsCsvBreakdown[] = [];
+  for (const [section, items] of Object.entries(sections)) {
+    if (!items?.length)
+      continue;
+    for (const item of items)
+      rows.push({ section, label: item.label, count: item.count });
+  }
+  return rows;
+}
+
+export function topLinkRows(
+  links: { slug: string; title: string | null; clicks?: number; periodClicks?: number }[] | undefined,
+): AnalyticsCsvTopLink[] {
+  if (!links?.length)
+    return [];
+  return links.map(link => ({
+    slug: link.slug,
+    title: link.title,
+    clicks: link.clicks ?? link.periodClicks ?? 0,
+  }));
+}
+
 export function buildAnalyticsCsvRows(input: {
   metrics: AnalyticsCsvMetric[];
   series: AnalyticsCsvSeriesPoint[];
+  breakdowns?: AnalyticsCsvBreakdown[];
+  topLinks?: AnalyticsCsvTopLink[];
 }): unknown[][] {
   const rows: unknown[][] = [
     [...DEFINITION_HEADER],
@@ -37,6 +78,16 @@ export function buildAnalyticsCsvRows(input: {
     [...SERIES_HEADER],
     ...input.series.map(point => [point.bucket, point.count]),
   ];
+  if (input.breakdowns?.length) {
+    rows.push([], [...BREAKDOWN_HEADER]);
+    for (const row of input.breakdowns)
+      rows.push([row.section, row.label, row.count]);
+  }
+  if (input.topLinks?.length) {
+    rows.push([], [...TOP_LINKS_HEADER]);
+    for (const link of input.topLinks)
+      rows.push([link.slug, link.title ?? '', link.clicks]);
+  }
   return rows;
 }
 
