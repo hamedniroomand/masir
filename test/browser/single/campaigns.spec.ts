@@ -25,6 +25,22 @@ test('creates a campaign through the form and renders it in the list and the det
   await expect(page.getByText('Link performance')).toBeVisible();
 });
 
+test('creates email, social, and print links in one batch and previews each row', async ({ page, login }) => {
+  await login();
+  await page.goto('/campaigns');
+  await page.getByRole('link', { name: /Spring launch/ }).click();
+  await page.getByRole('button', { name: 'Create links' }).first().click();
+
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Destination').fill('https://example.com/batch');
+  await expect(dialog.getByText('utm_source=newsletter&utm_medium=email&utm_campaign=spring-launch')).toBeVisible();
+  await expect(dialog.getByText('utm_source=twitter&utm_medium=social&utm_campaign=spring-launch')).toBeVisible();
+  await expect(dialog.getByText('utm_source=print&utm_medium=print&utm_campaign=spring-launch')).toBeVisible();
+
+  await dialog.getByRole('button', { name: 'Create links' }).click();
+  await expect(dialog.getByText(/Created https:/).first()).toBeVisible();
+});
+
 test('refuses a second campaign with the same utm_campaign', async ({ page, login }) => {
   await login();
   await page.goto('/campaigns');

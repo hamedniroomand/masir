@@ -13,6 +13,11 @@ the notes for every version between the one you run and the one you install.
 
 - A link-level `utm_medium` override. A link value wins over its campaign
   medium; clearing it returns to the campaign value.
+- `POST /api/links/batch` creates up to 20 links from one destination in one
+  request. Each row carries its own `utmSource`, `utmMedium`, `utmContent`, and
+  optional `slug`. On a validation error the whole batch is refused with 422
+  and `rows` listing each failed row. Channel presets live in
+  `shared/channel-presets.ts`.
 - Optional Umami analytics for application page views.
   `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID` turns it on with Umami
   Cloud. `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL` points it at a

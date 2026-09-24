@@ -10,10 +10,17 @@ const id = computed(() => route.params.id as string);
 const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
 const attribution = ref<'current' | 'recorded'>('current');
 const editOpen = ref(false);
+const batchOpen = ref(false);
+const pickerOpen = ref(false);
 const deleting = ref(false);
 const deleteOpen = ref(false);
 const showError = useErrorToast();
 const { canManageLinks } = useCurrentWorkspace();
+
+type LinkItemLite = { id: string; slug: string; title: string | null; shortUrl: string };
+const attach = ref<LinkItemLite[]>([]);
+const attachQuery = ref('');
+const attaching = ref<string | null>(null);
 
 const { data: campaign, error, refresh: refreshCampaign } = await useApi<CampaignItem>(() => `/api/campaigns/${id.value}`);
 
@@ -58,6 +65,30 @@ async function removeCampaign() {
     deleting.value = false;
   }
 }
+
+async function searchAttach() {
+  const query = attachQuery.value.trim();
+  const res = await $api<{ items: LinkItemLite[] }>('/api/links', { query: { q: query, perPage: 10 } });
+  attach.value = res.items;
+}
+
+async function attachLink(linkId: string) {
+  attaching.value = linkId;
+  try {
+    await $api(`/api/links/${linkId}`, { method: 'PATCH', body: { campaignId: id.value } });
+    await Promise.all([refreshCampaign(), refreshAnalytics(), searchAttach()]);
+  }
+  catch (error: unknown) {
+    showError(error);
+  }
+  finally {
+    attaching.value = null;
+  }
+}
+
+async function onBatchCreated() {
+  await Promise.all([refreshCampaign(), refreshAnalytics()]);
+}
 </script>
 
 <template>
@@ -78,10 +109,46 @@ async function removeCampaign() {
         </div>
       </div>
       <div class="flex shrink-0 gap-2">
+        <UButton v-if="canManageLinks" label="Create links" icon="i-lucide-plus" color="neutral" size="sm" @click="batchOpen = true" />
+        <UButton v-if="canManageLinks" label="Add existing" icon="i-lucide-link" color="neutral" variant="outline" size="sm" @click="pickerOpen = true; searchAttach()" />
         <UButton v-if="canManageLinks" label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
         <UButton v-if="canManageLinks" label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
       </div>
     </div>
+
+    <USlideover v-model:open="batchOpen" title="Create links" description="Several channel links from one destination." :ui="{ content: 'sm:max-w-[520px]' }">
+      <template #body>
+        <CampaignBatchForm
+          :campaign-id="campaign.id"
+          :campaign-utm-campaign="campaign.utmCampaign"
+          :campaign-utm-medium="campaign.utmMedium"
+          @created="onBatchCreated"
+        />
+      </template>
+    </USlideover>
+
+    <UModal v-model:open="pickerOpen" title="Add existing links" description="Attach workspace links to this campaign.">
+      <template #body>
+        <UInput v-model="attachQuery" placeholder="Search links" class="w-full mb-3" @keyup.enter="searchAttach()" />
+        <UButton label="Search" size="xs" variant="outline" class="mb-3" @click="searchAttach()" />
+        <div v-if="!attach.length" class="py-6 text-center text-sm text-muted">
+          No links found.
+        </div>
+        <div v-else class="divide-y divide-default max-h-72 overflow-y-auto">
+          <div v-for="link in attach" :key="link.id" class="flex items-center justify-between gap-3 py-2">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium">
+                {{ link.title || link.slug }}
+              </p>
+              <p class="truncate text-xs text-muted">
+                {{ link.shortUrl }}
+              </p>
+            </div>
+            <UButton label="Attach" size="xs" :loading="attaching === link.id" @click="attachLink(link.id)" />
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <USlideover
       v-model:open="editOpen"

@@ -112,6 +112,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 |---|---|---|---|
 | `GET` | `/api/links` | `links.read` | Paginated and filtered links |
 | `POST` | `/api/links` | `links.manage` | Creates a link |
+| `POST` | `/api/links/batch` | `links.manage` | Creates up to 20 rows in one request |
 | `GET` | `/api/links/:id` | `links.read` | Link and creator |
 | `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
@@ -145,6 +146,14 @@ List filters include `page`, `perPage`, `sort`, `status`, `search`,
 | `targeting` | object or null | Country and OS destinations |
 
 A slug change keeps the old slug as an alias unless `keepOldSlug` is false.
+
+### Batch create
+
+`POST /api/links/batch` accepts `{ campaignId?, destinationUrl, title?, items }`
+where `items` is up to 20 `{ clientKey, utmSource, utmMedium?, utmContent?,
+slug? }`. It returns `{ results: [{ clientKey, status, link?, error? }] }`.
+A validation error answers 422 with `{ rows: [{ clientKey, error }] }` and
+creates nothing.
 
 ## Public visitor routes
 

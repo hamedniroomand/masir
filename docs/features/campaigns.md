@@ -40,6 +40,18 @@ then campaign value, then incoming query.
 Incoming query passthrough values can replace a generated UTM value with the
 same key.
 
+## Create links in a campaign
+
+Use **Create links** on the campaign page to make several channel links from
+one destination in one request. Pick a preset (newsletter, social, print) or
+add a custom row. Each row shows its source, medium, and the effective
+destination. If a row fails, only that row is marked and a retry sends only
+the failed rows.
+
+Use **Add existing** to search for a workspace link and attach it to the
+campaign. Its recorded events stay under their old campaign in **Recorded at
+click** mode.
+
 ## Read campaign analytics
 
 Campaign analytics use the same periods as link analytics. The view summarizes
