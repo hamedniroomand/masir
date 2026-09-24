@@ -82,7 +82,7 @@ URL when it creates or resumes a live demo session.
 | `DELETE` | `/api/workspaces` | `workspace.delete` | Soft-deletes the current workspace |
 | `GET` | `/api/workspaces/link-prefixes` | `workspace.manage` | Retained link paths |
 | `DELETE` | `/api/workspaces/link-prefixes/:prefix` | `workspace.manage` | Revokes a retained link path |
-| `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`: `24h`, `7d`, `30d`, or `all` |
+| `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`, or `from`/`to` (`YYYY-MM-DD`), optional `compare=previous` |
 | `GET` | `/api/workspaces/slug-available?slug=` | Signed in | Workspace slug availability |
 | `POST` | `/api/workspaces/logo` | `workspace.manage` | Multipart PNG, JPEG, GIF, or WebP |
 | `DELETE` | `/api/workspaces/logo` | `workspace.manage` | Removes the logo |
@@ -121,7 +121,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `GET` | `/api/links/:id` | `links.read` | Link and creator |
 | `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields, including responsibility and archive |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
-| `GET` | `/api/links/:id/analytics` | `links.read` | Period and traffic filters |
+| `GET` | `/api/links/:id/analytics` | `links.read` | `period` or `from`/`to`, `traffic`, optional `compare=previous` |
 | `GET` | `/api/links/:id/history` | `links.read` | Last 50 changes |
 | `POST` | `/api/links/:id/aliases` | `links.manage` | `slug` |
 | `DELETE` | `/api/links/:id/aliases/:slug` | `links.manage` | Revokes the alias |
@@ -221,6 +221,9 @@ These routes do not need a user session.
 | `PATCH` | `/api/campaigns/:id` | `links.manage` |
 | `DELETE` | `/api/campaigns/:id` | `links.manage` |
 | `GET` | `/api/campaigns/:id/analytics` | `links.read` |
+
+Campaign analytics accepts `period` or `from`/`to`, `attribution`, and optional
+`compare=previous`, matching the link analytics filters.
 
 A tag input is `name`. A campaign uses `name`, `utmCampaign`, and optional
 `utmMedium`.

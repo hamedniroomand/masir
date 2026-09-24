@@ -19,7 +19,7 @@
     "docs:build": "bun --filter masir-docs build",
     "docs:preview": "bun --filter masir-docs preview",
     "postinstall": "nuxt prepare",
-    "lint": "eslint .",
+    "lint": "bun --bun eslint .",
     "typecheck": "nuxt typecheck",
     "pretest": "sh scripts/test-db.sh",
     "test": "bun --bun vitest run",

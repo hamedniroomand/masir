@@ -11,6 +11,15 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Custom analytics ranges, previous-period comparison, and report metadata.
+  Link, campaign, and workspace analytics accept `from`/`to` (`YYYY-MM-DD`, UTC,
+  inclusive start, exclusive end, max 366 days) or `period` (not both).
+  `compare=previous` returns `previous` scalars and `change` with `percent: null`
+  when the previous value is 0. Custom-range `meta` includes timezone, boundaries,
+  traffic, attribution, `earliestEventAt`, `signals`, and a warning when `from`
+  is before retained partitions. The three report views add a range picker,
+  comparison toggle, metadata line, and "No prior data" when percent is null.
+
 - Routing preview for authorized members. `POST /api/links/:id/preview` runs
   `decideRedirect` with a simulated country, device, and time. It does not
   consume visits, write events, set a password cookie, or touch the link cache.

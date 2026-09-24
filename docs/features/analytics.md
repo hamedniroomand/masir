@@ -21,7 +21,11 @@ Link analytics include:
 - bot categories
 
 Use the period filter for 24 hours, 7 days, 30 days, or all retained data. Use
-the traffic filter for humans, bots, or both.
+a custom UTC date range when you need exact boundaries. The end date is
+exclusive. Turn on compare previous to see absolute and percent change against
+the equal-length range that ends at the start. When the previous range has no
+clicks, the report shows "No prior data". Use the traffic filter for humans,
+bots, or both.
 
 Workspace and campaign views aggregate the same event data at a broader level.
 
@@ -36,7 +40,10 @@ The HTTP route `GET /api/links/:id/analytics` returns:
 - `maximumVisits`: configured visit limit
 - `uniqueVisitors`: daily unique visitors in the period
 - `botRequests`: crawler and preview requests in the period
-- `meta`: `{ timezone: 'UTC', period, traffic }`
+- `meta`: for a period request, `{ timezone: 'UTC', period, traffic }`. For a
+  custom range, `{ timezone: 'UTC', from, to, traffic, earliestEventAt, signals,
+  warning? }`
+- `previous` / `change`: present when `compare=previous`
 
 ## Understand unique visitors
 

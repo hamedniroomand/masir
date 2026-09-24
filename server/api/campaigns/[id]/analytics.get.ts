@@ -1,4 +1,5 @@
 import { getCampaignAnalytics } from '#server/utils/analytics';
+import { readAnalyticsOptions } from '#server/utils/analytics-query';
 import { requireWorkspaceMember } from '#server/utils/auth';
 import { campaignToDto, findCampaignForWorkspace } from '#server/utils/campaign-repo';
 
@@ -12,16 +13,11 @@ export default defineEventHandler(async (event) => {
   if (!campaign)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  const query = getQuery(event);
-  const periodRaw = query.period;
-  const period = periodRaw === '24h' || periodRaw === '7d' || periodRaw === '30d' || periodRaw === 'all'
-    ? periodRaw
-    : '7d';
-
-  const attributionRaw = query.attribution;
+  const attributionRaw = getQuery(event).attribution;
   const attribution = attributionRaw === 'recorded' ? 'recorded' : 'current';
+  const options = readAnalyticsOptions(event);
 
-  const data = await getCampaignAnalytics(campaign.id, workspaceId, period, attribution);
+  const data = await getCampaignAnalytics(campaign.id, workspaceId, options, attribution);
   if (!data)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 

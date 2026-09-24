@@ -7,6 +7,7 @@ import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
 import {
   CHROME_UA,
   e2eSetupOptions,
+  insertTestCampaign,
   insertTestLink,
   resetTestDb,
   TEST_EMAIL,
@@ -221,5 +222,128 @@ describe('link analytics', async () => {
       period: '7d',
       traffic: 'human',
     });
+  });
+
+  it('custom ranges keep a boundary event in one window only', async () => {
+    const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'boundary' });
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-boundary', campaignId });
+    const db = openTestDatabase(TEST_DB);
+    await ensureClickEventPartitions(db, new Date('2026-09-01T00:00:00.000Z'));
+    await db.insert(clickEvents).values({
+      workspaceId,
+      linkId,
+      campaignId,
+      outcome: OUTCOME.redirect_success,
+      device: DEVICE.desktop,
+      browser: BROWSER.chrome,
+      isBot: false,
+      visitorHash: 7n,
+      createdAt: new Date('2026-09-10T00:00:00.000Z'),
+    });
+
+    const cookie = await loginCookie();
+    const leftQuery = { from: '2026-09-03', to: '2026-09-10' };
+    const rightQuery = { from: '2026-09-10', to: '2026-09-17' };
+
+    const linkLeft = await $fetch<{ periodClicks: number }>(`/api/links/${linkId}/analytics`, {
+      query: leftQuery,
+      headers: { cookie },
+    });
+    const linkRight = await $fetch<{ periodClicks: number }>(`/api/links/${linkId}/analytics`, {
+      query: rightQuery,
+      headers: { cookie },
+    });
+    expect(linkLeft.periodClicks).toBe(0);
+    expect(linkRight.periodClicks).toBe(1);
+
+    const wsLeft = await $fetch<{ clicks: number }>('/api/workspaces/analytics', {
+      query: leftQuery,
+      headers: { cookie },
+    });
+    const wsRight = await $fetch<{ clicks: number }>('/api/workspaces/analytics', {
+      query: rightQuery,
+      headers: { cookie },
+    });
+    expect(wsLeft.clicks).toBe(0);
+    expect(wsRight.clicks).toBeGreaterThanOrEqual(1);
+
+    const campLeft = await $fetch<{ periodClicks: number }>(`/api/campaigns/${campaignId}/analytics`, {
+      query: leftQuery,
+      headers: { cookie },
+    });
+    const campRight = await $fetch<{ periodClicks: number }>(`/api/campaigns/${campaignId}/analytics`, {
+      query: rightQuery,
+      headers: { cookie },
+    });
+    expect(campLeft.periodClicks).toBe(0);
+    expect(campRight.periodClicks).toBe(1);
+  });
+
+  it('compare=previous returns null percent without prior clicks', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-compare-empty' });
+    const db = openTestDatabase(TEST_DB);
+    await ensureClickEventPartitions(db, new Date('2026-09-01T00:00:00.000Z'));
+    await db.insert(clickEvents).values({
+      workspaceId,
+      linkId,
+      outcome: OUTCOME.redirect_success,
+      device: DEVICE.desktop,
+      browser: BROWSER.chrome,
+      isBot: false,
+      visitorHash: 9n,
+      createdAt: new Date('2026-09-12T12:00:00.000Z'),
+    });
+
+    const cookie = await loginCookie();
+    const stats = await $fetch<{
+      periodClicks: number;
+      previous: { clicks: number };
+      change: { absolute: number; percent: number | null };
+    }>(`/api/links/${linkId}/analytics`, {
+      query: { from: '2026-09-10', to: '2026-09-17', compare: 'previous' },
+      headers: { cookie },
+    });
+
+    expect(stats.periodClicks).toBe(1);
+    expect(stats.previous.clicks).toBe(0);
+    expect(stats.change.percent).toBeNull();
+    expect(stats.change.absolute).toBe(1);
+  });
+
+  it('warns when from is before the oldest partition', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-early-from' });
+    const cookie = await loginCookie();
+    const stats = await $fetch<{ meta: { warning?: string; earliestEventAt?: string | null } }>(
+      `/api/links/${linkId}/analytics`,
+      { query: { from: '2000-01-01', to: '2000-01-08' }, headers: { cookie } },
+    );
+    expect(stats.meta.warning).toMatch(/before the oldest retained/i);
+    expect(stats.meta.earliestEventAt).toBeTruthy();
+  });
+
+  it('keeps period responses unchanged when from/to are absent', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-period-stable' });
+    for (let i = 0; i < 2; i++)
+      await fetch('/an-period-stable', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
+
+    const cookie = await loginCookie();
+    const stats = await $fetch<{
+      periodClicks: number;
+      meta: { timezone: string; period: string; traffic: string };
+      previous?: unknown;
+    }>(`/api/links/${linkId}/analytics`, { query: { period: '7d', traffic: 'human' }, headers: { cookie } });
+
+    expect(stats.meta).toEqual({ timezone: 'UTC', period: '7d', traffic: 'human' });
+    expect(stats.previous).toBeUndefined();
+    expect(stats.periodClicks).toBe(2);
+  });
+
+  it('refuses period together with from/to', async () => {
+    const linkId = await insertTestLink(TEST_DB, { workspaceId, slug: 'an-refuse-both' });
+    const cookie = await loginCookie();
+    const res = await fetch(`/api/links/${linkId}/analytics?period=7d&from=2026-09-01&to=2026-09-08`, {
+      headers: { cookie },
+    });
+    expect(res.status).toBe(422);
   });
 });

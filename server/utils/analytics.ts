@@ -1,12 +1,15 @@
 import type { SQL } from 'drizzle-orm';
 import type { RequestMeta } from '#server/utils/request-meta';
+import type { Period } from '#shared/analytics-range';
 import type { OutcomeLabel } from '#shared/codes';
 import * as Sentry from '@sentry/nuxt';
-import { and, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
+import { oldestPartitionStart } from '#server/database/migrate';
 import { campaigns, clickEvents, hosts, links, workspaces } from '#server/database/schema';
 import { getDb } from '#server/utils/db';
 import { hostId } from '#server/utils/host-repo';
-import { setSignal } from '#server/utils/service-signals';
+import { getSignals, setSignal } from '#server/utils/service-signals';
+import { changeFrom, previousWindow } from '#shared/analytics-range';
 import { BOT_CATEGORY, BROWSER, browserLabel, DEVICE, deviceLabel, OUTCOME } from '#shared/codes';
 import { sentryEnabled } from '#shared/sentry';
 
@@ -81,8 +84,9 @@ export async function recordEvent(
   }
 }
 
-type Period = '24h' | '7d' | '30d' | 'all';
 type TrafficClass = 'human' | 'bot' | 'all';
+
+type LabelCount = { label: string; count: number };
 
 const humanFilter = eq(clickEvents.outcome, OUTCOME.redirect_success);
 
@@ -94,7 +98,68 @@ function trafficFilter(traffic: TrafficClass): SQL {
   return sql`1=1`;
 }
 
-export async function getLinkAnalytics(linkId: string, workspaceId: string, period: Period, traffic: TrafficClass = 'human') {
+export type AnalyticsReadOptions = {
+  mode: 'period' | 'range';
+  period?: Period | null;
+  fromMs: number | null;
+  toMs: number;
+  fromDate?: string;
+  toDate?: string;
+  compare?: boolean;
+  traffic?: TrafficClass;
+};
+
+type CompareScalars = {
+  clicks: number;
+  uniqueVisitors: number;
+  botRequests: number;
+};
+
+async function reportSignals(): Promise<Array<'event_write_failed'>> {
+  const signals = await getSignals();
+  const failed = signals.find(row => row.key === 'event_write' && row.state === 'failed');
+  return failed ? ['event_write_failed'] : [];
+}
+
+async function scalarCounts(scope: SQL, fromMs: number | null, toMs: number | null, traffic: TrafficClass): Promise<CompareScalars> {
+  const db = await getDb();
+  const trafficWhere = trafficFilter(traffic);
+  const [row] = await db.select({
+    clicks: sql<number>`count(*) filter (where ${trafficWhere})::int`,
+    botRequests: sql<number>`count(*) filter (where ${clickEvents.outcome} = ${OUTCOME.bot_request})::int`,
+    uniqueVisitors: sql<number>`count(distinct ${clickEvents.visitorHash}) filter (where ${clickEvents.outcome} = ${OUTCOME.redirect_success})::int`,
+  }).from(clickEvents).where(and(scope, rangeFilter(fromMs, toMs)));
+  return {
+    clicks: Number(row?.clicks ?? 0),
+    uniqueVisitors: Number(row?.uniqueVisitors ?? 0),
+    botRequests: Number(row?.botRequests ?? 0),
+  };
+}
+
+async function buildRangeMeta(options: AnalyticsReadOptions, extras: Record<string, unknown> = {}) {
+  const earliest = await oldestPartitionStart(await getDb());
+  const earliestEventAt = earliest ? earliest.toISOString() : null;
+  const signals = await reportSignals();
+  const meta: Record<string, unknown> = {
+    timezone: 'UTC',
+    traffic: options.traffic ?? 'human',
+    earliestEventAt,
+    signals,
+    ...extras,
+  };
+  if (options.mode === 'range') {
+    meta.from = options.fromDate;
+    meta.to = options.toDate;
+    if (earliest && options.fromMs != null && options.fromMs < earliest.getTime())
+      meta.warning = 'This range starts before the oldest retained events.';
+  }
+  else {
+    meta.period = options.period;
+  }
+  return meta;
+}
+
+export async function getLinkAnalytics(linkId: string, workspaceId: string, options: AnalyticsReadOptions) {
   const db = await getDb();
   const linkRows = await db.select().from(links).where(and(
     eq(links.id, linkId),
@@ -109,8 +174,31 @@ export async function getLinkAnalytics(linkId: string, workspaceId: string, peri
     ? Math.max(0, link.maximumVisits - link.clickCount)
     : null;
 
-  const analytics = await buildAnalytics(eq(clickEvents.linkId, linkId), period, link.createdAt.getTime(), traffic);
+  const traffic = options.traffic ?? 'human';
+  const scope = eq(clickEvents.linkId, linkId);
+  const analytics = await buildAnalytics(scope, options, link.createdAt.getTime(), traffic);
 
+  const compare = await loadComparison(scope, options, traffic, analytics.periodClicks);
+
+  if (options.mode === 'period') {
+    return {
+      totalClicks: link.clickCount,
+      lifetimeClicks: link.clickCount,
+      remainingVisits,
+      maximumVisits: link.maximumVisits,
+      successfulVisitCount: link.clickCount,
+      usedVisits: link.clickCount,
+      ...analytics,
+      ...compare,
+      meta: {
+        timezone: 'UTC',
+        period: options.period,
+        traffic,
+      },
+    };
+  }
+
+  const meta = await buildRangeMeta(options, { traffic });
   return {
     totalClicks: link.clickCount,
     lifetimeClicks: link.clickCount,
@@ -119,11 +207,8 @@ export async function getLinkAnalytics(linkId: string, workspaceId: string, peri
     successfulVisitCount: link.clickCount,
     usedVisits: link.clickCount,
     ...analytics,
-    meta: {
-      timezone: 'UTC',
-      period,
-      traffic,
-    },
+    ...compare,
+    meta,
   };
 }
 
@@ -132,7 +217,7 @@ export type CampaignAttributionMode = 'current' | 'recorded';
 export async function getCampaignAnalytics(
   campaignId: string,
   workspaceId: string,
-  period: Period,
+  options: AnalyticsReadOptions,
   attribution: CampaignAttributionMode = 'current',
 ) {
   const db = await getDb();
@@ -153,9 +238,11 @@ export async function getCampaignAnalytics(
     deletedAt: links.deletedAt,
   }).from(links).where(and(eq(links.campaignId, campaignId), eq(links.workspaceId, workspaceId)));
   const liveRows = linkRows.filter(row => row.deletedAt == null);
-
-  const windowStart = periodStart(period, Date.now());
-  const inWindow = windowFilter(windowStart);
+  const period = options.period ?? '7d';
+  const inWindow = rangeFilter(
+    options.mode === 'range' ? options.fromMs : options.fromMs,
+    options.mode === 'range' ? options.toMs : null,
+  );
 
   if (attribution === 'recorded') {
     const scope = and(eq(clickEvents.workspaceId, workspaceId), eq(clickEvents.campaignId, campaignId)) ?? sql`1=1`;
@@ -193,13 +280,46 @@ export async function getCampaignAnalytics(
       .groupBy(clickEvents.linkId);
     const periodByLink = new Map(linkClickRows.map(row => [row.id, Number(row.count)]));
 
-    const analytics = await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human');
+    const bySource = sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) }));
+    const byMedium = mediumRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) }));
+    const analytics = await buildAnalytics(scope, options, campaign.createdAt.getTime(), 'human');
+
+    let previousBreakdown: { bySource?: LabelCount[]; byMedium?: LabelCount[] } | undefined;
+    if (options.compare && options.fromMs != null) {
+      const prev = previousWindow(options.fromMs, options.toMs);
+      const prevFilter = rangeFilter(prev.fromMs, prev.toMs);
+      const prevSourceRows = await db.select({
+        label: clickEvents.utmSource,
+        count: countAll,
+      })
+        .from(clickEvents)
+        .where(and(scope, prevFilter, humanFilter))
+        .groupBy(clickEvents.utmSource)
+        .orderBy(desc(countAll));
+      const prevMediumRows = await db.select({
+        label: clickEvents.utmMedium,
+        count: countAll,
+      })
+        .from(clickEvents)
+        .where(and(scope, prevFilter, humanFilter))
+        .groupBy(clickEvents.utmMedium)
+        .orderBy(desc(countAll));
+      previousBreakdown = {
+        bySource: prevSourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+        byMedium: prevMediumRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+      };
+    }
+
+    const compare = await loadComparison(scope, options, 'human', analytics.periodClicks, previousBreakdown);
+    const meta = options.mode === 'period'
+      ? { timezone: 'UTC', period, traffic: 'human' as const, attribution, legacyCount }
+      : { ...(await buildRangeMeta(options, { traffic: 'human', attribution, legacyCount })) };
 
     return {
       totalClicks,
       linkCount: liveRows.length,
-      bySource: sourceRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
-      byMedium: mediumRows.map(row => ({ label: row.label ?? 'not set', count: Number(row.count) })),
+      bySource,
+      byMedium,
       topLinks: liveRows
         .map(row => ({
           id: row.id,
@@ -212,31 +332,24 @@ export async function getCampaignAnalytics(
         }))
         .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
       ...analytics,
-      meta: {
-        timezone: 'UTC',
-        period,
-        traffic: 'human',
-        attribution,
-        legacyCount,
-      },
+      ...compare,
+      meta,
     };
   }
 
   if (!linkRows.length) {
+    const emptyAnalytics = await buildAnalytics(sql`1=0`, options, campaign.createdAt.getTime(), 'human');
+    const meta = options.mode === 'period'
+      ? { timezone: 'UTC', period, traffic: 'human' as const, attribution, legacyCount: 0 }
+      : { ...(await buildRangeMeta(options, { traffic: 'human', attribution, legacyCount: 0 })) };
     return {
       totalClicks: 0,
       linkCount: 0,
       bySource: [],
       byMedium: [],
       topLinks: [],
-      ...await buildAnalytics(sql`1=0`, period, campaign.createdAt.getTime(), 'human'),
-      meta: {
-        timezone: 'UTC',
-        period,
-        traffic: 'human',
-        attribution,
-        legacyCount: 0,
-      },
+      ...emptyAnalytics,
+      meta,
     };
   }
 
@@ -248,19 +361,24 @@ export async function getCampaignAnalytics(
   const sourceRows = await db.select({
     label: links.utmSource,
     count: countAll,
-  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(links.utmSource).orderBy(desc(countAll));
+  }).from(clickEvents).innerJoin(links, eq(clickEvents.linkId, links.id)).where(and(scope, inWindow, humanFilter)).groupBy(links.utmSource).orderBy(desc(countAll));
 
   const linkClickRows = await db.select({
     id: clickEvents.linkId,
     count: countAll,
-  }).from(clickEvents).where(and(scope, windowFilter(windowStart), humanFilter)).groupBy(clickEvents.linkId);
+  }).from(clickEvents).where(and(scope, inWindow, humanFilter)).groupBy(clickEvents.linkId);
   const periodByLink = new Map(linkClickRows.map(row => [row.id, Number(row.count)]));
 
-  const analytics = await buildAnalytics(scope, period, campaign.createdAt.getTime(), 'human');
+  const analytics = await buildAnalytics(scope, options, campaign.createdAt.getTime(), 'human');
+  const compare = await loadComparison(scope, options, 'human', analytics.periodClicks);
 
   const byMedium = analytics.periodClicks > 0 && campaign.utmMedium
     ? [{ label: campaign.utmMedium, count: analytics.periodClicks }]
     : [];
+
+  const meta = options.mode === 'period'
+    ? { timezone: 'UTC', period, traffic: 'human' as const, attribution, legacyCount }
+    : { ...(await buildRangeMeta(options, { traffic: 'human', attribution, legacyCount })) };
 
   return {
     totalClicks: linkRows.reduce((sum, row) => sum + row.clickCount, 0),
@@ -279,13 +397,8 @@ export async function getCampaignAnalytics(
       }))
       .sort((a, b) => b.periodClicks - a.periodClicks || b.totalClicks - a.totalClicks),
     ...analytics,
-    meta: {
-      timezone: 'UTC',
-      period,
-      traffic: 'human',
-      attribution,
-      legacyCount,
-    },
+    ...compare,
+    meta,
   };
 }
 
@@ -307,7 +420,7 @@ const linkSummary = {
 // One page that answers "how is the workspace doing" and "what needs
 // attention". Totals and the timeline reuse buildAnalytics with the workspace
 // as the scope, so there is no second implementation of either.
-export async function getWorkspaceAnalytics(workspaceId: string, period: Period) {
+export async function getWorkspaceAnalytics(workspaceId: string, options: AnalyticsReadOptions) {
   const db = await getDb();
   const workspaceRows = await db.select({ createdAt: workspaces.createdAt }).from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1);
   const createdAt = workspaceRows[0]?.createdAt;
@@ -315,9 +428,13 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
     return null;
 
   const scope = eq(clickEvents.workspaceId, workspaceId);
-  const analytics = await buildAnalytics(scope, period, createdAt.getTime(), 'human');
+  const analytics = await buildAnalytics(scope, options, createdAt.getTime(), 'human');
+  const compare = await loadComparison(scope, options, 'human', analytics.periodClicks);
 
-  const windowStart = periodStart(period, Date.now());
+  const inWindow = rangeFilter(
+    options.mode === 'range' ? options.fromMs : options.fromMs,
+    options.mode === 'range' ? options.toMs : null,
+  );
   const topRows = await db.select({
     id: clickEvents.linkId,
     slug: links.slug,
@@ -326,7 +443,7 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
   })
     .from(clickEvents)
     .innerJoin(links, eq(clickEvents.linkId, links.id))
-    .where(and(scope, windowFilter(windowStart), humanFilter, isNull(links.deletedAt)))
+    .where(and(scope, inWindow, humanFilter, isNull(links.deletedAt)))
     .groupBy(clickEvents.linkId, links.slug, links.title)
     .orderBy(desc(countAll))
     .limit(TOP_LINKS);
@@ -361,6 +478,10 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
     )`,
   )).orderBy(desc(sql`coalesce(${links.expiresAt}, ${links.updatedAt})`)).limit(ATTENTION_ROWS);
 
+  const meta = options.mode === 'period'
+    ? { timezone: 'UTC', period: options.period, traffic: 'human' as const }
+    : { ...(await buildRangeMeta(options, { traffic: 'human' })) };
+
   return {
     clicks: analytics.periodClicks,
     uniqueVisitors: analytics.uniqueVisitors,
@@ -368,17 +489,12 @@ export async function getWorkspaceAnalytics(workspaceId: string, period: Period)
     timeline: analytics.series,
     topLinks: topRows.map(row => ({ id: row.id, slug: row.slug, title: row.title, clicks: Number(row.clicks) })),
     attention: { expiringSoon, nearCap, stopped },
-    meta: {
-      timezone: 'UTC',
-      period,
-      traffic: 'human',
-    },
+    ...compare,
+    meta,
   };
 }
 
 const TOP_ROWS = 10;
-
-type LabelCount = { label: string; count: number };
 
 function withPercentage(rows: LabelCount[]) {
   const total = rows.reduce((sum, row) => sum + row.count, 0) || 1;
@@ -392,12 +508,31 @@ function byCountDesc(a: LabelCount, b: LabelCount) {
   return b.count - a.count;
 }
 
-async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, traffic: TrafficClass) {
+async function loadComparison(
+  scope: SQL,
+  options: AnalyticsReadOptions,
+  traffic: TrafficClass,
+  currentClicks: number,
+  extra?: { bySource?: LabelCount[]; byMedium?: LabelCount[] },
+) {
+  if (!options.compare || options.fromMs == null)
+    return {};
+  const prev = previousWindow(options.fromMs, options.toMs);
+  const previous = await scalarCounts(scope, prev.fromMs, prev.toMs, traffic);
+  return {
+    previous: { ...previous, ...extra },
+    change: changeFrom(currentClicks, previous.clicks),
+  };
+}
+
+async function buildAnalytics(scope: SQL, options: AnalyticsReadOptions, createdAtMs: number, traffic: TrafficClass) {
   const db = await getDb();
   const now = Date.now();
-  const windowStart = periodStart(period, now);
-  const hourly = period === '24h';
-  const inWindow = windowFilter(windowStart);
+  const fromMs = options.fromMs;
+  const toMs = options.mode === 'range' ? options.toMs : null;
+  const hourly = options.period === '24h'
+    || (options.mode === 'range' && options.fromMs != null && (options.toMs - options.fromMs) <= 24 * 3600_000);
+  const inWindow = rangeFilter(fromMs, toMs);
   const trafficWhere = trafficFilter(traffic);
 
   // One statement for every scalar. A filtered count reads the rows the others
@@ -416,7 +551,8 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
   };
 
   const bucketMs = hourly ? 3600_000 : 86_400_000;
-  const start = windowStart ?? createdAtMs;
+  const start = fromMs ?? createdAtMs;
+  const endMs = toMs ?? now;
 
   // The buckets must stay UTC. zeroFillSeries builds its labels from UTC too.
   // The format stays a literal. A bound parameter makes GROUP BY see a second
@@ -433,12 +569,12 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
     count: countAll,
   }).from(clickEvents).where(and(
     scope,
-    gte(clickEvents.createdAt, new Date(start)),
+    rangeFilter(start, toMs),
     trafficWhere,
   )).groupBy(bucketExpr);
 
   const seriesMap = new Map<string, number>(rawSeries.map(row => [String(row.bucket), Number(row.count)]));
-  const series = zeroFillSeries(start, now, bucketMs, hourly, seriesMap);
+  const series = zeroFillSeries(start, endMs, bucketMs, hourly, seriesMap);
 
   // One statement for four breakdowns. grouping() names the set a row came
   // from, because a null in a dimension column means both "no value" and
@@ -486,18 +622,14 @@ async function buildAnalytics(scope: SQL, period: Period, createdAtMs: number, t
   };
 }
 
-function windowFilter(windowStart: number | null): SQL {
-  return windowStart ? gte(clickEvents.createdAt, new Date(windowStart)) : sql`1=1`;
-}
-
-function periodStart(period: Period, now: number): number | null {
-  if (period === '24h')
-    return now - 24 * 3600_000;
-  if (period === '7d')
-    return now - 7 * 86_400_000;
-  if (period === '30d')
-    return now - 30 * 86_400_000;
-  return null;
+function rangeFilter(fromMs: number | null, toMs: number | null = null): SQL {
+  if (fromMs != null && toMs != null)
+    return and(gte(clickEvents.createdAt, new Date(fromMs)), lt(clickEvents.createdAt, new Date(toMs))) ?? sql`1=1`;
+  if (fromMs != null)
+    return gte(clickEvents.createdAt, new Date(fromMs));
+  if (toMs != null)
+    return lt(clickEvents.createdAt, new Date(toMs));
+  return sql`1=1`;
 }
 
 function zeroFillSeries(

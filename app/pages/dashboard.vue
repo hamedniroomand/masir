@@ -10,23 +10,37 @@ type Dashboard = {
   timeline: { bucket: string; count: number }[];
   topLinks: { id: string; slug: string; title: string | null; clicks: number }[];
   attention: { expiringSoon: Summary[]; nearCap: Summary[]; stopped: Summary[] };
+  change?: { absolute: number; percent: number | null };
+  meta?: {
+    timezone: string;
+    period?: string | null;
+    from?: string;
+    to?: string;
+    traffic?: string;
+    earliestEventAt?: string | null;
+    signals?: string[];
+    warning?: string;
+  };
 };
 
-const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
+const { period, fromDate, toDate, compare, query: rangeQuery } = useAnalyticsRange('7d');
 const createOpen = ref(false);
 const { current, canManageLinks } = useCurrentWorkspace();
 
 const { data, pending, error, refresh } = useApi<Dashboard>('/api/workspaces/analytics', {
-  query: computed(() => ({ period: period.value })),
-  watch: [period],
+  query: rangeQuery,
+  watch: [rangeQuery],
 });
 
-const periodItems = [
-  { label: 'Last 24 hours', value: '24h' },
-  { label: 'Last 7 days', value: '7d' },
-  { label: 'Last 30 days', value: '30d' },
-  { label: 'All time', value: 'all' },
-];
+const hourly = computed(() => {
+  if (period.value === '24h')
+    return true;
+  if (period.value !== 'custom' || !fromDate.value || !toDate.value)
+    return false;
+  const from = Date.parse(`${fromDate.value}T00:00:00.000Z`);
+  const to = Date.parse(`${toDate.value}T00:00:00.000Z`);
+  return to - from <= 24 * 3600_000;
+});
 
 const attentionGroups = computed(() => [
   { key: 'expiringSoon', title: 'Expires within 7 days', icon: 'i-lucide-calendar-clock', items: data.value?.attention.expiringSoon ?? [] },
@@ -56,7 +70,12 @@ function noteFor(group: string, link: Summary) {
           How this workspace is doing, and what needs attention.
         </p>
       </div>
-      <USelect v-model="period" :items="periodItems" aria-label="Analytics period" size="sm" class="w-40 shrink-0" />
+      <AnalyticsRangeControls
+        v-model:period="period"
+        v-model:from-date="fromDate"
+        v-model:to-date="toDate"
+        v-model:compare="compare"
+      />
     </div>
 
     <FirstUseChecklist
@@ -89,15 +108,20 @@ function noteFor(group: string, link: Summary) {
       </div>
 
       <template v-else>
+        <AnalyticsReportMeta :meta="data.meta" />
         <div class="surface metric-grid p-5 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricStat label="Clicks" :value="data.clicks.toLocaleString()" hint="Successful human redirects" /><MetricStat label="Unique visitors" :value="data.uniqueVisitors.toLocaleString()" /><MetricStat label="Bot requests" :value="data.botRequests.toLocaleString()" /><MetricStat label="Needs attention" :value="String(data.attention.expiringSoon.length + data.attention.nearCap.length + data.attention.stopped.length)" hint="Links to look at" />
+          <div>
+            <MetricStat label="Clicks" :value="data.clicks.toLocaleString()" hint="Successful human redirects" />
+            <AnalyticsChangeHint :change="data.change" />
+          </div>
+          <MetricStat label="Unique visitors" :value="data.uniqueVisitors.toLocaleString()" /><MetricStat label="Bot requests" :value="data.botRequests.toLocaleString()" /><MetricStat label="Needs attention" :value="String(data.attention.expiringSoon.length + data.attention.nearCap.length + data.attention.stopped.length)" hint="Links to look at" />
         </div>
 
         <div class="surface px-3 pb-3 pt-5 sm:px-5">
           <p class="mb-4 text-xs font-medium text-muted">
             Clicks over time
           </p>
-          <LinkClicksChart :series="data.timeline" :hourly="period === '24h'" />
+          <LinkClicksChart :series="data.timeline" :hourly="hourly" />
         </div>
 
         <div class="grid gap-5 lg:grid-cols-2">

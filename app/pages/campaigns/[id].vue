@@ -7,7 +7,7 @@ definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const id = computed(() => route.params.id as string);
-const period = ref<'24h' | '7d' | '30d' | 'all'>('7d');
+const { period, fromDate, toDate, compare, query: rangeQuery } = useAnalyticsRange('7d');
 const attribution = ref<'current' | 'recorded'>('current');
 const editOpen = ref(false);
 const batchOpen = ref(false);
@@ -35,12 +35,35 @@ type CampaignAnalytics = {
   topCountries: { label: string; count: number }[];
   devices: { label: string; count: number; percentage: number }[];
   topLinks: { id: string; slug: string; title: string | null; utmSource: string | null; utmContent: string | null; totalClicks: number; periodClicks: number }[];
-  meta: { attribution: string; legacyCount: number; timezone?: string; period?: string; traffic?: string };
+  previous?: { clicks: number; uniqueVisitors: number; botRequests: number; bySource?: { label: string; count: number }[]; byMedium?: { label: string; count: number }[] };
+  change?: { absolute: number; percent: number | null };
+  meta: {
+    attribution: string;
+    legacyCount: number;
+    timezone?: string;
+    period?: string | null;
+    from?: string;
+    to?: string;
+    traffic?: string;
+    earliestEventAt?: string | null;
+    signals?: string[];
+    warning?: string;
+  };
 };
 
 const { data: analytics, pending: analyticsPending, error: analyticsError, refresh: refreshAnalytics } = useApi<CampaignAnalytics>(() => `/api/campaigns/${id.value}/analytics`, {
-  query: computed(() => ({ period: period.value, attribution: attribution.value })),
-  watch: [period, attribution],
+  query: computed(() => ({ ...rangeQuery.value, attribution: attribution.value })),
+  watch: [rangeQuery, attribution],
+});
+
+const hourly = computed(() => {
+  if (period.value === '24h')
+    return true;
+  if (period.value !== 'custom' || !fromDate.value || !toDate.value)
+    return false;
+  const from = Date.parse(`${fromDate.value}T00:00:00.000Z`);
+  const to = Date.parse(`${toDate.value}T00:00:00.000Z`);
+  return to - from <= 24 * 3600_000;
 });
 
 useHead({ title: () => `${campaign.value?.name ?? 'Campaign'} · Masir` });
@@ -188,11 +211,11 @@ async function onBatchCreated() {
           aria-label="Attribution mode"
           class="w-48"
         />
-        <USelect
-          v-model="period"
-          :items="[{ label: 'Last 24 hours', value: '24h' }, { label: 'Last 7 days', value: '7d' }, { label: 'Last 30 days', value: '30d' }, { label: 'All time', value: 'all' }]"
-          aria-label="Analytics period"
-          class="w-40"
+        <AnalyticsRangeControls
+          v-model:period="period"
+          v-model:from-date="fromDate"
+          v-model:to-date="toDate"
+          v-model:compare="compare"
         />
       </div>
     </div>
@@ -217,8 +240,12 @@ async function onBatchCreated() {
     </div>
 
     <template v-else-if="analytics">
+      <AnalyticsReportMeta :meta="analytics.meta" />
       <div class="metric-grid">
-        <MetricStat size="md" class="p-5" label="Clicks in this period" :value="analytics.periodClicks.toLocaleString()" />
+        <div class="p-5">
+          <MetricStat size="md" label="Clicks in this period" :value="analytics.periodClicks.toLocaleString()" />
+          <AnalyticsChangeHint :change="analytics.change" />
+        </div>
         <MetricStat size="md" class="border-l border-default p-5" label="All-time clicks" :value="analytics.totalClicks.toLocaleString()" />
         <MetricStat size="md" class="border-t border-default p-5 lg:border-l lg:border-t-0" label="Links" :value="String(analytics.linkCount)" />
         <MetricStat size="md" class="border-l border-t border-default p-5 lg:border-t-0" label="Top source">
@@ -240,10 +267,20 @@ async function onBatchCreated() {
           </p>
         </div>
         <template v-else>
-          <LinkClicksChart :series="analytics.series" :hourly="period === '24h'" />
+          <LinkClicksChart :series="analytics.series" :hourly="hourly" />
           <div class="grid gap-4 sm:grid-cols-2">
             <BreakdownList title="Sources" :items="analytics.bySource" />
+            <BreakdownList
+              v-if="analytics.previous?.bySource?.length && attribution === 'recorded'"
+              title="Sources (previous)"
+              :items="analytics.previous.bySource"
+            />
             <BreakdownList v-if="analytics.byMedium?.length" title="Mediums" :items="analytics.byMedium" />
+            <BreakdownList
+              v-if="analytics.previous?.byMedium?.length && attribution === 'recorded'"
+              title="Mediums (previous)"
+              :items="analytics.previous.byMedium"
+            />
             <BreakdownList title="Referrers" :items="analytics.topReferrers" />
             <BreakdownList title="Countries" :items="analytics.topCountries" />
             <BreakdownList title="Devices" :items="analytics.devices" />

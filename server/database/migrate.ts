@@ -66,6 +66,23 @@ export async function newestPartitionEnd(db: AppDatabase) {
   return new Date(Date.UTC(Number(match[1]), Number(match[2]), 1));
 }
 
+// Inclusive lower bound of the oldest click_events partition.
+export async function oldestPartitionStart(db: AppDatabase) {
+  const [row] = await db.execute<{ relname: string }>(sql`
+    select c.relname
+    from pg_inherits i
+    join pg_class c on c.oid = i.inhrelid
+    where i.inhparent = 'click_events'::regclass
+      and c.relname ~ '^click_events_[0-9]{4}_[0-9]{2}$'
+    order by c.relname asc
+    limit 1
+  `);
+  const match = row ? /^click_events_(\d{4})_(\d{2})$/.exec(row.relname) : null;
+  if (!match)
+    return undefined;
+  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+}
+
 // db is explicit, not from getDb(), so this file stays free of the runtime
 // config that scripts/migrate.ts cannot see.
 export async function runClickEventPartitionSweep(db: AppDatabase, now: Date) {
