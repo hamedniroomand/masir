@@ -11,6 +11,7 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Shared CSV parse and write helpers in `shared/csv.ts` with formula-safe cells, plus `csvResponse` for download responses.
 - A link-level `utm_medium` override. A link value wins over its campaign
   medium; clearing it returns to the campaign value.
 - `POST /api/links/batch` creates up to 20 links from one destination in one
