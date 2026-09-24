@@ -42,6 +42,7 @@ export type LinkListFilter = {
   campaignId?: string;
   createdBy?: string;
   archived?: boolean;
+  trashed?: boolean;
   needsReview?: boolean;
   sort?: string;
 };
@@ -98,6 +99,7 @@ export function useLinksList() {
   });
 
   const archived = computed(() => route.query.archived === 'true');
+  const trashed = computed(() => route.query.trashed === 'true');
   const needsReview = computed(() => route.query.needsReview === 'true');
 
   const listFilter = computed<LinkListFilter>(() => ({
@@ -107,6 +109,7 @@ export function useLinksList() {
     campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
     createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
     archived: archived.value || undefined,
+    trashed: trashed.value || undefined,
     needsReview: needsReview.value || undefined,
     sort: sort.value,
   }));
@@ -119,6 +122,7 @@ export function useLinksList() {
       campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
       createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
       archived: archived.value ? 'true' : undefined,
+      trashed: trashed.value ? 'true' : undefined,
       needsReview: needsReview.value ? 'true' : undefined,
       page: page.value,
       perPage: 20,
@@ -150,6 +154,7 @@ export function useLinksList() {
     campaignId,
     createdBy,
     archived,
+    trashed,
     needsReview,
     listFilter,
     tagList,

@@ -147,12 +147,20 @@ Password hashes and historical click events do not move with the file. An
 exported short URL continues to resolve on the destination only when that
 domain still routes to Masir.
 
-## Delete a link
+## Trash and restore
 
-Deletion is soft. The link leaves normal lists and stops resolving. Its slug,
-aliases, analytics, and audit history remain reserved or retained.
+Deletion is soft. The link leaves normal lists and stops resolving. Open the
+**Trash** view to see deleted links and restore them. Restore clears
+`deleted_at` and returns the same slug, aliases, and identity. A restored link
+keeps its derived status, so an expired link still shows as Expired.
 
-A deleted address cannot be reused.
+Its slug, aliases, analytics, and audit history remain reserved or retained
+while the link is in trash. A deleted address cannot be reused.
+
+After archive, unarchive, or delete, a toast offers Undo that calls the reverse
+action.
+
+Purge does not exist in this version. There is no permanent delete.
 
 <ReadMore to="/features/access-control" title="Control when the link works" />
 

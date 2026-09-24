@@ -331,6 +331,8 @@ export type LinkListQuery = {
   createdBy?: string;
   // Defaults to false at the API: hide archived rows from normal lists.
   archived?: boolean;
+  // Defaults to false: hide soft-deleted rows. true returns only trash.
+  trashed?: boolean;
   needsReview?: boolean;
   page: number;
   perPage: number;
@@ -342,7 +344,10 @@ export const BULK_LINK_CAP = 500;
 export async function listLinks(workspaceId: string, query: LinkListQuery) {
   const db = await getDb();
   const now = new Date();
-  const filters = [eq(links.workspaceId, workspaceId), isNull(links.deletedAt)];
+  const filters = [
+    eq(links.workspaceId, workspaceId),
+    query.trashed === true ? isNotNull(links.deletedAt) : isNull(links.deletedAt),
+  ];
   const notExpired = anyOf(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`);
   const underVisitLimit = anyOf(sql`${links.maximumVisits} IS NULL`, sql`${links.clickCount} < ${links.maximumVisits}`);
   const started = anyOf(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`);
@@ -377,7 +382,7 @@ export async function listLinks(workspaceId: string, query: LinkListQuery) {
 
   if (query.archived === true)
     filters.push(isNotNull(links.archivedAt));
-  else
+  else if (query.trashed !== true)
     filters.push(isNull(links.archivedAt));
 
   if (query.needsReview) {
@@ -601,6 +606,33 @@ export async function deleteLink(id: string, workspaceId: string) {
   invalidateLink(workspaceId, existing.slug);
   invalidateLinkById(id);
   return true;
+}
+
+// Clears deleted_at. The slug never left the row, so the same addresses return.
+export async function restoreLink(id: string, workspaceId: string) {
+  if (!isUuid(id))
+    return null;
+
+  const db = await getDb();
+  const rows = await db.select().from(links).where(and(
+    eq(links.id, id),
+    eq(links.workspaceId, workspaceId),
+    isNotNull(links.deletedAt),
+  )).limit(1);
+  const existing = rows[0];
+  if (!existing)
+    return null;
+
+  await db.update(links)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(links.id, id), eq(links.workspaceId, workspaceId), isNotNull(links.deletedAt)));
+
+  invalidateLink(workspaceId, existing.slug);
+  const aliasMap = await aliasesForLinks([id]);
+  for (const alias of aliasMap.get(id) ?? [])
+    invalidateLink(workspaceId, alias);
+  invalidateLinkById(id);
+  return findLinkById(id, workspaceId);
 }
 
 // Null means the visit was refused. A number is the new count, which the

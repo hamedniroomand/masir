@@ -41,14 +41,24 @@ const creatorName = computed(() => {
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
 const showError = useErrorToast();
+const { $api } = useNuxtApp();
+const { offerUndo } = useLinkUndoToast();
 const { saving: archiving, patch } = useLinkPatch(() => id.value);
 
 async function toggleArchive() {
   if (!link.value)
     return;
+  const next = !link.value.archived;
   try {
-    await patch({ archived: !link.value.archived });
+    await patch({ archived: next });
     await refreshLink();
+    offerUndo(
+      next ? 'Archived.' : 'Removed from archive.',
+      async () => {
+        await $api(`/api/links/${id.value}`, { method: 'PATCH', body: { archived: !next } });
+      },
+      () => refreshLink(),
+    );
   }
   catch (error) {
     showError(error);

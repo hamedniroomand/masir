@@ -29,7 +29,7 @@ async function loginCookie(email = TEST_EMAIL, password = TEST_PASSWORD) {
   return cookie.split(';')[0]!;
 }
 
-describe('link responsibility, review, and archive', async () => {
+describe('link responsibility, review, archive, and trash', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
   let workspaceId = '';
@@ -196,5 +196,96 @@ describe('link responsibility, review, and archive', async () => {
       body: { responsibleUserId: stranger },
       headers: { cookie },
     })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('deletes a link with an alias, restores both addresses, and holds the slug', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/trash-target', slug: 'trash-primary' },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${link.id}/aliases`, {
+      method: 'POST',
+      body: { slug: 'trash-alias' },
+      headers: { cookie },
+    });
+
+    await $fetch(`/api/links/${link.id}`, { method: 'DELETE', headers: { cookie } });
+
+    expect((await fetch('/trash-primary', { redirect: 'manual' })).status).toBe(404);
+    expect((await fetch('/trash-alias', { redirect: 'manual' })).status).toBe(404);
+
+    await expect($fetch('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/taken', slug: 'trash-primary' },
+      headers: { cookie },
+    })).rejects.toMatchObject({ statusCode: 409 });
+
+    const trash = await $fetch<{ items: { id: string }[] }>('/api/links', {
+      query: { trashed: 'true' },
+      headers: { cookie },
+    });
+    expect(trash.items.map(item => item.id)).toContain(link.id);
+
+    const restored = await $fetch<{ id: string; status: string; slug: string }>(
+      `/api/links/${link.id}/restore`,
+      { method: 'POST', headers: { cookie } },
+    );
+    expect(restored.slug).toBe('trash-primary');
+    expect(restored.status).toBe('active');
+
+    const primary = await fetch('/trash-primary', { redirect: 'manual' });
+    expect(primary.status).toBe(302);
+    expect(primary.headers.get('location')).toBe('https://example.com/trash-target');
+    const alias = await fetch('/trash-alias', { redirect: 'manual' });
+    expect(alias.status).toBe(302);
+    expect(alias.headers.get('location')).toBe('https://example.com/trash-target');
+  });
+
+  it('restores an expired link with status expired', async () => {
+    const cookie = await loginCookie();
+    const link = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: {
+        destinationUrl: 'https://example.com/expired-trash',
+        slug: 'expired-trash',
+      },
+      headers: { cookie },
+    });
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { expiresAt: Date.now() - 60_000 },
+      headers: { cookie },
+    });
+
+    await $fetch(`/api/links/${link.id}`, { method: 'DELETE', headers: { cookie } });
+    const restored = await $fetch<{ status: string }>(`/api/links/${link.id}/restore`, {
+      method: 'POST',
+      headers: { cookie },
+    });
+    expect(restored.status).toBe('expired');
+  });
+
+  it('refuses a viewer who restores a link with 404', async () => {
+    const ownerCookie = await loginCookie();
+    const link = await $fetch<{ id: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/viewer-restore', slug: 'viewer-restore' },
+      headers: { cookie: ownerCookie },
+    });
+    await $fetch(`/api/links/${link.id}`, { method: 'DELETE', headers: { cookie: ownerCookie } });
+
+    const viewerCookie = await loginCookie(VIEWER_EMAIL, TEST_PASSWORD);
+    await expect($fetch(`/api/links/${link.id}/restore`, {
+      method: 'POST',
+      headers: { cookie: viewerCookie },
+    })).rejects.toMatchObject({ statusCode: 404 });
+
+    const trash = await $fetch<{ items: { id: string }[] }>('/api/links', {
+      query: { trashed: 'true' },
+      headers: { cookie: ownerCookie },
+    });
+    expect(trash.items.map(item => item.id)).toContain(link.id);
   });
 });

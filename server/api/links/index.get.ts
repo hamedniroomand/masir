@@ -40,8 +40,9 @@ export default defineEventHandler(async (event) => {
     createdBy = query.createdBy === 'me' ? user.id : query.createdBy;
   }
 
-  // Default false. Only an explicit true asks for archived rows.
+  // Default false. Only an explicit true asks for archived or trashed rows.
   const archived = query.archived === 'true' || query.archived === true;
+  const trashed = query.trashed === 'true' || query.trashed === true;
   const needsReview = query.needsReview === 'true' || query.needsReview === true;
 
   const { items, total } = await listLinks(workspaceId, {
@@ -52,6 +53,7 @@ export default defineEventHandler(async (event) => {
     campaignId,
     createdBy,
     archived,
+    trashed: trashed || undefined,
     needsReview: needsReview || undefined,
     page,
     perPage,

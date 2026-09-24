@@ -9,6 +9,7 @@ const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   link_created: 'links',
   link_updated: 'links',
   link_deleted: 'links',
+  link_restored: 'links',
   link_slug_changed: 'links',
   link_alias_added: 'links',
   link_alias_removed: 'links',

@@ -21,6 +21,7 @@ const SENTENCE: Record<string, string> = {
   link_created: 'created link',
   link_updated: 'changed link',
   link_deleted: 'deleted link',
+  link_restored: 'restored link from trash',
   link_slug_changed: 'renamed link',
   link_alias_added: 'added an address to link',
   link_alias_removed: 'removed an address from link',

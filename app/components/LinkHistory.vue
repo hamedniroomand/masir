@@ -28,6 +28,8 @@ const ICONS: Record<string, string> = {
   link_responsible_changed: 'i-lucide-user-cog',
   link_archived: 'i-lucide-archive',
   link_unarchived: 'i-lucide-archive-restore',
+  link_deleted: 'i-lucide-trash-2',
+  link_restored: 'i-lucide-undo-2',
 };
 
 function describe(item: HistoryEvent) {
@@ -41,6 +43,10 @@ function describe(item: HistoryEvent) {
     return 'Archived this link';
   if (item.type === 'link_unarchived')
     return 'Removed this link from the archive';
+  if (item.type === 'link_deleted')
+    return 'Moved this link to trash';
+  if (item.type === 'link_restored')
+    return 'Restored this link from trash';
   const changed = item.fields?.map(field => FIELD_LABELS[field] ?? field) ?? [];
   if (!changed.length)
     return 'Updated this link';

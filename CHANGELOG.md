@@ -11,6 +11,12 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Link trash, restore, and undo. `GET /api/links?trashed=true` lists soft-deleted
+  links. `POST /api/links/:id/restore` clears `deleted_at`, invalidates the slug
+  and aliases, and writes `link_restored`. The library adds a Trash view with
+  restore. Archive, unarchive, and delete show an Undo toast. Purge does not
+  exist in this version.
+
 - Link responsibility, review date, and archive. `links` gains
   `responsible_user_id`, `review_at`, and `archived_at`. Patch accepts
   `responsibleUserId`, `reviewAt`, and `archived`. List filters add working

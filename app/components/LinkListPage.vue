@@ -42,6 +42,7 @@ const {
   campaignId,
   createdBy,
   archived,
+  trashed,
   needsReview,
   listFilter,
   tagList,
@@ -85,6 +86,7 @@ const hasFilters = computed(() =>
   || campaignId.value !== 'all'
   || createdBy.value !== 'all'
   || archived.value
+  || trashed.value
   || needsReview.value,
 );
 
@@ -216,6 +218,8 @@ function cleanFilter(filter: LinkListFilter) {
     out.createdBy = filter.createdBy;
   if (filter.archived)
     out.archived = true;
+  if (filter.trashed)
+    out.trashed = true;
   if (filter.needsReview)
     out.needsReview = true;
   if (filter.sort && filter.sort !== 'createdAt')
@@ -254,6 +258,10 @@ function applyMyLinks() {
 
 function applyArchived() {
   navigateTo({ query: { archived: 'true', sort: route.query.sort } });
+}
+
+function applyTrash() {
+  navigateTo({ query: { trashed: 'true', sort: route.query.sort } });
 }
 
 function applyNeedsReview() {
@@ -309,6 +317,8 @@ const exportHref = computed(() => {
     params.set('createdBy', createdBy.value);
   if (archived.value)
     params.set('archived', 'true');
+  if (trashed.value)
+    params.set('trashed', 'true');
   if (needsReview.value)
     params.set('needsReview', 'true');
   if (sort.value === 'clicks')
@@ -401,6 +411,13 @@ const bulkActionLabel = computed(() => {
             @click="applyArchived"
           />
           <UButton
+            label="Trash"
+            size="xs"
+            :variant="trashed ? 'soft' : 'ghost'"
+            :color="trashed ? 'primary' : 'neutral'"
+            @click="applyTrash"
+          />
+          <UButton
             v-for="view in savedViews"
             :key="view.name"
             :label="view.name"
@@ -457,7 +474,7 @@ const bulkActionLabel = computed(() => {
       </div>
 
       <div
-        v-if="canManageLinks && selectedCount > 0"
+        v-if="canManageLinks && !trashed && selectedCount > 0"
         class="flex flex-wrap items-center gap-2 border-b border-default bg-primary/5 px-3 py-2.5 sm:px-5"
         role="region"
         aria-label="Bulk selection"
@@ -523,7 +540,7 @@ const bulkActionLabel = computed(() => {
       </div>
       <div v-else class="divide-y divide-default">
         <div class="link-grid column-heading hidden md:grid" aria-hidden="true">
-          <span v-if="canManageLinks" class="flex items-center">
+          <span v-if="canManageLinks && !trashed" class="flex items-center">
             <UCheckbox
               :model-value="allPageSelected"
               aria-label="Select all links on this page"
@@ -537,8 +554,9 @@ const bulkActionLabel = computed(() => {
           v-for="link in data.items"
           :key="link.id"
           :link="link"
-          :selectable="canManageLinks"
+          :selectable="canManageLinks && !trashed"
           :selected="matchingAll || selectedIds.has(link.id)"
+          :in-trash="trashed"
           @update:selected="toggleRow(link.id, $event)"
           @refresh="refresh()"
         />
