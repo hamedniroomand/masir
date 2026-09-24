@@ -31,4 +31,11 @@ export function useFormRevalidation(form: Readonly<Ref<RevalidatingForm | null |
     if (shown.value && edited.value)
       form.value?.validate({ silent: true });
   }, { deep: true, debounce: 300 });
+
+  return {
+    reset: () => {
+      shown.value = false;
+      edited.value = false;
+    },
+  };
 }

@@ -13,6 +13,8 @@ export function useLinkPatch(linkId: MaybeRefOrGetter<string>) {
     try {
       await $api(`/api/links/${toValue(linkId)}`, { method: 'PATCH', body });
       saved.value = true;
+      if ('campaignId' in body)
+        void refreshCampaignsList();
     }
     finally {
       saving.value = false;

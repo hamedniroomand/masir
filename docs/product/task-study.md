@@ -58,14 +58,14 @@ help. Record elapsed time from the creation screen to the copy action.
 ### Task 2 — Three-channel launch
 
 1. Open a campaign.
-2. Choose **Create links in this campaign**.
-3. Enter one destination URL.
-4. Confirm the newsletter, social, and print rows show the campaign UTM values.
-5. Choose **Create links**.
-6. Confirm each row shows a created short URL.
+2. Choose **Create link in this campaign**.
+3. Enter a destination URL and set `utm_source=newsletter` and `utm_medium=email`.
+4. Create the link and confirm the campaign values stay selected.
+5. Create two more links for the same destination with `twitter` / `social` and `print` / `print` values.
+6. Confirm all three links appear under the campaign.
 
-Success: three links exist under the campaign, one per channel preset, without
-manual URL editing.
+Success: three links exist under the campaign, one per channel. The campaign
+adds `utm_campaign` to each link.
 
 ### Task 3 — Classify 20 links
 

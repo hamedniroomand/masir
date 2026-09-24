@@ -44,7 +44,9 @@ export function useLinkUndoToast() {
   }
 
   async function restoreLink(linkId: string) {
-    return $api<{ status: string }>(`/api/links/${linkId}/restore`, { method: 'POST' });
+    const restored = await $api<{ status: string }>(`/api/links/${linkId}/restore`, { method: 'POST' });
+    void refreshCampaignsList();
+    return restored;
   }
 
   return { offerUndo, offerExpiredRestore, restoreLink };

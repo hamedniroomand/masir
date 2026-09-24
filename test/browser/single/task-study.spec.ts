@@ -8,20 +8,33 @@ test.beforeAll(({ db }) => {
   db.insertCampaign({ workspaceId, utmCampaign: 'r2-study', name: 'R2 study' });
 });
 
-test('creates newsletter, social, and print links in one campaign launch', async ({ page, login }) => {
+test('creates newsletter, social, and print links from campaign detail', async ({ page, login }) => {
   await login();
   await page.goto('/campaigns');
   await page.getByRole('link', { name: /R2 study/ }).click();
-  await page.getByRole('button', { name: 'Create links in this campaign' }).first().click();
+  await page.getByRole('button', { name: 'Create link in this campaign' }).first().click();
 
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Destination').fill('https://example.com/r2-study');
-  await expect(dialog.getByText('utm_source=newsletter&utm_medium=email&utm_campaign=r2-study')).toBeVisible();
-  await expect(dialog.getByText('utm_source=twitter&utm_medium=social&utm_campaign=r2-study')).toBeVisible();
-  await expect(dialog.getByText('utm_source=print&utm_medium=print&utm_campaign=r2-study')).toBeVisible();
+  await expect(dialog.getByRole('heading', { name: 'Create a link' })).toBeVisible();
+  await expect(dialog.getByRole('combobox', { name: 'Campaign' })).toContainText('R2 study');
+  await expect(dialog.getByRole('textbox', { name: 'Campaign', exact: true })).toHaveValue('r2-study');
 
-  await dialog.getByRole('button', { name: 'Create links' }).click();
-  await expect(dialog.getByText(/Created https?:/)).toHaveCount(3);
+  for (const channel of [
+    { source: 'newsletter', medium: 'email' },
+    { source: 'twitter', medium: 'social' },
+    { source: 'print', medium: 'print' },
+  ]) {
+    if (await dialog.getByRole('button', { name: 'Create another' }).count())
+      await dialog.getByRole('button', { name: 'Create another' }).click();
+    await dialog.getByLabel('Destination URL').fill('https://example.com/r2-study');
+    await dialog.getByLabel('Source').fill(channel.source);
+    await dialog.getByLabel('Medium').fill(channel.medium);
+    await expect(dialog.getByText(new RegExp(`utm_source=${channel.source}&utm_medium=${channel.medium}&utm_campaign=r2-study`))).toBeVisible();
+    const response = page.waitForResponse(response => response.url().endsWith('/api/links') && response.request().method() === 'POST');
+    await dialog.getByRole('button', { name: 'Create link', exact: true }).click();
+    expect((await response).status()).toBe(201);
+    await expect(dialog.getByText('Link created')).toBeVisible();
+  }
 });
 
 test('imports CSV rows and retries only the failed row', async ({ page, login }) => {

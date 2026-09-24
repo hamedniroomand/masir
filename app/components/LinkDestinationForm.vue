@@ -20,12 +20,13 @@ const { saving, saved, patch } = useLinkPatch(() => props.link.id);
 const state = reactive({ destinationUrl: '', slug: '' });
 const keepOldSlug = ref(true);
 const form = useTemplateRef('form');
-useFormRevalidation(form, state);
+const formRevalidation = useFormRevalidation(form, state);
 
 watch(() => props.link, (link) => {
   state.destinationUrl = link.destinationUrl;
   state.slug = link.slug;
   form.value?.clear();
+  formRevalidation.reset();
 }, { immediate: true });
 
 const slugChanged = computed(() => normalizeSlug(state.slug) !== props.link.slug);

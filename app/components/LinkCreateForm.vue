@@ -5,7 +5,7 @@ import * as v from 'valibot';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_NOTES_LENGTH, notesSchema, toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
-const props = defineProps<{ initial?: { destinationUrl?: string; title?: string } }>();
+const props = defineProps<{ initial?: { destinationUrl?: string; title?: string; campaignId?: string | null } }>();
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 
@@ -51,7 +51,7 @@ const state = reactive({
   scheduledDestination: '',
   maximumVisits: null as number | null,
   password: '',
-  campaignId: null as string | null,
+  campaignId: props.initial?.campaignId ?? null,
   utmSource: '',
   utmMedium: '',
   utmCampaign: '',
@@ -85,7 +85,7 @@ watch(() => state.destinationUrl, () => {
   duplicate.value = null;
 });
 
-const groups = reactive({ tracking: false, access: false, tags: false });
+const groups = reactive({ tracking: Boolean(props.initial?.campaignId), access: false, tags: false });
 
 const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
   notes: 'tags',
@@ -106,7 +106,7 @@ const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
 };
 
 const form = useTemplateRef('form');
-useFormRevalidation(form, state);
+const formRevalidation = useFormRevalidation(form, state);
 const loading = ref(false);
 const created = ref<LinkItem | null>(null);
 
@@ -115,7 +115,6 @@ const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
-const previewOpen = ref(false);
 const { current } = useCurrentWorkspace();
 const domain = computed(() => {
   try {
@@ -130,6 +129,7 @@ const isDirty = computed(() => Boolean(
   state.destinationUrl.trim()
   || state.slug.trim()
   || state.title.trim()
+  || state.campaignId !== (props.initial?.campaignId ?? null)
   || state.notes.trim()
   || state.password
   || state.tags.length > 0,
@@ -162,16 +162,18 @@ function reset() {
   state.scheduledDestination = '';
   state.maximumVisits = null;
   state.password = '';
-  state.campaignId = null;
+  state.campaignId = props.initial?.campaignId ?? null;
   state.utmSource = '';
   state.utmMedium = '';
   state.utmCampaign = '';
   state.utmTerm = '';
   state.utmContent = '';
   state.tags = [];
-  groups.tracking = false;
+  groups.tracking = Boolean(props.initial?.campaignId);
   groups.access = false;
   groups.tags = false;
+  form.value?.clear();
+  formRevalidation.reset();
 }
 
 async function onSubmit(_event: FormSubmitEvent<Schema>) {
@@ -218,6 +220,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
     const link = await $api<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
+    if (state.campaignId)
+      void refreshCampaignsList();
     emit('created', link);
     reset();
   }
@@ -275,15 +279,6 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
             class="rounded-none"
             @click="qrOpen = true"
           />
-          <UButton
-            size="sm"
-            label="Preview routing"
-            icon="i-lucide-play"
-            color="neutral"
-            variant="outline"
-            class="rounded-s-none"
-            @click="previewOpen = true"
-          />
         </div>
         <UButton
           size="sm"
@@ -308,17 +303,6 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         :short-url="created.shortUrl"
         :label="created.title || created.slug"
       />
-      <USlideover
-        v-if="created"
-        v-model:open="previewOpen"
-        title="Preview routing"
-        description="See which rule a visitor would hit."
-        :ui="{ content: 'sm:max-w-[640px]' }"
-      >
-        <template #body>
-          <LinkRoutingPreview :link-id="created.id" />
-        </template>
-      </USlideover>
     </div>
     <UForm
       ref="form"

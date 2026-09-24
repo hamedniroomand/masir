@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CampaignItem } from '~/composables/useCampaigns';
 import type { LinkListFilter } from '~/composables/useLinks';
 
 type SavedView = { name: string; query: Record<string, string | string[]> };
@@ -14,7 +15,7 @@ const createButtonRef = useTemplateRef('createButton');
 const { $api } = useNuxtApp();
 const showError = useErrorToast();
 const toast = useToast();
-const { options: campaignOptions } = useCampaignOptions();
+const { options: campaignOptions, refresh: refreshCampaigns } = useCampaignOptions();
 
 const { handleOpenUpdate } = useConfirmDiscard(
   () => createFormRef.value?.isDirty ?? false,
@@ -155,6 +156,12 @@ const bulkAction = ref<'tag' | 'untag' | 'assignCampaign' | 'archive'>('tag');
 const bulkTagId = ref<string | undefined>();
 const bulkCampaignId = ref<string | null>(null);
 const bulkSaving = ref(false);
+const campaignCreateOpen = ref(false);
+
+async function onCampaignCreated(campaign: CampaignItem) {
+  await refreshCampaigns();
+  bulkCampaignId.value = campaign.id;
+}
 
 const tagOptions = computed(() =>
   (tagList.value?.items ?? []).map(tag => ({ label: tag.name, value: tag.id })),
@@ -192,6 +199,8 @@ async function runBulk() {
       title: `Updated ${result.affected} ${result.affected === 1 ? 'link' : 'links'}.`,
       icon: 'i-lucide-check',
     });
+    if (bulkAction.value === 'assignCampaign')
+      void refreshCampaignsList();
     bulkOpen.value = false;
     clearSelection();
     await refresh();
@@ -586,10 +595,11 @@ const bulkActionLabel = computed(() => {
       </div>
     </div>
 
-    <UModal
+    <USlideover
       v-model:open="bulkOpen"
       :title="bulkActionLabel"
       :description="`${selectionLabel} in ${current?.name ?? 'this workspace'} (${shortDomain}).`"
+      :ui="{ content: 'sm:max-w-[480px]' }"
     >
       <template #body>
         <div class="space-y-3">
@@ -610,7 +620,17 @@ const bulkActionLabel = computed(() => {
             aria-label="Campaign"
             placeholder="Choose a campaign"
           />
-          <p v-else class="text-sm text-muted">
+          <UButton
+            v-if="bulkAction === 'assignCampaign'"
+            label="Create campaign"
+            icon="i-lucide-plus"
+            size="xs"
+            color="neutral"
+            variant="link"
+            class="px-0"
+            @click="campaignCreateOpen = true"
+          />
+          <p v-else-if="bulkAction === 'archive'" class="text-sm text-muted">
             Archived links leave the default library. Public short links keep working.
           </p>
         </div>
@@ -624,9 +644,9 @@ const bulkActionLabel = computed(() => {
           @click="runBulk"
         />
       </template>
-    </UModal>
+    </USlideover>
 
-    <UModal v-model:open="saveViewOpen" title="Save view" description="Store the current filters in this browser.">
+    <USlideover v-model:open="saveViewOpen" title="Save view" description="Store the current filters in this browser." :ui="{ content: 'sm:max-w-[480px]' }">
       <template #body>
         <UInput v-model="saveViewName" aria-label="View name" placeholder="View name" autofocus @keyup.enter="saveCurrentView" />
       </template>
@@ -634,6 +654,7 @@ const bulkActionLabel = computed(() => {
         <UButton label="Cancel" color="neutral" variant="outline" @click="saveViewOpen = false" />
         <UButton label="Save view" :disabled="!saveViewName.trim()" @click="saveCurrentView" />
       </template>
-    </UModal>
+    </USlideover>
+    <CampaignCreateSlideover v-model:open="campaignCreateOpen" @created="onCampaignCreated" />
   </div>
 </template>

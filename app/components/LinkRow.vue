@@ -103,6 +103,8 @@ async function remove() {
   try {
     const id = props.link.id;
     await $api(`/api/links/${id}`, { method: 'DELETE' });
+    if (props.link.campaignId)
+      void refreshCampaignsList();
     modal.value = false;
     emit('refresh');
     offerUndo(

@@ -9,13 +9,23 @@ const route = useRoute();
 const id = computed(() => route.params.id as string);
 const { period, fromDate, toDate, compare, query: rangeQuery } = useAnalyticsRange('7d');
 const attribution = ref<'current' | 'recorded'>('current');
+const csvHref = computed(() => {
+  const params = new URLSearchParams({ ...rangeQuery.value, attribution: attribution.value });
+  const query = params.toString();
+  return query ? `/api/campaigns/${id.value}/analytics.csv?${query}` : `/api/campaigns/${id.value}/analytics.csv`;
+});
 const editOpen = ref(false);
-const batchOpen = ref(false);
+const createOpen = ref(false);
+const createFormRef = ref<{ isDirty: boolean; reset: () => void } | null>(null);
 const pickerOpen = ref(false);
 const deleting = ref(false);
 const deleteOpen = ref(false);
 const showError = useErrorToast();
 const { canManageLinks } = useCurrentWorkspace();
+const { handleOpenUpdate } = useConfirmDiscard(
+  () => createFormRef.value?.isDirty ?? false,
+  createOpen,
+);
 
 type LinkItemLite = { id: string; slug: string; title: string | null; shortUrl: string };
 const attach = ref<LinkItemLite[]>([]);
@@ -72,6 +82,7 @@ const topSource = computed(() => analytics.value?.bySource[0]);
 
 async function onSaved() {
   editOpen.value = false;
+  void refreshCampaignsList();
   await Promise.all([refreshCampaign(), refreshAnalytics()]);
 }
 
@@ -79,6 +90,7 @@ async function removeCampaign() {
   deleting.value = true;
   try {
     await $api(`/api/campaigns/${id.value}`, { method: 'DELETE' });
+    await refreshCampaignsList();
     await navigateTo('/campaigns');
   }
   catch (error: unknown) {
@@ -99,6 +111,7 @@ async function attachLink(linkId: string) {
   attaching.value = linkId;
   try {
     await $api(`/api/links/${linkId}`, { method: 'PATCH', body: { campaignId: id.value } });
+    void refreshCampaignsList();
     await Promise.all([refreshCampaign(), refreshAnalytics(), searchAttach()]);
   }
   catch (error: unknown) {
@@ -109,7 +122,7 @@ async function attachLink(linkId: string) {
   }
 }
 
-async function onBatchCreated() {
+async function onLinkCreated() {
   await Promise.all([refreshCampaign(), refreshAnalytics()]);
 }
 </script>
@@ -132,25 +145,28 @@ async function onBatchCreated() {
         </div>
       </div>
       <div class="flex shrink-0 gap-2">
-        <UButton v-if="canManageLinks" label="Create links in this campaign" icon="i-lucide-plus" color="neutral" size="sm" @click="batchOpen = true" />
+        <UButton v-if="canManageLinks" label="Create link in this campaign" icon="i-lucide-plus" color="neutral" size="sm" @click="createOpen = true" />
         <UButton v-if="canManageLinks" label="Add existing links" icon="i-lucide-link" color="neutral" variant="outline" size="sm" @click="pickerOpen = true; searchAttach()" />
         <UButton v-if="canManageLinks" label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
         <UButton v-if="canManageLinks" label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
       </div>
     </div>
 
-    <USlideover v-model:open="batchOpen" title="Create links" description="Several channel links from one destination." :ui="{ content: 'sm:max-w-[520px]' }">
+    <USlideover
+      v-if="canManageLinks"
+      :open="createOpen"
+      title="Create a link"
+      description="A short address for your next destination."
+      :unmount-on-hide="false"
+      :ui="{ content: 'sm:max-w-[480px]' }"
+      @update:open="handleOpenUpdate"
+    >
       <template #body>
-        <CampaignBatchForm
-          :campaign-id="campaign.id"
-          :campaign-utm-campaign="campaign.utmCampaign"
-          :campaign-utm-medium="campaign.utmMedium"
-          @created="onBatchCreated"
-        />
+        <LinkCreateForm ref="createFormRef" :initial="{ campaignId: campaign.id }" @created="onLinkCreated" />
       </template>
     </USlideover>
 
-    <UModal v-model:open="pickerOpen" title="Add existing links" description="Attach workspace links to this campaign.">
+    <USlideover v-model:open="pickerOpen" title="Add existing links" description="Attach workspace links to this campaign." :ui="{ content: 'sm:max-w-[520px]' }">
       <template #body>
         <UInput v-model="attachQuery" placeholder="Search links" class="w-full mb-3" @keyup.enter="searchAttach()" />
         <UButton label="Search" size="xs" variant="outline" class="mb-3" @click="searchAttach()" />
@@ -171,7 +187,7 @@ async function onBatchCreated() {
           </div>
         </div>
       </template>
-    </UModal>
+    </USlideover>
 
     <USlideover
       v-model:open="editOpen"
@@ -316,9 +332,9 @@ async function onBatchCreated() {
           <UButton
             v-if="canManageLinks"
             class="mt-4"
-            label="Create links in this campaign"
+            label="Create link in this campaign"
             icon="i-lucide-plus"
-            @click="batchOpen = true"
+            @click="createOpen = true"
           />
         </div>
         <div v-else class="divide-y divide-default">
