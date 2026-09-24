@@ -11,6 +11,9 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- Release 2 task study fixtures for three-channel campaign launch and CSV
+  import retry, with recruitment and results in `docs/product/task-study.md`.
+
 - Analytics CSV download for link, campaign, and workspace reports.
   `GET /api/links/:id/analytics.csv`, `GET /api/campaigns/:id/analytics.csv`, and
   `GET /api/workspaces/analytics.csv` reuse the JSON range filters (`period` or

@@ -158,3 +158,14 @@ The baseline measures redirect response latency under the target reference deplo
 | 2026-09-23 | Hetzner CPX21 (3 vCPU, 4 GB RAM, Ubuntu 24.04, Bun 1.4) | `/r-test` (in-memory cache) | 1000 | 1.8 ms | 4.2 ms |
 
 
+
+## Release 2 task study
+
+The Release 2 study checks campaign batch launch and CSV import retry. Read
+`docs/product/task-study.md` for recruitment and the results table. The browser
+fixtures live in `test/browser/single/task-study.spec.ts`.
+
+```sh
+bun run test:browser:run -- --project=single test/browser/single/task-study.spec.ts
+```
+
