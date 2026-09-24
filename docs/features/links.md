@@ -103,6 +103,37 @@ change.
 Custom views store the current filters in the browser under
 `masir:views:{workspaceId}`.
 
+
+## Import and export links
+
+Download **Export** from the library to get a CSV of the current filters.
+Members and owners also receive a `notes` column. The file never includes
+password hashes.
+
+Use **Import** or open `/links/import` to upload a CSV. Download the
+[template](/templates/links-import.csv) for the column names.
+
+| Column | Meaning |
+|---|---|
+| `slug` | Optional short address. Masir generates one when empty. |
+| `destination_url` | Required HTTP or HTTPS destination |
+| `title` | Optional display title |
+| `tags` | Tag names separated by `|` |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | Optional tracking values |
+| `starts_at`, `expires_at` | ISO 8601 dates with an offset or `Z` |
+
+Preview marks rows with an invalid URL, a reserved slug, or a slug that is
+already taken. Import creates the other rows. Importing the same file again
+reports `already_imported` for each row and does not create duplicates.
+
+Export adds `short_url`, `created_at`, and `lifetime_clicks`. A cell that
+starts with `=`, `+`, `-`, `@`, a tab, or a carriage return is prefixed with a
+single quote so spreadsheet tools do not treat it as a formula.
+
+Password hashes and historical click events do not move with the file. An
+exported short URL continues to resolve on the destination only when that
+domain still routes to Masir.
+
 ## Delete a link
 
 Deletion is soft. The link leaves normal lists and stops resolving. Its slug,

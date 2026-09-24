@@ -176,6 +176,17 @@ export const campaigns = pgTable('campaigns', {
   index('campaigns_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()),
 ]);
 
+export const linkImports = pgTable('link_imports', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  fileHash: bytea('file_hash').notNull(),
+  rowCount: integer('row_count').notNull(),
+  createdAt: timestampTz('created_at').notNull().defaultNow(),
+}, table => [
+  index('link_imports_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()),
+]);
+
 export const links = pgTable('links', {
   id: uuid('id').primaryKey().default(uuidV7),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
@@ -206,6 +217,8 @@ export const links = pgTable('links', {
   utmCampaign: text('utm_campaign'),
   utmTerm: text('utm_term'),
   utmContent: text('utm_content'),
+  importId: uuid('import_id').references(() => linkImports.id, { onDelete: 'set null' }),
+  importRow: integer('import_row'),
   // A deleted link keeps its slug and its click history. Soft delete replaces
   // the reserved slug table.
   deletedAt: timestampTz('deleted_at'),
@@ -213,6 +226,7 @@ export const links = pgTable('links', {
   updatedAt: timestampTz('updated_at').notNull().defaultNow(),
 }, table => [
   uniqueIndex('links_workspace_slug_unique_idx').on(table.workspaceId, table.slug),
+  uniqueIndex('links_import_id_import_row_unique_idx').on(table.importId, table.importRow),
   index('links_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()).where(sql`deleted_at is null`),
   index('links_workspace_clicks_idx').on(table.workspaceId, table.clickCount.desc()).where(sql`deleted_at is null`),
   index('links_campaign_idx').on(table.campaignId).where(sql`deleted_at is null`),
@@ -366,6 +380,7 @@ export type User = typeof users.$inferSelect;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type UserToken = typeof userTokens.$inferSelect;
 export type Link = typeof links.$inferSelect;
+export type LinkImport = typeof linkImports.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type ResolvedLink = Link & { utmMedium: string | null; utmCampaign: string | null };
 export type ClickEvent = typeof clickEvents.$inferSelect;

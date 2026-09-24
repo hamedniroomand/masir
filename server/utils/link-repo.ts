@@ -3,7 +3,7 @@ import type { LinkTargeting } from '#shared/link-targeting';
 import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, linkAliases, links, linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
-import { AliasLimitError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
+import { AliasLimitError, AlreadyImportedError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
 import { invalidateLink, invalidateLinkById } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -196,6 +196,14 @@ export async function findLinkById(id: string, workspaceId: string) {
   return rows[0] ?? null;
 }
 
+export async function findLinkByImportRow(importId: string, importRow: number) {
+  if (!isUuid(importId))
+    return null;
+  const db = await getDb();
+  const rows = await db.select().from(links).where(and(eq(links.importId, importId), eq(links.importRow, importRow))).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function createLink(input: {
   workspaceId: string;
   createdBy: string;
@@ -217,6 +225,8 @@ export async function createLink(input: {
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
+  importId?: string | null;
+  importRow?: number | null;
   slugGenerator?: () => string;
 }) {
   const db = await getDb();
@@ -249,6 +259,8 @@ export async function createLink(input: {
         utmCampaign: input.utmCampaign ?? null,
         utmTerm: input.utmTerm ?? null,
         utmContent: input.utmContent ?? null,
+        importId: input.importId ?? null,
+        importRow: input.importRow ?? null,
       }).returning();
       if (!created)
         throw new Error('insert failed');
@@ -258,8 +270,14 @@ export async function createLink(input: {
       return created;
     }
     catch (error: unknown) {
-      if (isUniqueViolation(error))
+      if (isUniqueViolation(error)) {
+        if (input.importId != null && input.importRow != null) {
+          const existing = await findLinkByImportRow(input.importId, input.importRow);
+          if (existing)
+            throw new AlreadyImportedError(existing.id);
+        }
         throw new SlugTakenError();
+      }
       throw error;
     }
   }

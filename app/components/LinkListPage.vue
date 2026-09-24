@@ -279,6 +279,24 @@ function removeView(name: string) {
   persistViews();
 }
 
+const exportHref = computed(() => {
+  const params = new URLSearchParams();
+  if (searchInput.value)
+    params.set('q', searchInput.value);
+  if (status.value && status.value !== 'all')
+    params.set('status', status.value);
+  for (const tag of selectedTags.value)
+    params.append('tags', tag);
+  if (campaignId.value && campaignId.value !== 'all')
+    params.set('campaignId', campaignId.value);
+  if (createdBy.value && createdBy.value !== 'all')
+    params.set('createdBy', createdBy.value);
+  if (sort.value === 'clicks')
+    params.set('sort', 'clicks');
+  const query = params.toString();
+  return query ? `/api/links/export.csv?${query}` : '/api/links/export.csv';
+});
+
 const bulkActionLabel = computed(() => {
   if (bulkAction.value === 'tag')
     return 'Add tag';
@@ -298,7 +316,25 @@ const bulkActionLabel = computed(() => {
           Create, share, and keep your links up to date.
         </p>
       </div>
-      <UButton v-if="canManageLinks" ref="createButton" label="Create link" icon="i-lucide-plus" class="shrink-0" @click="createOpen = true" />
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <UButton
+          v-if="canManageLinks"
+          to="/links/import"
+          label="Import"
+          icon="i-lucide-upload"
+          color="neutral"
+          variant="outline"
+        />
+        <UButton
+          :to="exportHref"
+          label="Export"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="outline"
+          external
+        />
+        <UButton v-if="canManageLinks" ref="createButton" label="Create link" icon="i-lucide-plus" @click="createOpen = true" />
+      </div>
     </div>
 
     <USlideover

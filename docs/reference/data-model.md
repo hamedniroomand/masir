@@ -36,6 +36,7 @@ erDiagram
 | `workspace_invitations` | Open, accepted, and revoked invitations |
 | `campaigns` | Shared campaign and medium values |
 | `links` | Destination, slug, access rules, targeting, counters, and state |
+| `link_imports` | CSV import batches keyed by workspace and file hash |
 | `link_aliases` | Current and revoked extra slugs |
 | `tags` | Workspace tag names |
 | `link_tags` | Link-to-tag relationships |
@@ -91,6 +92,7 @@ Important columns include:
 | `targeting` | Country and operating-system destinations |
 | `notes` | Private workspace text |
 | `utm_medium` | Optional link-level medium that overrides the campaign value |
+| `import_id`, `import_row` | Optional CSV import identity; unique together |
 | `deleted_at` | Soft-delete marker |
 
 Status is derived at read time. A scheduled link becomes active without a job.

@@ -114,6 +114,9 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `POST` | `/api/links` | `links.manage` | Creates a link |
 | `POST` | `/api/links/batch` | `links.manage` | Creates up to 20 rows in one request |
 | `POST` | `/api/links/bulk` | `links.manage` | Tags, untags, or assigns a campaign on many links |
+| `POST` | `/api/links/import/preview` | `links.manage` | Multipart CSV preview (max 1 MB, 1000 rows) |
+| `POST` | `/api/links/import` | `links.manage` | Creates rows from a previewed import |
+| `GET` | `/api/links/export.csv` | `links.read` | CSV of the current list filters |
 | `GET` | `/api/links/:id` | `links.read` | Link and creator |
 | `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
@@ -163,6 +166,23 @@ where `items` is up to 20 `{ clientKey, utmSource, utmMedium?, utmContent?,
 slug? }`. It returns `{ results: [{ clientKey, status, link?, error? }] }`.
 A validation error answers 422 with `{ rows: [{ clientKey, error }] }` and
 creates nothing.
+
+### CSV import and export
+
+`POST /api/links/import/preview` accepts multipart form field `file`. It
+returns `{ importId, fileHash, rowCount, rows }` where each row is
+`{ row, values, errors }`. Columns map by header name. Dates are ISO 8601 with
+an offset or `Z`. Tags use `|`.
+
+`POST /api/links/import` accepts `{ importId, fileHash, rows }`. It returns
+`{ results: [{ row, status, linkId?, error? }] }` where `status` is `created`,
+`already_imported`, `conflict`, or `error`. A slug conflict never overwrites an
+existing link.
+
+`GET /api/links/export.csv` uses the same filters as `GET /api/links`. Columns
+are the import columns plus `short_url`, `created_at`, and `lifetime_clicks`.
+`notes` is included only with `links.manage`. `password_hash` is never
+exported.
 
 ## Public visitor routes
 

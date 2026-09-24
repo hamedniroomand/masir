@@ -11,6 +11,10 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- CSV link import and export. `POST /api/links/import/preview` and
+  `POST /api/links/import` create links from a CSV with preview errors and
+  idempotent retries. `GET /api/links/export.csv` downloads the current library
+  filters. Template at `/templates/links-import.csv`.
 - Library filters for `campaignId`, `createdBy` (`me` or a user id), and
   `archived` (default `false`) on `GET /api/links` and `listLinks`.
 - `POST /api/links/bulk` for tag, untag, and assign-campaign actions on a set
