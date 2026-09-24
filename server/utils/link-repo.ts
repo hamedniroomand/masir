@@ -45,6 +45,7 @@ export function linkToDto(link: typeof links.$inferSelect, workspace: ShortUrlWo
     clickCount: link.clickCount,
     campaignId: link.campaignId,
     utmSource: link.utmSource,
+    utmMedium: link.utmMedium,
     utmCampaign: link.utmCampaign,
     utmTerm: link.utmTerm,
     utmContent: link.utmContent,
@@ -142,7 +143,7 @@ export async function findLinkBySlug(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
     link: links,
-    utmMedium: campaigns.utmMedium,
+    utmMedium: sql<string | null>`coalesce(${links.utmMedium}, ${campaigns.utmMedium})`,
     utmCampaign: campaigns.utmCampaign,
   })
     .from(links)
@@ -167,7 +168,7 @@ async function findLinkByAlias(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
     link: links,
-    utmMedium: campaigns.utmMedium,
+    utmMedium: sql<string | null>`coalesce(${links.utmMedium}, ${campaigns.utmMedium})`,
     utmCampaign: campaigns.utmCampaign,
   })
     .from(linkAliases)
@@ -212,6 +213,7 @@ export async function createLink(input: {
   passwordHash?: string | null;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
@@ -243,6 +245,7 @@ export async function createLink(input: {
         passwordHash: input.passwordHash ?? null,
         campaignId: input.campaignId ?? null,
         utmSource: input.utmSource ?? null,
+        utmMedium: input.utmMedium ?? null,
         utmCampaign: input.utmCampaign ?? null,
         utmTerm: input.utmTerm ?? null,
         utmContent: input.utmContent ?? null,
@@ -391,6 +394,7 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   isEnabled?: boolean;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
@@ -435,6 +439,8 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.campaignId = patch.campaignId;
   if (patch.utmSource !== undefined)
     values.utmSource = patch.utmSource;
+  if (patch.utmMedium !== undefined)
+    values.utmMedium = patch.utmMedium;
   if (patch.utmCampaign !== undefined)
     values.utmCampaign = patch.utmCampaign;
   if (patch.utmTerm !== undefined)

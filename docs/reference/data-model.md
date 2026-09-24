@@ -90,6 +90,7 @@ Important columns include:
 | `click_count` | Atomic successful human redirect count |
 | `targeting` | Country and operating-system destinations |
 | `notes` | Private workspace text |
+| `utm_medium` | Optional link-level medium that overrides the campaign value |
 | `deleted_at` | Soft-delete marker |
 
 Status is derived at read time. A scheduled link becomes active without a job.

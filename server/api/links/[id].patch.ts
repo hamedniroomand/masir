@@ -35,6 +35,7 @@ const bodySchema = v.object({
   keepOldSlug: v.optional(v.boolean()),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
+  utmMedium: optionalUtmSchema,
   utmCampaign: optionalUtmSchema,
   utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
@@ -171,6 +172,8 @@ export default defineEventHandler(async (event) => {
   }
   if (body.utmSource !== undefined)
     patch.utmSource = emptyToNull(body.utmSource);
+  if (body.utmMedium !== undefined)
+    patch.utmMedium = emptyToNull(body.utmMedium);
   if (body.utmCampaign !== undefined)
     patch.utmCampaign = emptyToNull(body.utmCampaign);
   if (body.utmTerm !== undefined)

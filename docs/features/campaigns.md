@@ -34,6 +34,9 @@ Deleting a campaign detaches its links. It does not delete them.
 A link can set `utm_source`, `utm_term`, and `utm_content`. A link without
 a campaign can also set `utm_campaign`.
 
+A link can set its own `utm_medium`. The medium precedence is: link value,
+then campaign value, then incoming query.
+
 Incoming query passthrough values can replace a generated UTM value with the
 same key.
 

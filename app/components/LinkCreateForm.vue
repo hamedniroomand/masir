@@ -28,6 +28,7 @@ const fields = v.object({
   password: v.optional(v.pipe(v.string(), v.trim())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
+  utmMedium: v.optional(v.pipe(v.string(), v.trim())),
   utmCampaign: v.optional(v.pipe(v.string(), v.trim())),
   utmTerm: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
@@ -52,6 +53,7 @@ const state = reactive({
   password: '',
   campaignId: null as string | null,
   utmSource: '',
+  utmMedium: '',
   utmCampaign: '',
   utmTerm: '',
   utmContent: '',
@@ -89,6 +91,7 @@ const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
   notes: 'tags',
   campaignId: 'tracking',
   utmSource: 'tracking',
+  utmMedium: 'tracking',
   utmCampaign: 'tracking',
   utmTerm: 'tracking',
   utmContent: 'tracking',
@@ -160,6 +163,7 @@ function reset() {
   state.password = '';
   state.campaignId = null;
   state.utmSource = '';
+  state.utmMedium = '';
   state.utmCampaign = '';
   state.utmTerm = '';
   state.utmContent = '';
@@ -198,6 +202,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.campaignId = state.campaignId;
     if (state.utmSource)
       body.utmSource = state.utmSource;
+    if (state.utmMedium)
+      body.utmMedium = state.utmMedium;
     if (state.utmCampaign)
       body.utmCampaign = state.utmCampaign;
     if (state.utmTerm)
@@ -365,6 +371,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
             <LinkUtmFields
               v-model:campaign-id="state.campaignId"
               v-model:utm-source="state.utmSource"
+              v-model:utm-medium="state.utmMedium"
               v-model:utm-campaign="state.utmCampaign"
               v-model:utm-term="state.utmTerm"
               v-model:utm-content="state.utmContent"

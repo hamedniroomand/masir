@@ -5,6 +5,7 @@ const props = defineProps<{ destinationUrl?: string }>();
 
 const campaignId = defineModel<string | null>('campaignId', { required: true });
 const utmSource = defineModel<string>('utmSource', { required: true });
+const utmMedium = defineModel<string>('utmMedium', { required: true });
 const utmCampaign = defineModel<string>('utmCampaign', { required: true });
 const utmTerm = defineModel<string>('utmTerm', { required: true });
 const utmContent = defineModel<string>('utmContent', { required: true });
@@ -19,7 +20,7 @@ const preview = computed(() => {
   try {
     return buildDestination(props.destinationUrl, {
       utm_source: utmSource.value,
-      utm_medium: campaign.value?.utmMedium,
+      utm_medium: utmMedium.value || campaign.value?.utmMedium,
       utm_campaign: campaign.value?.utmCampaign ?? utmCampaign.value,
       utm_term: utmTerm.value,
       utm_content: utmContent.value,
@@ -33,15 +34,18 @@ const preview = computed(() => {
 
 <template>
   <div class="space-y-3">
-    <UFormField label="Campaign" name="campaignId" description="Sets utm_campaign and utm_medium for this link.">
+    <UFormField label="Campaign" name="campaignId" description="Sets utm_campaign and the default utm_medium for this link.">
       <USelect v-model="campaignId" :items="options" icon="i-lucide-megaphone" class="w-full" />
     </UFormField>
     <div class="grid gap-3 sm:grid-cols-3">
       <UFormField label="utm_source" name="utmSource" description="The channel, such as newsletter or twitter.">
         <UInput v-model="utmSource" placeholder="newsletter" />
       </UFormField>
-      <UFormField label="utm_medium" name="utmMedium" :description="campaign ? 'Set by the campaign.' : 'Choose a campaign to set this value.'">
-        <UInput :model-value="campaign?.utmMedium ?? ''" disabled placeholder="Set by campaign" />
+      <UFormField label="utm_medium" name="utmMedium" :description="campaign ? 'Uses the campaign value until you set this field.' : 'Optional on this link.'">
+        <div class="flex items-center gap-1">
+          <UInput v-model="utmMedium" :placeholder="campaign?.utmMedium ? `From campaign: ${campaign.utmMedium}` : 'email'" />
+          <UButton v-if="utmMedium" icon="i-lucide-x" size="xs" color="neutral" variant="ghost" aria-label="Clear medium" @click="utmMedium = ''" />
+        </div>
       </UFormField>
       <UFormField label="utm_campaign" name="utmCampaign" :description="campaign ? 'Set by the campaign.' : 'Used when no campaign is set.'">
         <UInput v-if="campaign" :model-value="campaign.utmCampaign" disabled />

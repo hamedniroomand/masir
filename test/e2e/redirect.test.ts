@@ -70,6 +70,27 @@ describe('redirect middleware', async () => {
     expect(events[0]?.attributionVersion).toBe(1);
   });
 
+  it('lets a link-level medium override the campaign medium', async () => {
+    const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'medium-test', utmMedium: 'social' });
+    const linkId = await insertTestLink(TEST_DB, {
+      workspaceId,
+      slug: 'medium-override',
+      destinationUrl: 'https://example.com/here',
+      campaignId,
+      utmMedium: 'email',
+    });
+    const res = await fetch('/medium-override', { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get('location')!).searchParams.get('utm_medium')).toBe('email');
+
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.linkId, linkId)),
+      rows => rows.length >= 1,
+    );
+    expect(events[0]?.utmMedium).toBe('email');
+  });
+
   it('lets an inbound utm param override the stored one', async () => {
     const linkId = await insertTestLink(TEST_DB, {
       workspaceId,

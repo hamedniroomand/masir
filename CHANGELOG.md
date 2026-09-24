@@ -11,6 +11,8 @@ the notes for every version between the one you run and the one you install.
 
 ### Added
 
+- A link-level `utm_medium` override. A link value wins over its campaign
+  medium; clearing it returns to the campaign value.
 - Optional Umami analytics for application page views.
   `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID` turns it on with Umami
   Cloud. `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL` points it at a

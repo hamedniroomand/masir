@@ -202,6 +202,7 @@ export const links = pgTable('links', {
   // the visit limit compares against.
   clickCount: bigint('click_count', { mode: 'number' }).notNull().default(0),
   utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
   utmCampaign: text('utm_campaign'),
   utmTerm: text('utm_term'),
   utmContent: text('utm_content'),

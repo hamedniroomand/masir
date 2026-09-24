@@ -125,6 +125,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   expiresAt?: Date | null;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmContent?: string | null;
   passwordHash?: string | null;
   startsAt?: Date | null;
@@ -154,6 +155,7 @@ export async function insertTestLink(databaseUrl: string, input: {
     maximumVisits: input.maximumVisits ?? null,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,
+    utmMedium: input.utmMedium ?? null,
     utmContent: input.utmContent ?? null,
     clickCount: input.clickCount ?? 0,
   }).returning();

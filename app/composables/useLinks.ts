@@ -9,6 +9,7 @@ export type LinkItem = {
   clickCount: number;
   campaignId: string | null;
   utmSource: string | null;
+  utmMedium: string | null;
   utmCampaign: string | null;
   utmTerm: string | null;
   utmContent: string | null;

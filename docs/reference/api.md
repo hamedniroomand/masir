@@ -139,7 +139,7 @@ List filters include `page`, `perPage`, `sort`, `status`, `search`,
 | `maximumVisits` | integer or null | Minimum 1 |
 | `password` | string or null | Sets, replaces, or clears the password |
 | `campaignId` | string or null | Cannot combine with `utmCampaign` |
-| `utmSource`, `utmCampaign`, `utmTerm`, `utmContent` | string or null | Tracking values |
+| `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent` | string or null | Tracking values; `utmMedium` overrides the campaign medium |
 | `tags` | string[] | Up to 20 names |
 | `notes` | string or null | Private workspace text |
 | `targeting` | object or null | Country and OS destinations |
