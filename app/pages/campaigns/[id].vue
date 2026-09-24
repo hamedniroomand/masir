@@ -109,8 +109,8 @@ async function onBatchCreated() {
         </div>
       </div>
       <div class="flex shrink-0 gap-2">
-        <UButton v-if="canManageLinks" label="Create links" icon="i-lucide-plus" color="neutral" size="sm" @click="batchOpen = true" />
-        <UButton v-if="canManageLinks" label="Add existing" icon="i-lucide-link" color="neutral" variant="outline" size="sm" @click="pickerOpen = true; searchAttach()" />
+        <UButton v-if="canManageLinks" label="Create links in this campaign" icon="i-lucide-plus" color="neutral" size="sm" @click="batchOpen = true" />
+        <UButton v-if="canManageLinks" label="Add existing links" icon="i-lucide-link" color="neutral" variant="outline" size="sm" @click="pickerOpen = true; searchAttach()" />
         <UButton v-if="canManageLinks" label="Edit" icon="i-lucide-pencil" color="neutral" variant="outline" size="sm" @click="editOpen = true" />
         <UButton v-if="canManageLinks" label="Delete" icon="i-lucide-trash-2" color="error" variant="outline" size="sm" @click="deleteOpen = true" />
       </div>
@@ -263,8 +263,17 @@ async function onBatchCreated() {
             Sorted by clicks in this period.
           </p>
         </div>
-        <div v-if="!analytics.topLinks.length" class="px-5 py-12 text-center text-sm text-muted">
-          No links use this campaign yet.
+        <div v-if="!analytics.topLinks.length" class="px-5 py-12 text-center">
+          <p class="text-sm text-muted">
+            No links use this campaign yet.
+          </p>
+          <UButton
+            v-if="canManageLinks"
+            class="mt-4"
+            label="Create links in this campaign"
+            icon="i-lucide-plus"
+            @click="batchOpen = true"
+          />
         </div>
         <div v-else class="divide-y divide-default">
           <NuxtLink

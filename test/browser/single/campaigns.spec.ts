@@ -29,7 +29,7 @@ test('creates email, social, and print links in one batch and previews each row'
   await login();
   await page.goto('/campaigns');
   await page.getByRole('link', { name: /Spring launch/ }).click();
-  await page.getByRole('button', { name: 'Create links' }).first().click();
+  await page.getByRole('button', { name: 'Create links in this campaign' }).first().click();
 
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Destination').fill('https://example.com/batch');
@@ -38,7 +38,7 @@ test('creates email, social, and print links in one batch and previews each row'
   await expect(dialog.getByText('utm_source=print&utm_medium=print&utm_campaign=spring-launch')).toBeVisible();
 
   await dialog.getByRole('button', { name: 'Create links' }).click();
-  await expect(dialog.getByText(/Created https:/).first()).toBeVisible();
+  await expect(dialog.getByText(/Created https:/)).toHaveCount(3);
 });
 
 test('refuses a second campaign with the same utm_campaign', async ({ page, login }) => {

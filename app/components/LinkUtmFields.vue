@@ -38,25 +38,25 @@ const preview = computed(() => {
       <USelect v-model="campaignId" :items="options" icon="i-lucide-megaphone" class="w-full" />
     </UFormField>
     <div class="grid gap-3 sm:grid-cols-3">
-      <UFormField label="utm_source" name="utmSource" description="The channel, such as newsletter or twitter.">
+      <UFormField label="Source" name="utmSource" description="utm_source — the channel, such as newsletter or twitter.">
         <UInput v-model="utmSource" placeholder="newsletter" />
       </UFormField>
-      <UFormField label="utm_medium" name="utmMedium" :description="campaign ? 'Uses the campaign value until you set this field.' : 'Optional on this link.'">
+      <UFormField label="Medium" name="utmMedium" :description="campaign ? 'utm_medium — uses the campaign value until you set this field.' : 'utm_medium — optional on this link.'">
         <div class="flex items-center gap-1">
           <UInput v-model="utmMedium" :placeholder="campaign?.utmMedium ? `From campaign: ${campaign.utmMedium}` : 'email'" />
           <UButton v-if="utmMedium" icon="i-lucide-x" size="xs" color="neutral" variant="ghost" aria-label="Clear medium" @click="utmMedium = ''" />
         </div>
       </UFormField>
-      <UFormField label="utm_campaign" name="utmCampaign" :description="campaign ? 'Set by the campaign.' : 'Used when no campaign is set.'">
+      <UFormField label="Campaign" name="utmCampaign" :description="campaign ? 'utm_campaign — set by the campaign.' : 'utm_campaign — used when no campaign is set.'">
         <UInput v-if="campaign" :model-value="campaign.utmCampaign" disabled />
         <UInput v-else v-model="utmCampaign" placeholder="spring-launch" />
       </UFormField>
     </div>
     <div class="grid gap-3 sm:grid-cols-2">
-      <UFormField label="utm_term" name="utmTerm" description="Optional. Paid keyword or term.">
+      <UFormField label="Term" name="utmTerm" description="utm_term — optional. Paid keyword or term.">
         <UInput v-model="utmTerm" placeholder="running-shoes" />
       </UFormField>
-      <UFormField label="utm_content" name="utmContent" description="Optional. Tells two placements apart.">
+      <UFormField label="Content" name="utmContent" description="utm_content — optional. Tells two placements apart.">
         <UInput v-model="utmContent" placeholder="header-button" />
       </UFormField>
     </div>

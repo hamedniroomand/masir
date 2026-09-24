@@ -15,8 +15,10 @@ the notes for every version between the one you run and the one you install.
   medium; clearing it returns to the campaign value.
 - `POST /api/links/batch` creates up to 20 links from one destination in one
   request. Each row carries its own `utmSource`, `utmMedium`, `utmContent`, and
-  optional `slug`. On a validation error the whole batch is refused with 422
-  and `rows` listing each failed row. Channel presets live in
+  optional `slug`. The create rate limit is charged once per item. An empty
+  `items` list is refused. On a validation error the whole batch is refused
+  with 422 and `rows` listing each failed row. Each created link writes the
+  same `link_created` audit event as a single create. Channel presets live in
   `shared/channel-presets.ts`.
 - Optional Umami analytics for application page views.
   `NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID` turns it on with Umami

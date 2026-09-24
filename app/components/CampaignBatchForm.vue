@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LinkItem } from '~/composables/useLinks';
 import { CHANNEL_PRESETS } from '#shared/channel-presets';
+import { generateSlug, normalizeSlug } from '#shared/slug';
 import { applyUtm } from '#shared/utm';
 
 const props = defineProps<{ campaignId?: string | null; campaignUtmCampaign?: string | null; campaignUtmMedium?: string | null }>();
@@ -10,6 +11,15 @@ const { $api } = useNuxtApp();
 const showError = useErrorToast();
 const { copy } = useClipboard();
 const copiedKey = ref('');
+const config = useRuntimeConfig();
+const shortDomain = computed(() => {
+  try {
+    return new URL(config.public.shortDomain).host;
+  }
+  catch {
+    return config.public.shortDomain;
+  }
+});
 
 async function copyRow(row: BatchRow) {
   if (!row.result?.shortUrl)
@@ -29,6 +39,7 @@ type BatchRow = {
   utmMedium: string;
   utmContent: string;
   slug: string;
+  generatedSlug: string;
   result: { status: string; shortUrl?: string; error?: string } | null;
 };
 
@@ -40,6 +51,7 @@ const rows = ref<BatchRow[]>(
     utmMedium: preset.utmMedium,
     utmContent: '',
     slug: '',
+    generatedSlug: generateSlug(),
     result: null,
   })),
 );
@@ -68,8 +80,13 @@ function addPreset(preset: typeof CHANNEL_PRESETS[number]) {
     utmMedium: preset.utmMedium,
     utmContent: '',
     slug: '',
+    generatedSlug: generateSlug(),
     result: null,
   });
+}
+
+function slugPreview(row: BatchRow) {
+  return normalizeSlug(row.slug) || row.generatedSlug;
 }
 
 function removeRow(row: BatchRow) {
@@ -155,8 +172,11 @@ async function submit() {
           <UInput v-model="row.utmContent" placeholder="header-button" />
         </UFormField>
       </div>
-      <UFormField label="Short address" description="Leave blank to generate a unique slug.">
-        <UInput v-model="row.slug" placeholder="auto-generated" />
+      <UFormField label="Short address" :description="`Leave blank to generate an address under ${shortDomain}.`">
+        <UInput v-model="row.slug" placeholder="my-link" />
+        <p class="mt-2 flex items-center gap-1.5 break-all text-xs text-primary">
+          <UIcon name="i-lucide-link-2" class="size-3.5 shrink-0" />{{ shortDomain }}/{{ slugPreview(row) }}
+        </p>
       </UFormField>
       <p v-if="preview(row)" class="text-xs text-muted break-all">
         Visitors land on {{ preview(row) }}

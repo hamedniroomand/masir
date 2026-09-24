@@ -1,6 +1,7 @@
 import type { ShortUrlWorkspace } from '#server/utils/link-repo';
 import { setResponseHeader } from 'h3';
 import * as v from 'valibot';
+import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
@@ -26,7 +27,11 @@ const bodySchema = v.object({
   campaignId: v.optional(v.nullable(v.string())),
   destinationUrl: v.pipe(v.string(), v.minLength(1)),
   title: v.optional(v.nullable(v.string())),
-  items: v.pipe(v.array(itemSchema), v.maxLength(MAX_ITEMS, `A batch holds at most ${MAX_ITEMS} items.`)),
+  items: v.pipe(
+    v.array(itemSchema),
+    v.minLength(1, 'A batch needs at least one item.'),
+    v.maxLength(MAX_ITEMS, `A batch holds at most ${MAX_ITEMS} items.`),
+  ),
 });
 
 export default defineEventHandler(async (event) => {
@@ -37,10 +42,15 @@ export default defineEventHandler(async (event) => {
 
   const body = await readValidBody(event, bodySchema);
   const createLimit = Number(config.rateLimitCreatePerHour) || 30;
-  const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit * body.items.length, 3_600_000);
-  if (!rl.ok) {
-    setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
-    throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
+  // One create quota per item. Raising the ceiling with a single hit would let
+  // a batch of N cost the same as one create.
+  for (let i = 0; i < body.items.length; i++) {
+    const rl = await rateLimitCheck(`create:${workspaceId}`, createLimit, 3_600_000);
+    if (!rl.ok) {
+      await writeAuditEvent('rate_limit_exceeded', { scope: 'create' }, { workspaceId, actor: user.id });
+      setResponseHeader(event, 'Retry-After', rl.retryAfterSec);
+      throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
+    }
   }
 
   const dest = validateDestination(body.destinationUrl, config.allowPrivateDestinations);
@@ -56,8 +66,16 @@ export default defineEventHandler(async (event) => {
 
   const rowErrors: { clientKey: string; error: string }[] = [];
   const validated: { clientKey: string; utmSource: string | null; utmMedium: string | null; utmContent: string | null; slug?: string }[] = [];
+  const seenClientKeys = new Set<string>();
+  const seenSlugs = new Set<string>();
 
   for (const item of body.items) {
+    if (seenClientKeys.has(item.clientKey)) {
+      rowErrors.push({ clientKey: item.clientKey, error: 'Duplicate client key in this batch.' });
+      continue;
+    }
+    seenClientKeys.add(item.clientKey);
+
     let slug: string | undefined;
     if (item.slug) {
       const parsed = v.safeParse(slugSchema, item.slug);
@@ -66,10 +84,15 @@ export default defineEventHandler(async (event) => {
         continue;
       }
       slug = parsed.output;
+      if (seenSlugs.has(slug)) {
+        rowErrors.push({ clientKey: item.clientKey, error: 'This short link is already taken.' });
+        continue;
+      }
       if (await isSlugTaken(workspaceId, slug)) {
         rowErrors.push({ clientKey: item.clientKey, error: 'This short link is already taken.' });
         continue;
       }
+      seenSlugs.add(slug);
     }
     validated.push({
       clientKey: item.clientKey,
@@ -97,6 +120,7 @@ export default defineEventHandler(async (event) => {
         utmMedium: item.utmMedium,
         utmContent: item.utmContent,
       });
+      await writeAuditEvent('link_created', { slug: link.slug }, { workspaceId, actor: user.id, linkId: link.id });
       results.push({ clientKey: item.clientKey, status: 'created' as const, link: linkToDto(link, workspace) });
     }
     catch (error) {
