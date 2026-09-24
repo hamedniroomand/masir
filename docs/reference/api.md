@@ -83,6 +83,7 @@ URL when it creates or resumes a live demo session.
 | `GET` | `/api/workspaces/link-prefixes` | `workspace.manage` | Retained link paths |
 | `DELETE` | `/api/workspaces/link-prefixes/:prefix` | `workspace.manage` | Revokes a retained link path |
 | `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`, or `from`/`to` (`YYYY-MM-DD`), optional `compare=previous` |
+| `GET` | `/api/workspaces/analytics.csv` | `analytics.read` | Same filters as `/api/workspaces/analytics` |
 | `GET` | `/api/workspaces/slug-available?slug=` | Signed in | Workspace slug availability |
 | `POST` | `/api/workspaces/logo` | `workspace.manage` | Multipart PNG, JPEG, GIF, or WebP |
 | `DELETE` | `/api/workspaces/logo` | `workspace.manage` | Removes the logo |
@@ -122,6 +123,7 @@ An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
 | `PATCH` | `/api/links/:id` | `links.manage` | Updates provided fields, including responsibility and archive |
 | `DELETE` | `/api/links/:id` | `links.manage` | Soft-deletes a link |
 | `GET` | `/api/links/:id/analytics` | `links.read` | `period` or `from`/`to`, `traffic`, optional `compare=previous` |
+| `GET` | `/api/links/:id/analytics.csv` | `links.read` | Same filters as `/api/links/:id/analytics` |
 | `GET` | `/api/links/:id/history` | `links.read` | Last 50 changes |
 | `POST` | `/api/links/:id/aliases` | `links.manage` | `slug` |
 | `DELETE` | `/api/links/:id/aliases/:slug` | `links.manage` | Revokes the alias |
@@ -221,9 +223,15 @@ These routes do not need a user session.
 | `PATCH` | `/api/campaigns/:id` | `links.manage` |
 | `DELETE` | `/api/campaigns/:id` | `links.manage` |
 | `GET` | `/api/campaigns/:id/analytics` | `links.read` |
+| `GET` | `/api/campaigns/:id/analytics.csv` | `links.read` |
 
 Campaign analytics accepts `period` or `from`/`to`, `attribution`, and optional
 `compare=previous`, matching the link analytics filters.
+
+`GET /api/campaigns/:id/analytics.csv`, `GET /api/links/:id/analytics.csv`, and
+`GET /api/workspaces/analytics.csv` download the same range as CSV. The file
+starts with `key,label,definition,value` rows for metrics and report meta, then
+a blank line, then `bucket,count` series rows. Notes are never included.
 
 A tag input is `name`. A campaign uses `name`, `utmCampaign`, and optional
 `utmMedium`.

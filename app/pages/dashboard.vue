@@ -42,6 +42,12 @@ const hourly = computed(() => {
   return to - from <= 24 * 3600_000;
 });
 
+const csvHref = computed(() => {
+  const params = new URLSearchParams(rangeQuery.value);
+  const query = params.toString();
+  return query ? `/api/workspaces/analytics.csv?${query}` : '/api/workspaces/analytics.csv';
+});
+
 const attentionGroups = computed(() => [
   { key: 'expiringSoon', title: 'Expires within 7 days', icon: 'i-lucide-calendar-clock', items: data.value?.attention.expiringSoon ?? [] },
   { key: 'nearCap', title: 'Close to its visit cap', icon: 'i-lucide-gauge', items: data.value?.attention.nearCap ?? [] },
@@ -70,12 +76,23 @@ function noteFor(group: string, link: Summary) {
           How this workspace is doing, and what needs attention.
         </p>
       </div>
-      <AnalyticsRangeControls
-        v-model:period="period"
-        v-model:from-date="fromDate"
-        v-model:to-date="toDate"
-        v-model:compare="compare"
-      />
+      <div class="flex flex-wrap items-center gap-2">
+        <AnalyticsRangeControls
+          v-model:period="period"
+          v-model:from-date="fromDate"
+          v-model:to-date="toDate"
+          v-model:compare="compare"
+        />
+        <UButton
+          :to="csvHref"
+          label="Download CSV"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          external
+        />
+      </div>
     </div>
 
     <FirstUseChecklist

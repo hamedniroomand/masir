@@ -217,6 +217,15 @@ async function onBatchCreated() {
           v-model:to-date="toDate"
           v-model:compare="compare"
         />
+        <UButton
+          :to="csvHref"
+          label="Download CSV"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          external
+        />
       </div>
     </div>
 

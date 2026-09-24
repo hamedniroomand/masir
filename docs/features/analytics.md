@@ -94,8 +94,10 @@ destination instead of a targeting rule.
 Click events use monthly Postgres partitions. The application creates the
 current and next partitions at boot.
 
-Masir has no export button. Query Postgres or use the HTTP analytics routes
-when you need data outside the interface.
+Use **Download CSV** on the link, campaign, or workspace report to save the
+current range. The file starts with metric definitions and report meta, then
+the time series. Totals match the on-screen JSON report. Notes are never
+included. Formula-like cells are prefixed so spreadsheets do not run them.
 
 <ReadMore to="/reference/data-model#click-events" title="Read the event data model" />
 

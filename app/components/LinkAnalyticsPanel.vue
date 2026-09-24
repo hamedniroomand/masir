@@ -59,6 +59,14 @@ const hourly = computed(() => {
   const to = Date.parse(`${toDate.value}T00:00:00.000Z`);
   return to - from <= 24 * 3600_000;
 });
+
+const csvHref = computed(() => {
+  const params = new URLSearchParams({ ...rangeQuery.value, traffic: traffic.value });
+  const query = params.toString();
+  return query
+    ? `/api/links/${props.linkId}/analytics.csv?${query}`
+    : `/api/links/${props.linkId}/analytics.csv`;
+});
 </script>
 
 <template>
@@ -78,6 +86,15 @@ const hourly = computed(() => {
           v-model:from-date="fromDate"
           v-model:to-date="toDate"
           v-model:compare="compare"
+        />
+        <UButton
+          :to="csvHref"
+          label="Download CSV"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          external
         />
       </div>
     </div>
