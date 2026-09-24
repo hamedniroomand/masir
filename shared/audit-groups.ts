@@ -45,6 +45,8 @@ const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   workspace_created: 'security',
   workspace_updated: 'security',
   workspace_deleted: 'security',
+  workspace_link_prefix_changed: 'security',
+  workspace_link_prefix_revoked: 'security',
 };
 
 export function auditGroup(type: string): AuditGroup {

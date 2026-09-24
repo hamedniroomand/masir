@@ -2,33 +2,7 @@
 definePageMeta({ layout: 'default' });
 useHead({ title: 'System status · Masir' });
 
-type JobItem = {
-  job: string;
-  lastStartedAt: string | null;
-  lastSuccessAt: string | null;
-  lastErrorAt: string | null;
-  lastError: string | null;
-  nextDueAt: string | null;
-  overdue: boolean;
-  status: 'ok' | 'failed';
-  nextAction: string | null;
-};
-
-type SignalItem = {
-  key: string;
-  state: string;
-  detail: Record<string, unknown> | null;
-  updatedAt: string;
-};
-
-type StatusResponse = {
-  version: string;
-  jobs: JobItem[];
-  signals: SignalItem[];
-  partitionsReadyThrough: string | null;
-};
-
-const { data, pending, error, refresh } = await useApi<StatusResponse>('/api/admin/status');
+const { adminStatus: data, pending, error, refresh } = useOperatorStatus();
 
 function formatDate(iso: string | null) {
   if (!iso)

@@ -86,15 +86,7 @@ const createdStep = computed(() => linkCount.value > 0);
 const sharedStep = computed(() => shared.value || hasClicks.value);
 const inspectedStep = computed(() => inspected.value);
 
-type AdminStatus = {
-  version: string;
-  jobs: Array<{ job: string; status: string; overdue: boolean }>;
-  signals: Array<{ key: string; state: string }>;
-  partitionsReadyThrough: string | null;
-};
-
-const { data: adminStatus } = useApi<AdminStatus>('/api/admin/status');
-const isOperator = computed(() => Boolean(adminStatus.value?.version));
+const { isOperator } = useOperatorStatus();
 
 const visible = computed(() => !dismissed.value && linkCount.value < 3);
 </script>

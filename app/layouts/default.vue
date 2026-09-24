@@ -44,17 +44,7 @@ const route = useRoute();
 const config = useRuntimeConfig();
 const mobileOpen = ref(false);
 const domain = computed(() => new URL(config.public.shortDomain).host);
-const isOperator = ref(false);
-const { $api } = useNuxtApp();
-
-onMounted(async () => {
-  try {
-    const res = await $api('/api/admin/status');
-    if (res)
-      isOperator.value = true;
-  }
-  catch {}
-});
+const { isOperator } = useOperatorStatus();
 
 const workspaceNav = computed(() => [
   { label: 'Overview', icon: 'i-lucide-layout-dashboard', to: '/dashboard', active: route.path === '/dashboard' },
