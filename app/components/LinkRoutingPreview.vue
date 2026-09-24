@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { RedirectDecision, RedirectRule } from '#shared/redirect-decision';
+import { CalendarDate, CalendarDateTime, DateFormatter, getLocalTimeZone, Time, today } from '@internationalized/date';
 
 const props = defineProps<{ linkId: string }>();
 
@@ -11,14 +12,63 @@ type PreviewResult = RedirectDecision & {
   linkState: string | null;
 };
 
-const country = ref('');
+const country = ref('__none__');
 const device = ref<'ios' | 'android' | 'desktop' | 'other'>('desktop');
-const atTime = ref('');
+const atTime = ref<number | null>(null);
 const loading = ref(false);
 const result = ref<PreviewResult | null>(null);
 
+const zone = getLocalTimeZone();
+const timeOpen = ref(false);
+const draftDate = shallowRef<CalendarDate>();
+const draftTime = shallowRef<Time>();
+
+const formatter = new DateFormatter('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+const timeLabel = computed(() => {
+  if (atTime.value == null)
+    return 'Now';
+  return formatter.format(new Date(atTime.value));
+});
+
+function syncDraftFromModel() {
+  if (atTime.value == null) {
+    draftDate.value = today(zone);
+    draftTime.value = new Time(12, 0);
+    return;
+  }
+  const date = new Date(atTime.value);
+  draftDate.value = new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  draftTime.value = new Time(date.getHours(), date.getMinutes());
+}
+
+whenever(timeOpen, syncDraftFromModel);
+
+function applyTime() {
+  if (!draftDate.value) {
+    atTime.value = null;
+    timeOpen.value = false;
+    return;
+  }
+  const time = draftTime.value ?? new Time(12, 0);
+  const stamp = new CalendarDateTime(
+    draftDate.value.year,
+    draftDate.value.month,
+    draftDate.value.day,
+    time.hour,
+    time.minute,
+  );
+  atTime.value = stamp.toDate(zone).getTime();
+  timeOpen.value = false;
+}
+
+function clearTime() {
+  atTime.value = null;
+  timeOpen.value = false;
+}
+
 const countryItems = [
-  { label: 'No country', value: '' },
+  { label: 'No country', value: '__none__' },
   { label: 'US — United States', value: 'US' },
   { label: 'DE — Germany', value: 'DE' },
   { label: 'GB — United Kingdom', value: 'GB' },
@@ -79,9 +129,9 @@ async function runPreview() {
     result.value = await $api<PreviewResult>(`/api/links/${props.linkId}/preview`, {
       method: 'POST',
       body: {
-        country: country.value || null,
+        country: country.value === '__none__' ? null : country.value,
         os: device.value,
-        at: atTime.value ? new Date(atTime.value).toISOString() : null,
+        at: atTime.value != null ? new Date(atTime.value).toISOString() : null,
       },
     });
   }
@@ -115,7 +165,7 @@ watch([country, device, atTime], () => {
       </template>
 
       <div class="space-y-4">
-        <div class="grid gap-3 sm:grid-cols-3">
+        <div class="grid items-start gap-3 sm:grid-cols-3">
           <UFormField label="Country">
             <USelect
               v-model="country"
@@ -132,13 +182,40 @@ watch([country, device, atTime], () => {
               class="w-full"
             />
           </UFormField>
-          <UFormField label="At time" description="Empty means now.">
-            <UInput
-              v-model="atTime"
-              type="datetime-local"
-              aria-label="At time"
-              class="w-full"
-            />
+          <UFormField label="At time">
+            <div class="flex gap-2">
+              <UPopover v-model:open="timeOpen" class="min-w-0 flex-1">
+                <UButton
+                  type="button"
+                  color="neutral"
+                  variant="outline"
+                  block
+                  trailing-icon="i-lucide-calendar"
+                  class="justify-start font-normal"
+                >
+                  <span :class="atTime == null ? 'text-muted' : ''">{{ timeLabel }}</span>
+                </UButton>
+                <template #content>
+                  <div class="space-y-3 p-2">
+                    <UCalendar v-model="draftDate" class="w-full" />
+                    <UInputTime v-model="draftTime" :hour-cycle="24" variant="outline" class="w-full" />
+                    <div class="flex justify-end gap-2">
+                      <UButton type="button" label="Now" color="neutral" variant="ghost" size="sm" @click="clearTime" />
+                      <UButton type="button" label="Done" size="sm" @click="applyTime" />
+                    </div>
+                  </div>
+                </template>
+              </UPopover>
+              <UButton
+                v-if="atTime != null"
+                type="button"
+                icon="i-lucide-x"
+                color="neutral"
+                variant="ghost"
+                aria-label="Reset to now"
+                @click="clearTime"
+              />
+            </div>
           </UFormField>
         </div>
 

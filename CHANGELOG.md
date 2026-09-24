@@ -9,6 +9,17 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
+### Fixed
+
+- Routing preview country select no longer crashes when the first item (No country)
+  is selected. Empty-string SelectItem values are replaced with a sentinel.
+
+- Date pickers in routing preview and analytics custom range use the Nuxt
+  Calendar component instead of native browser date inputs.
+
+- Routing preview fields align on the same baseline when one field has helper
+  text and siblings do not.
+
 ### Added
 
 - Release 2 task study for the four PRD §3 tasks (first link, three-channel

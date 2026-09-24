@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { CalendarDate } from '@internationalized/date';
+import { DateFormatter, getLocalTimeZone, parseDate, today } from '@internationalized/date';
+
 export type AnalyticsPeriod = '24h' | '7d' | '30d' | 'all' | 'custom';
 
 const period = defineModel<AnalyticsPeriod>('period', { required: true });
@@ -13,6 +16,56 @@ const periodItems = [
   { label: 'All time', value: 'all' },
   { label: 'Custom range', value: 'custom' },
 ];
+
+const zone = getLocalTimeZone();
+const formatter = new DateFormatter('en-US', { dateStyle: 'medium' });
+
+const fromOpen = ref(false);
+const toOpen = ref(false);
+const draftFrom = shallowRef<CalendarDate>();
+const draftTo = shallowRef<CalendarDate>();
+
+const fromLabel = computed(() => {
+  if (!fromDate.value)
+    return 'Select';
+  try {
+    return formatter.format(parseDate(fromDate.value).toDate(zone));
+  }
+  catch {
+    return fromDate.value;
+  }
+});
+
+const toLabel = computed(() => {
+  if (!toDate.value)
+    return 'Select';
+  try {
+    return formatter.format(parseDate(toDate.value).toDate(zone));
+  }
+  catch {
+    return toDate.value;
+  }
+});
+
+whenever(fromOpen, () => {
+  draftFrom.value = fromDate.value ? parseDate(fromDate.value) : today(zone);
+});
+
+whenever(toOpen, () => {
+  draftTo.value = toDate.value ? parseDate(toDate.value) : today(zone);
+});
+
+function applyFrom() {
+  if (draftFrom.value)
+    fromDate.value = draftFrom.value.toString();
+  fromOpen.value = false;
+}
+
+function applyTo() {
+  if (draftTo.value)
+    toDate.value = draftTo.value.toString();
+  toOpen.value = false;
+}
 </script>
 
 <template>
@@ -25,25 +78,47 @@ const periodItems = [
       class="w-40"
     />
     <template v-if="period === 'custom'">
-      <label class="flex items-center gap-1.5 text-xs text-muted">
-        <span class="sr-only">From date</span>
-        <input
-          v-model="fromDate"
-          type="date"
+      <UPopover v-model:open="fromOpen">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          trailing-icon="i-lucide-calendar"
           aria-label="From date"
-          class="rounded-md border border-default bg-default px-2 py-1.5 text-sm text-highlighted"
         >
-      </label>
+          {{ fromLabel }}
+        </UButton>
+        <template #content>
+          <div class="space-y-3 p-2">
+            <UCalendar v-model="draftFrom" class="w-full" />
+            <div class="flex justify-end">
+              <UButton type="button" label="Done" size="sm" @click="applyFrom" />
+            </div>
+          </div>
+        </template>
+      </UPopover>
       <span class="text-xs text-muted">to</span>
-      <label class="flex items-center gap-1.5 text-xs text-muted">
-        <span class="sr-only">To date</span>
-        <input
-          v-model="toDate"
-          type="date"
+      <UPopover v-model:open="toOpen">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          trailing-icon="i-lucide-calendar"
           aria-label="To date"
-          class="rounded-md border border-default bg-default px-2 py-1.5 text-sm text-highlighted"
         >
-      </label>
+          {{ toLabel }}
+        </UButton>
+        <template #content>
+          <div class="space-y-3 p-2">
+            <UCalendar v-model="draftTo" class="w-full" />
+            <div class="flex justify-end">
+              <UButton type="button" label="Done" size="sm" @click="applyTo" />
+            </div>
+          </div>
+        </template>
+      </UPopover>
     </template>
     <USwitch
       v-model="compare"
