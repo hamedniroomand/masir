@@ -1,4 +1,4 @@
-import type { ShortUrlWorkspace } from '#server/utils/link-repo';
+import type { LinkListQuery, ShortUrlWorkspace } from '#server/utils/link-repo';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { csvResponse } from '#server/utils/csv-response';
 import { listLinks, shortUrlFor, tagNamesByLinkIds } from '#server/utils/link-repo';
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const sort = query.sort === 'clicks' ? 'clicks' : 'createdAt';
   const status = query.status;
-  const statusFilter = status === 'active' || status === 'disabled' || status === 'expired'
+  const statusFilter: LinkListQuery['status'] = status === 'active' || status === 'disabled' || status === 'expired'
     || status === 'limit_reached' || status === 'scheduled'
     ? status
     : undefined;

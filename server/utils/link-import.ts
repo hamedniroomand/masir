@@ -1,4 +1,5 @@
 import type { LinkImportColumn, LinkImportValues } from '#shared/link-import';
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
@@ -195,7 +196,7 @@ export async function ensureLinkImport(input: {
       id: input.importId,
       workspaceId: input.workspaceId,
       createdBy: input.createdBy,
-      fileHash: input.fileHash,
+      fileHash: Buffer.from(input.fileHash),
       rowCount: input.rowCount,
     });
   }
