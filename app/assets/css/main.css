@@ -63,7 +63,7 @@ body {
   }
 
   .link-grid {
-    @apply grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_108px_80px_68px] md:items-center md:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,180px)_108px_80px_68px];
+    @apply grid grid-cols-1 gap-3 md:grid-cols-[28px_minmax(0,1fr)_108px_80px_68px] md:items-center md:gap-4 xl:grid-cols-[28px_minmax(0,1fr)_minmax(0,180px)_108px_80px_68px];
   }
 
   .campaign-grid {

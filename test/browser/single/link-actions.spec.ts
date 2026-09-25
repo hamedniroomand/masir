@@ -31,22 +31,25 @@ test('flips the copy button to Copied', async ({ page, login }) => {
 
 test('offers every link action in the row menu', async ({ page, login }) => {
   await login();
+  await createLink(page, { destinationUrl: 'https://example.com/menu', slug: 'menu-actions', title: 'Menu actions' });
   await page.goto('/');
-  await rowMenu(page, 'Copy me').click();
+  await rowMenu(page, 'Menu actions').click();
   for (const label of ['Edit link', 'View analytics', 'QR code', 'Open link'])
     await expect(page.getByRole('menuitem', { name: label })).toBeVisible();
 });
 
 test('disables and enables a link from the row menu', async ({ page, login }) => {
   await login();
+  await createLink(page, { destinationUrl: 'https://example.com/toggle', slug: 'toggle-actions', title: 'Toggle actions' });
   await page.goto('/');
-  await rowMenu(page, 'Copy me').click();
+  const row = page.locator('article').filter({ has: page.getByRole('link', { name: 'Toggle actions', exact: true }) });
+  await rowMenu(page, 'Toggle actions').click();
   await page.getByRole('menuitem', { name: 'Disable link' }).click();
-  await expect(page.getByText('Disabled', { exact: true })).toBeVisible();
+  await expect(row.getByText('Disabled', { exact: true })).toBeVisible();
 
-  await rowMenu(page, 'Copy me').click();
+  await rowMenu(page, 'Toggle actions').click();
   await page.getByRole('menuitem', { name: 'Enable link' }).click();
-  await expect(page.getByText('Active', { exact: true })).toBeVisible();
+  await expect(row.getByText('Active', { exact: true })).toBeVisible();
 });
 
 test('deletes a link through the confirm modal and keeps its short address', async ({ page, login }) => {
@@ -208,7 +211,7 @@ test('calls the api of a tab only once the tab is opened', async ({ page, login 
   });
   const link = await createLink(page, { destinationUrl: 'https://example.com/lazy', title: 'Lazy tabs' });
   await page.goto(`/links/${link.id}`);
-  await expect(page.getByText('Link activity')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Link activity' })).toBeVisible();
   expect(calls).toEqual([]);
 
   await page.getByRole('tab', { name: 'Settings' }).click();
@@ -229,13 +232,14 @@ test('names who created the link in the detail header', async ({ page, login }) 
 
 test('opens the QR slideover from the row and from the detail header', async ({ page, login }) => {
   await login();
+  await createLink(page, { destinationUrl: 'https://example.com/qr-open', slug: 'qr-open', title: 'QR open' });
   await page.goto('/');
-  await rowMenu(page, 'Copy me').click();
+  await rowMenu(page, 'QR open').click();
   await page.getByRole('menuitem', { name: 'QR code' }).click();
   await expect(page.getByRole('dialog').getByText('Share offline')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.getByRole('link', { name: 'Copy me', exact: true }).click();
+  await page.getByRole('link', { name: 'QR open', exact: true }).click();
   await page.getByRole('button', { name: 'QR code' }).click();
   await expect(page.getByRole('dialog').getByText('Share offline')).toBeVisible();
 });
@@ -244,22 +248,27 @@ test('opens the QR slideover from the row and from the detail header', async ({ 
 // makes here. The preview size is a prop, not a field.
 test('downloads the QR code in both formats', async ({ page, login }) => {
   await login();
+  const link = await createLink(page, { destinationUrl: 'https://example.com/qr-download', slug: 'qr-download', title: 'QR download' });
   await page.goto('/');
-  await page.getByRole('link', { name: 'Copy me', exact: true }).click();
+  await page.getByRole('link', { name: 'QR download', exact: true }).click();
   await page.getByRole('button', { name: 'QR code' }).click();
   const panel = page.getByRole('dialog');
 
-  for (const format of ['PNG', 'SVG']) {
-    const download = page.waitForEvent('download');
-    await panel.getByRole('link', { name: format, exact: true }).click();
-    expect((await download).url()).toContain(`format=${format.toLowerCase()}`);
-  }
+  const png = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'PNG', exact: true }).click();
+  expect((await png).suggestedFilename()).toBe(`masir-${link.id}.png`);
+
+  const svg = page.waitForEvent('download');
+  await panel.getByRole('link', { name: 'SVG', exact: true }).click();
+  expect((await svg).url()).toContain(`format=svg`);
 });
 
 test('carries the chosen QR colour into the preview and remembers it', async ({ page, login }) => {
   await login();
+  await createLink(page, { destinationUrl: 'https://example.com/qr-colour', slug: 'qr-colour', title: 'QR colour' });
+  await createLink(page, { destinationUrl: 'https://example.com/qr-colour-next', slug: 'qr-colour-next', title: 'QR colour next' });
   await page.goto('/');
-  await page.getByRole('link', { name: 'Copy me', exact: true }).click();
+  await page.getByRole('link', { name: 'QR colour', exact: true }).click();
   await page.getByRole('button', { name: 'QR code' }).click();
   const panel = page.getByRole('dialog');
 
@@ -269,7 +278,7 @@ test('carries the chosen QR colour into the preview and remembers it', async ({ 
 
   // The choice lives in this browser, so another link starts with it.
   await page.goto('/');
-  await page.getByRole('link', { name: 'Moving target', exact: true }).click();
+  await page.getByRole('link', { name: 'QR colour next', exact: true }).click();
   await page.getByRole('button', { name: 'QR code' }).click();
   await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for short link' })).toHaveAttribute('src', /fg=ff0000/);
 });

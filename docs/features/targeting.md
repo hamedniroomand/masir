@@ -46,8 +46,7 @@ must not be able to choose its own country.
 
 ## Test a rule
 
-Use a browser or proxy that sends the same headers as production. Confirm the
-`Location` response:
+Send the same headers as production and confirm the `Location` response:
 
 ```sh
 curl -I https://go.example.com/download \
@@ -56,4 +55,3 @@ curl -I https://go.example.com/download \
 ```
 
 <ReadMore to="/features/analytics" title="See which routes visitors used" />
-

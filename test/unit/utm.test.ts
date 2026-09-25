@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDestination, utmParamsFor } from '#shared/utm';
+import { applyUtm, buildDestination, utmParamsFor } from '#shared/utm';
 
 const NONE = {};
 
@@ -64,5 +64,32 @@ describe('buildDestination', () => {
   it('passes an inbound query through when the link has no utm params', () => {
     const out = buildDestination('https://example.com/a', NONE, 'page=2&ref=blog');
     expect(out).toBe('https://example.com/a?page=2&ref=blog');
+  });
+});
+
+describe('applyUtm', () => {
+  it('returns both the destination url and effective utm params', () => {
+    const result = applyUtm(
+      'https://example.com/a?utm_source=orig',
+      { utm_medium: 'cpc', utm_campaign: 'spring' },
+      'utm_source=override&utm_content=banner',
+    );
+    expect(result.url).toContain('utm_source=override');
+    expect(result.url).toContain('utm_medium=cpc');
+    expect(result.url).toContain('utm_campaign=spring');
+    expect(result.url).toContain('utm_content=banner');
+    expect(result.effective).toEqual({
+      utm_source: 'override',
+      utm_medium: 'cpc',
+      utm_campaign: 'spring',
+      utm_term: null,
+      utm_content: 'banner',
+    });
+  });
+
+  it('extracts params from destination url when not overridden', () => {
+    const result = applyUtm('https://example.com/a?utm_source=base', NONE);
+    expect(result.effective.utm_source).toBe('base');
+    expect(result.effective.utm_medium).toBeNull();
   });
 });

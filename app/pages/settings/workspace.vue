@@ -6,34 +6,44 @@ const config = useRuntimeConfig();
 const rootHost = computed(() => new URL(config.public.shortDomain).host);
 
 const current = computed(() => data.value?.items.find(workspace => workspace.id === data.value?.currentId) ?? null);
-const { canManageLinks } = useCurrentWorkspace();
-
-// A bookmarklet cannot read anything from this page, so the whole action lives
-// in the href. The browser runs it on whatever page the person is reading.
-const bookmarklet = computed(() => {
-  const base = current.value?.url ?? '';
-  return `javascript:location.href='${base}/links/new?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)`;
-});
+const { can } = useCurrentWorkspace();
 const name = ref('');
 const linkPrefix = ref('');
+const pathMode = ref<'preserve' | 'replace'>('preserve');
 const message = ref('');
 const error = ref('');
 const saving = ref(false);
 const confirming = ref(false);
 const logoFile = ref<File | null>(null);
 const logoBusy = ref(false);
+const revokingPrefix = ref<string | null>(null);
+
+const { data: retainedPrefixesData, refresh: refreshRetainedPrefixes } = useApi<{
+  items: { prefix: string; state: string; createdAt: string; revokedAt: string | null }[];
+}>('/api/workspaces/link-prefixes');
 
 watch(current, (workspace) => {
   if (!workspace)
     return;
   name.value = workspace.name;
   linkPrefix.value = workspace.linkPrefix ?? '';
+  pathMode.value = 'preserve';
 }, { immediate: true });
 
-const linkExample = computed(() => {
+const currentLinkExample = computed(() => {
+  const path = (current.value?.linkPrefix ?? '').trim().replace(/^\/+|\/+$/g, '');
+  return `${current.value?.url.replace(/^https?:\/\//, '') ?? ''}/${path ? `${path}/` : ''}abc123`;
+});
+
+const newLinkExample = computed(() => {
   const path = linkPrefix.value.trim().replace(/^\/+|\/+$/g, '');
   return `${current.value?.url.replace(/^https?:\/\//, '') ?? ''}/${path ? `${path}/` : ''}abc123`;
 });
+
+const pathModeOptions = [
+  { label: 'Preserve old links (recommended)', value: 'preserve' },
+  { label: 'Replace immediately', value: 'replace' },
+];
 
 function reasonOf(failure: unknown) {
   return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason;
@@ -44,8 +54,15 @@ async function save() {
   message.value = '';
   saving.value = true;
   try {
-    await $api('/api/workspaces', { method: 'PATCH', body: { name: name.value, linkPrefix: linkPrefix.value } });
-    await refresh();
+    await $api('/api/workspaces', {
+      method: 'PATCH',
+      body: {
+        name: name.value,
+        linkPrefix: linkPrefix.value,
+        pathMode: pathMode.value,
+      },
+    });
+    await Promise.all([refresh(), refreshRetainedPrefixes()]);
     message.value = 'Saved.';
   }
   catch (failure) {
@@ -53,6 +70,21 @@ async function save() {
   }
   finally {
     saving.value = false;
+  }
+}
+
+async function revokePrefix(prefix: string) {
+  revokingPrefix.value = prefix;
+  try {
+    const target = prefix ? encodeURIComponent(prefix) : '_root_';
+    await $api(`/api/workspaces/link-prefixes/${target}`, { method: 'DELETE' });
+    await refreshRetainedPrefixes();
+  }
+  catch (failure) {
+    error.value = reasonOf(failure) ?? 'We could not revoke the link path.';
+  }
+  finally {
+    revokingPrefix.value = null;
   }
 }
 
@@ -116,7 +148,7 @@ async function remove() {
     </div>
 
     <div class="space-y-5">
-      <UFormField v-if="current?.role === 'OWNER'" label="Logo">
+      <UFormField v-if="can('workspace.manage')" label="Logo">
         <WorkspaceLogoField v-model="logoFile" :name="name" :url="current?.logoUrl ?? null" :busy="logoBusy" @remove="removeLogo" />
       </UFormField>
       <UFormField label="Workspace name">
@@ -135,7 +167,18 @@ async function remove() {
       <UFormField label="Link path">
         <UInput v-model="linkPrefix" icon="i-lucide-route" placeholder="go" />
         <template #help>
-          <span class="text-xs text-muted">Optional. Links look like {{ linkExample }}. Changing this breaks every link and QR code you have shared.</span>
+          <div class="mt-1.5 space-y-1 text-xs text-muted">
+            <p>Current address: <code class="font-mono text-highlighted">{{ currentLinkExample }}</code></p>
+            <p v-if="linkPrefix.trim() !== (current?.linkPrefix ?? '').trim()">
+              New address: <code class="font-mono text-highlighted">{{ newLinkExample }}</code>
+            </p>
+          </div>
+        </template>
+      </UFormField>
+      <UFormField v-if="linkPrefix.trim() !== (current?.linkPrefix ?? '').trim()" label="Existing links">
+        <USelect v-model="pathMode" :items="pathModeOptions" class="w-full sm:w-80" />
+        <template #help>
+          <span class="text-xs text-muted">Preserve keeps old paths working. Replace immediately breaks old paths.</span>
         </template>
       </UFormField>
       <p v-if="error" role="alert" class="text-sm text-error">
@@ -149,28 +192,44 @@ async function remove() {
       </div>
     </div>
 
-    <USeparator />
-
-    <div v-if="canManageLinks" class="space-y-3">
+    <div v-if="retainedPrefixesData?.items.length" class="space-y-3">
       <h2 class="text-sm font-semibold text-highlighted">
-        Quick create
+        Retained link paths
       </h2>
       <p class="text-sm text-muted">
-        Drag this button to your bookmarks bar. Press it on any page and Masir
-        opens the create form with that address and title already filled.
+        Old addresses that still resolve to your links. Revoking a path permanently stops old links and QR codes from working.
       </p>
-      <a
-        :href="bookmarklet"
-        class="inline-flex items-center gap-2 rounded-lg border border-default bg-muted/40 px-3 py-2 text-sm font-medium text-highlighted"
-        @click.prevent
-      >
-        <UIcon name="i-lucide-bookmark" class="size-4 text-primary" />Shorten with Masir
-      </a>
+      <ul class="divide-y divide-default rounded-panel border border-default bg-default">
+        <li
+          v-for="item in retainedPrefixesData.items"
+          :key="item.prefix"
+          class="flex items-center justify-between gap-4 p-3 sm:px-4"
+        >
+          <div>
+            <span class="font-mono text-sm font-medium text-highlighted">
+              {{ item.prefix ? `/${item.prefix}/*` : '/* (root links)' }}
+            </span>
+            <span class="ml-2 text-xs text-muted">
+              retained since {{ new Date(item.createdAt).toLocaleDateString() }}
+            </span>
+          </div>
+          <UButton
+            label="Revoke"
+            color="error"
+            variant="ghost"
+            size="xs"
+            :loading="revokingPrefix === item.prefix"
+            @click="revokePrefix(item.prefix)"
+          />
+        </li>
+      </ul>
     </div>
 
-    <USeparator v-if="canManageLinks" />
+    <QuickCreateCard v-if="can('links.manage')" />
 
-    <div v-if="current?.role === 'OWNER' && data?.multiWorkspace" class="space-y-3">
+    <USeparator v-if="can('links.manage')" />
+
+    <div v-if="can('workspace.delete') && data?.multiWorkspace" class="space-y-3">
       <h2 class="text-sm font-medium text-highlighted">
         Delete this workspace
       </h2>

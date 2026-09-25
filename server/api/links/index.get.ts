@@ -1,10 +1,11 @@
 import type { ShortUrlWorkspace } from '#server/utils/link-repo';
-import { requireWorkspaceMember } from '#server/utils/auth';
+import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { aliasesForLinks, linkToDto, listLinks, tagNamesByLinkIds } from '#server/utils/link-repo';
 import { validateDestination } from '#server/utils/url';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.read');
+  const user = await requireUser(event);
   const workspace = event.context.workspace as ShortUrlWorkspace;
   const query = getQuery(event);
   const page = Math.max(1, Number(query.page ?? 1) || 1);
@@ -30,11 +31,30 @@ export default defineEventHandler(async (event) => {
   const rawDestination = typeof query.destination === 'string' ? query.destination : '';
   const destination = rawDestination ? validateDestination(rawDestination, config.allowPrivateDestinations) : null;
 
+  const campaignId = typeof query.campaignId === 'string' && query.campaignId
+    ? query.campaignId
+    : undefined;
+
+  let createdBy: string | undefined;
+  if (typeof query.createdBy === 'string' && query.createdBy) {
+    createdBy = query.createdBy === 'me' ? user.id : query.createdBy;
+  }
+
+  // Default false. Only an explicit true asks for archived or trashed rows.
+  const archived = query.archived === 'true' || query.archived === true;
+  const trashed = query.trashed === 'true' || query.trashed === true;
+  const needsReview = query.needsReview === 'true' || query.needsReview === true;
+
   const { items, total } = await listLinks(workspaceId, {
     q: typeof query.q === 'string' ? query.q : undefined,
     destination: destination?.ok ? destination.url : undefined,
     status: statusFilter,
     tags: tagFilters.length ? tagFilters : undefined,
+    campaignId,
+    createdBy,
+    archived,
+    trashed: trashed || undefined,
+    needsReview: needsReview || undefined,
     page,
     perPage,
     sort,

@@ -131,12 +131,21 @@ exact network chain.
 Without Redis, each process has its own counters. Use a `rediss://` endpoint
 before you run several instances.
 
+## Link cache
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NUXT_LINK_CACHE_TTL_SECONDS` | `60` | Positive link cache lifetime in seconds; zero disables |
+| `NUXT_LINK_CACHE_MISS_TTL_SECONDS` | `15` | Negative link cache lifetime in seconds; zero disables |
+| `NUXT_LINK_CACHE_SHARED_INVALIDATION` | `false` | Enables Redis pub/sub invalidation across instances |
+
 ## Alerts and jobs
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `NUXT_ALERTS_INTERVAL_MINUTES` | `15` | In-process sweep interval; zero disables it |
 | `NUXT_JOBS_SECRET` | empty | Bearer secret for `POST /api/jobs/alerts` |
+| `NUXT_OPERATOR_EMAILS` | empty | Comma-separated user emails allowed to access operator routes |
 
 The maximum interval is 35,000 minutes. Serverless deployments use zero and an
 external scheduler.

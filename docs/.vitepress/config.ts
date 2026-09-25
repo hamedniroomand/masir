@@ -21,7 +21,7 @@ export default defineConfig({
   lastUpdated: true,
 
   // Working notes live beside the site and are not pages.
-  srcExclude: ['plans/**', 'superpowers/**'],
+  srcExclude: ['plans/**', 'product/**', 'superpowers/**'],
 
   sitemap: { hostname: 'https://hamedniroomand.github.io/masir/' },
 

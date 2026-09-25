@@ -9,12 +9,17 @@ const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   link_created: 'links',
   link_updated: 'links',
   link_deleted: 'links',
+  link_restored: 'links',
   link_slug_changed: 'links',
   link_alias_added: 'links',
   link_alias_removed: 'links',
   link_alert_sent: 'links',
   link_password_set: 'links',
   link_password_removed: 'links',
+  link_responsible_changed: 'links',
+  link_archived: 'links',
+  link_unarchived: 'links',
+  links_bulk_action: 'links',
   slug_generation_exhausted: 'links',
 
   campaign_created: 'campaigns',
@@ -45,6 +50,8 @@ const GROUP_OF_TYPE: Record<string, AuditGroup> = {
   workspace_created: 'security',
   workspace_updated: 'security',
   workspace_deleted: 'security',
+  workspace_link_prefix_changed: 'security',
+  workspace_link_prefix_revoked: 'security',
 };
 
 export function auditGroup(type: string): AuditGroup {

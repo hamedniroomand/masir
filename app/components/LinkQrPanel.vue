@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { qrStyleWarning } from '#shared/qr-style';
+import { svgToPngBlob } from '~/utils/qr-raster';
+
 const props = withDefaults(
   defineProps<{
     linkId: string;
@@ -54,50 +57,91 @@ watch(style, (value) => {
 
 const hasLogo = computed(() => Boolean(current.value?.logoUrl));
 
-const styleQuery = computed(() => {
+const qrQuery = computed(() => {
   const params = new URLSearchParams();
+  params.set('size', String(props.previewSize));
   if (style.value.fg !== '000000')
     params.set('fg', style.value.fg);
   if (style.value.bg !== 'ffffff')
     params.set('bg', style.value.bg);
   if (style.value.logo && hasLogo.value)
     params.set('logo', '1');
-  const text = params.toString();
-  return text ? `&${text}` : '';
+  return params.toString();
 });
 
-const qrPngPreviewUrl = computed(
-  () => `/api/links/${props.linkId}/qr?format=png&size=${props.previewSize}${styleQuery.value}`,
-);
-const qrSvgPreviewUrl = computed(
-  () => `/api/links/${props.linkId}/qr?format=svg&size=${props.previewSize}${styleQuery.value}`,
-);
-const qrPngDownloadUrl = computed(() => `/api/links/${props.linkId}/qr?format=png${styleQuery.value}`);
-const qrSvgDownloadUrl = computed(() => `/api/links/${props.linkId}/qr?format=svg${styleQuery.value}`);
+const previewUrl = computed(() => `/api/links/${props.linkId}/qr?format=svg&${qrQuery.value}`);
+const qrSvgDownloadUrl = previewUrl;
+const serverPngDownloadUrl = computed(() => `/api/links/${props.linkId}/qr?format=png&${qrQuery.value}`);
 
-// Only the svg carries the logo, so the preview follows the toggle.
-const previewUrl = computed(() => (style.value.logo && hasLogo.value ? qrSvgPreviewUrl.value : qrPngPreviewUrl.value));
+const warningMessage = computed(() => qrStyleWarning(style.value.fg, style.value.bg));
 
 function onColour(field: 'fg' | 'bg', value: string) {
   style.value[field] = value.replace(/^#/, '').toLowerCase();
 }
 
+const toast = useToast();
 const { copy, copied, isSupported } = useClipboardItems();
 const copying = ref(false);
-const copyError = ref(false);
+const downloadingPng = ref(false);
+const rasterFailed = ref(false);
 
-async function copyQrImage() {
-  copying.value = true;
-  copyError.value = false;
+function offerPngDownloadToast() {
+  toast.add({
+    title: 'Could not copy image',
+    description: 'Your browser may block image copy. Download PNG instead.',
+    color: 'warning',
+    icon: 'i-lucide-triangle-alert',
+    actions: [
+      {
+        label: 'Download PNG',
+        onClick: () => {
+          void downloadPng();
+        },
+      },
+    ],
+  });
+}
+
+async function downloadPng() {
+  downloadingPng.value = true;
+  rasterFailed.value = false;
   try {
-    const res = await fetch(qrPngPreviewUrl.value);
-    if (!res.ok)
-      throw new Error('fetch failed');
-    const blob = await res.blob();
-    await copy([new ClipboardItem({ 'image/png': blob })]);
+    const blob = await svgToPngBlob(previewUrl.value, 1000);
+    const blobUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = blobUrl;
+    anchor.download = `masir-${props.linkId}.png`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(blobUrl);
   }
   catch {
-    copyError.value = true;
+    rasterFailed.value = true;
+  }
+  finally {
+    downloadingPng.value = false;
+  }
+}
+
+async function copyQrImage() {
+  if (!isSupported.value) {
+    offerPngDownloadToast();
+    return;
+  }
+  copying.value = true;
+  rasterFailed.value = false;
+  try {
+    const blob = await svgToPngBlob(previewUrl.value, 1000);
+    await copy([new ClipboardItem({ 'image/png': blob })]);
+  }
+  catch (error) {
+    if (error instanceof Error && (error.message.includes('Rasterization') || error.message.includes('Canvas') || error.message.includes('Image load'))) {
+      rasterFailed.value = true;
+    }
+    else {
+      offerPngDownloadToast();
+    }
   }
   finally {
     copying.value = false;
@@ -131,9 +175,6 @@ async function copyQrImage() {
       </UFormField>
       <USwitch v-if="hasLogo" v-model="style.logo" label="Workspace logo" class="pb-2" />
     </div>
-    <p v-if="style.logo && hasLogo" class="text-center text-xs text-muted">
-      The logo needs the SVG. The PNG download carries the colours only.
-    </p>
     <div class="relative isolate overflow-hidden rounded-panel border border-default bg-muted/40 px-5 py-8">
       <BrandPattern />
       <div class="mx-auto w-fit rounded-panel border border-default bg-white p-4 shadow-control">
@@ -146,16 +187,29 @@ async function copyQrImage() {
       </div>
     </div>
     <UAlert
-      v-if="copyError || !isSupported"
-      title="Could not copy image"
-      description="Your browser may block image copy. Download PNG instead."
+      v-if="rasterFailed"
+      title="This browser cannot draw the logo into a PNG. The PNG below has no logo."
+      color="warning"
+      variant="soft"
+      icon="i-lucide-triangle-alert"
+      :actions="[
+        {
+          label: 'Download server PNG',
+          href: serverPngDownloadUrl,
+          external: true,
+          download: true,
+        },
+      ]"
+    />
+    <UAlert
+      v-if="warningMessage"
+      :description="warningMessage"
       color="warning"
       variant="soft"
       icon="i-lucide-triangle-alert"
     />
     <div class="flex flex-wrap justify-center gap-2">
       <UButton
-        v-if="isSupported"
         size="sm"
         :label="copied ? 'Copied' : 'Copy image'"
         :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
@@ -170,9 +224,8 @@ async function copyQrImage() {
         icon="i-lucide-download"
         color="neutral"
         variant="outline"
-        :href="qrPngDownloadUrl"
-        external
-        download
+        :loading="downloadingPng"
+        @click="downloadPng"
       />
       <UButton
         size="sm"

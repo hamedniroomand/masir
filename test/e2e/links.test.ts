@@ -220,6 +220,34 @@ describe('links API', async () => {
     })).rejects.toMatchObject({ statusCode: 422 });
   });
 
+  it('stores a link-level medium override and clears it back to the campaign', async () => {
+    const cookie = await loginCookie();
+    const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'medium', utmMedium: 'social' });
+    const link = await $fetch<{ id: string; slug: string; utmMedium: string | null }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/medium', campaignId, utmMedium: 'email', slug: 'medium-clear' },
+      headers: { cookie },
+    });
+    expect(link.utmMedium).toBe('email');
+
+    const withOverride = await fetch('/medium-clear', { redirect: 'manual' });
+    expect(withOverride.status).toBe(302);
+    expect(new URL(withOverride.headers.get('location')!).searchParams.get('utm_medium')).toBe('email');
+
+    const cleared = await $fetch<{ utmMedium: string | null }>(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { utmMedium: null },
+      headers: { cookie },
+    });
+    expect(cleared.utmMedium).toBeNull();
+    const row = await readTestLink(TEST_DB, link.id);
+    expect(row.utmMedium).toBeNull();
+
+    const withCampaign = await fetch('/medium-clear', { redirect: 'manual' });
+    expect(withCampaign.status).toBe(302);
+    expect(new URL(withCampaign.headers.get('location')!).searchParams.get('utm_medium')).toBe('social');
+  });
+
   it('keeps both fallback destinations and refuses one that points at the short link', async () => {
     const cookie = await loginCookie();
     const link = await $fetch<{ id: string; limitDestination: string | null; scheduledDestination: string | null }>('/api/links', {

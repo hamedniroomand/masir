@@ -25,6 +25,26 @@ test('creates a campaign through the form and renders it in the list and the det
   await expect(page.getByText('Link performance')).toBeVisible();
 });
 
+test('creates a link from campaign detail with the campaign selected', async ({ page, login }) => {
+  await login();
+  await page.goto('/campaigns');
+  await page.getByRole('link', { name: /Spring launch/ }).click();
+  await page.getByRole('button', { name: 'Create link in this campaign' }).first().click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Create a link' })).toBeVisible();
+  await dialog.getByLabel('Destination URL').fill('https://example.com/campaign');
+  await dialog.getByLabel('Title').fill('Spring campaign link');
+  await dialog.getByRole('button', { name: 'Campaign and tracking' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Campaign' })).toContainText('Spring launch');
+  await expect(dialog.getByRole('textbox', { name: 'Campaign', exact: true })).toHaveValue('spring-launch');
+
+  const response = page.waitForResponse(response => response.url().endsWith('/api/links') && response.request().method() === 'POST');
+  await dialog.getByRole('button', { name: 'Create link', exact: true }).click();
+  expect((await response).status()).toBe(201);
+  await expect(dialog.getByText('Link created')).toBeVisible();
+});
+
 test('refuses a second campaign with the same utm_campaign', async ({ page, login }) => {
   await login();
   await page.goto('/campaigns');

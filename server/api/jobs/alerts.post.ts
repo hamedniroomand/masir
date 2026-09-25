@@ -1,7 +1,8 @@
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
-import { runDemoSweep } from '#server/utils/demo';
-import { runExpiryAlertSweep } from '#server/utils/link-alerts';
+import { DEMO_SWEEP_JOB } from '#server/utils/demo';
+import { runDueJobs } from '#server/utils/jobs';
+import { EXPIRY_ALERT_JOB } from '#server/utils/link-alerts';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
 
 function tokenMatches(header: string, secret: string) {
@@ -31,7 +32,12 @@ export default defineEventHandler(async (event) => {
   if (!tokenMatches(header, config.jobsSecret))
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
 
-  const sent = await runExpiryAlertSweep();
-  const demosDeleted = config.demoEnabled ? await runDemoSweep() : 0;
-  return { sent, demosDeleted };
+  const jobs = await runDueJobs();
+  const countOf = (name: string) => jobs.find(report => report.job === name)?.count ?? 0;
+  const result = { sent: countOf(EXPIRY_ALERT_JOB), demosDeleted: countOf(DEMO_SWEEP_JOB), jobs };
+  // A cron monitor watches the status. A failed job still answers 500, as a
+  // failed sweep did before, after every other job ran.
+  if (jobs.some(report => report.status === 'failed'))
+    throw createError({ statusCode: 500, statusMessage: 'Job failed', data: result });
+  return result;
 });

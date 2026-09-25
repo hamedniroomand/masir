@@ -41,3 +41,11 @@ export class AliasLimitError extends Error {
     super('alias-limit');
   }
 }
+
+export class AlreadyImportedError extends Error {
+  linkId: string;
+  constructor(linkId: string) {
+    super('already-imported');
+    this.linkId = linkId;
+  }
+}

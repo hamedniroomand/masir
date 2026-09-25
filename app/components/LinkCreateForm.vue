@@ -5,7 +5,7 @@ import * as v from 'valibot';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_NOTES_LENGTH, notesSchema, toVisitLimit } from '#shared/link-input';
 import { normalizeSlug, slugSchema } from '#shared/slug';
 
-const props = defineProps<{ initial?: { destinationUrl?: string; title?: string } }>();
+const props = defineProps<{ initial?: { destinationUrl?: string; title?: string; campaignId?: string | null } }>();
 
 const emit = defineEmits<{ created: [link: LinkItem] }>();
 
@@ -28,6 +28,7 @@ const fields = v.object({
   password: v.optional(v.pipe(v.string(), v.trim())),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: v.optional(v.pipe(v.string(), v.trim())),
+  utmMedium: v.optional(v.pipe(v.string(), v.trim())),
   utmCampaign: v.optional(v.pipe(v.string(), v.trim())),
   utmTerm: v.optional(v.pipe(v.string(), v.trim())),
   utmContent: v.optional(v.pipe(v.string(), v.trim())),
@@ -50,8 +51,9 @@ const state = reactive({
   scheduledDestination: '',
   maximumVisits: null as number | null,
   password: '',
-  campaignId: null as string | null,
+  campaignId: props.initial?.campaignId ?? null,
   utmSource: '',
+  utmMedium: '',
   utmCampaign: '',
   utmTerm: '',
   utmContent: '',
@@ -83,12 +85,13 @@ watch(() => state.destinationUrl, () => {
   duplicate.value = null;
 });
 
-const groups = reactive({ tracking: false, access: false, tags: false });
+const groups = reactive({ tracking: Boolean(props.initial?.campaignId), access: false, tags: false });
 
 const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
   notes: 'tags',
   campaignId: 'tracking',
   utmSource: 'tracking',
+  utmMedium: 'tracking',
   utmCampaign: 'tracking',
   utmTerm: 'tracking',
   utmContent: 'tracking',
@@ -103,7 +106,7 @@ const GROUP_OF_FIELD: Record<string, keyof typeof groups> = {
 };
 
 const form = useTemplateRef('form');
-useFormRevalidation(form, state);
+const formRevalidation = useFormRevalidation(form, state);
 const loading = ref(false);
 const created = ref<LinkItem | null>(null);
 
@@ -111,6 +114,28 @@ const config = useRuntimeConfig();
 const slugPreview = computed(() => normalizeSlug(state.slug || ''));
 
 const { copy, copied } = useClipboard();
+const qrOpen = ref(false);
+const { current } = useCurrentWorkspace();
+const domain = computed(() => {
+  try {
+    return new URL(config.public.shortDomain).host;
+  }
+  catch {
+    return config.public.shortDomain;
+  }
+});
+
+const isDirty = computed(() => Boolean(
+  state.destinationUrl.trim()
+  || state.slug.trim()
+  || state.title.trim()
+  || state.campaignId !== (props.initial?.campaignId ?? null)
+  || state.notes.trim()
+  || state.password
+  || state.tags.length > 0,
+));
+
+defineExpose({ isDirty, reset });
 
 function openGroupsFor(names: (string | undefined)[]) {
   for (const name of names) {
@@ -137,15 +162,18 @@ function reset() {
   state.scheduledDestination = '';
   state.maximumVisits = null;
   state.password = '';
-  state.campaignId = null;
+  state.campaignId = props.initial?.campaignId ?? null;
   state.utmSource = '';
+  state.utmMedium = '';
   state.utmCampaign = '';
   state.utmTerm = '';
   state.utmContent = '';
   state.tags = [];
-  groups.tracking = false;
+  groups.tracking = Boolean(props.initial?.campaignId);
   groups.access = false;
   groups.tags = false;
+  form.value?.clear();
+  formRevalidation.reset();
 }
 
 async function onSubmit(_event: FormSubmitEvent<Schema>) {
@@ -177,6 +205,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       body.campaignId = state.campaignId;
     if (state.utmSource)
       body.utmSource = state.utmSource;
+    if (state.utmMedium)
+      body.utmMedium = state.utmMedium;
     if (state.utmCampaign)
       body.utmCampaign = state.utmCampaign;
     if (state.utmTerm)
@@ -190,6 +220,8 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
     const link = await $api<LinkItem>('/api/links', { method: 'POST', body });
     created.value = link;
+    if (state.campaignId)
+      void refreshCampaignsList();
     emit('created', link);
     reset();
   }
@@ -216,6 +248,10 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 <template>
   <div>
+    <div class="mb-4 flex items-center justify-between gap-2 border-b border-default pb-3 text-xs text-muted">
+      <span class="truncate font-medium text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
+      <span class="truncate">{{ domain }}</span>
+    </div>
     <div v-if="created" role="status" class="mb-5 space-y-3 rounded-panel border border-success/25 bg-success/5 p-4">
       <p class="flex items-center gap-2 text-sm font-medium text-success">
         <UIcon name="i-lucide-circle-check" class="size-4" />Link created
@@ -223,9 +259,50 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       <p class="break-all text-sm font-medium text-highlighted">
         {{ created.shortUrl }}
       </p>
-      <div class="flex flex-wrap gap-2">
-        <UButton size="sm" :label="copied ? 'Copied' : 'Copy'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" @click="copy(created.shortUrl)" /><UButton size="sm" label="View link" icon="i-lucide-external-link" color="neutral" variant="outline" :to="`/links/${created.id}`" /><UButton size="sm" label="Create another" icon="i-lucide-plus" variant="ghost" @click="created = null" />
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="inline-flex -space-x-px rounded-md shadow-xs">
+          <UButton
+            size="sm"
+            :label="copied ? 'Copied' : 'Copy link'"
+            :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
+            color="neutral"
+            variant="outline"
+            class="rounded-e-none"
+            @click="copy(created.shortUrl)"
+          />
+          <UButton
+            size="sm"
+            label="Download QR"
+            icon="i-lucide-qr-code"
+            color="neutral"
+            variant="outline"
+            class="rounded-none"
+            @click="qrOpen = true"
+          />
+        </div>
+        <UButton
+          size="sm"
+          label="View link"
+          icon="i-lucide-external-link"
+          color="neutral"
+          variant="outline"
+          :to="`/links/${created.id}`"
+        />
+        <UButton
+          size="sm"
+          label="Create another"
+          icon="i-lucide-plus"
+          variant="ghost"
+          @click="created = null"
+        />
       </div>
+      <LinkQrSlideover
+        v-if="created"
+        v-model:open="qrOpen"
+        :link-id="created.id"
+        :short-url="created.shortUrl"
+        :label="created.title || created.slug"
+      />
     </div>
     <UForm
       ref="form"
@@ -288,6 +365,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
             <LinkUtmFields
               v-model:campaign-id="state.campaignId"
               v-model:utm-source="state.utmSource"
+              v-model:utm-medium="state.utmMedium"
               v-model:utm-campaign="state.utmCampaign"
               v-model:utm-term="state.utmTerm"
               v-model:utm-content="state.utmContent"

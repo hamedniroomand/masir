@@ -40,6 +40,30 @@ const creatorName = computed(() => {
 
 const { copy, copied } = useClipboard();
 const qrOpen = ref(false);
+const showError = useErrorToast();
+const { $api } = useNuxtApp();
+const { offerUndo } = useLinkUndoToast();
+const { saving: archiving, patch } = useLinkPatch(() => id.value);
+
+async function toggleArchive() {
+  if (!link.value)
+    return;
+  const next = !link.value.archived;
+  try {
+    await patch({ archived: next });
+    await refreshLink();
+    offerUndo(
+      next ? 'Archived.' : 'Removed from archive.',
+      async () => {
+        await $api(`/api/links/${id.value}`, { method: 'PATCH', body: { archived: !next } });
+      },
+      () => refreshLink(),
+    );
+  }
+  catch (error) {
+    showError(error);
+  }
+}
 
 onMounted(() => {
   if (route.hash === '#analytics')
@@ -58,7 +82,7 @@ onMounted(() => {
         <div class="flex flex-wrap items-center gap-2.5">
           <h1 class="break-all text-2xl font-semibold tracking-tight text-highlighted">
             {{ link.title || link.slug }}
-          </h1><LinkStatusBadge :link="link" /><UBadge v-if="link.isProtected" color="primary" variant="subtle" size="sm" icon="i-lucide-lock" label="Password protected" />
+          </h1><LinkStatusBadge :link="link" /><UBadge v-if="link.archived" color="neutral" variant="subtle" size="sm" icon="i-lucide-archive" label="Archived" /><UBadge v-if="link.isProtected" color="primary" variant="subtle" size="sm" icon="i-lucide-lock" label="Password protected" />
         </div>
         <a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="mt-2 block break-all text-sm text-primary hover:underline">{{ link.shortUrl }}</a>
         <p class="mt-2 text-xs text-muted">
@@ -69,6 +93,16 @@ onMounted(() => {
       </div>
       <div class="flex shrink-0 gap-2">
         <UButton :label="copied ? 'Copied' : 'Copy link'" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="outline" size="sm" @click="copy(link.shortUrl)" /><UButton label="QR code" icon="i-lucide-qr-code" color="neutral" variant="outline" size="sm" @click="qrOpen = true" />
+        <UButton
+          v-if="canManageLinks"
+          :label="link.archived ? 'Unarchive' : 'Archive'"
+          :icon="link.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          :loading="archiving"
+          @click="toggleArchive"
+        />
       </div>
     </div>
 
@@ -107,6 +141,7 @@ onMounted(() => {
           <LinkDestinationForm :link="link" @updated="refreshLink()" />
           <LinkAliasesList :link="link" @updated="refreshLink()" />
           <LinkNotesForm :link="link" @updated="refreshLink()" />
+          <LinkResponsibilityForm :link="link" @updated="refreshLink()" />
           <LinkTrackingForm :link="link" @updated="refreshLink()" />
           <LinkTargetingForm :link="link" @updated="refreshLink()" />
           <UCard>

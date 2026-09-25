@@ -1,7 +1,7 @@
+import { SQL } from 'bun';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { SQL } from 'bun';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
@@ -12,7 +12,7 @@ const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../dr
 // hosts is not here. It is an append-only dimension with no workspace scope,
 // and the server process caches host -> id, so a truncate would leave the cache
 // pointing at ids the database no longer holds.
-const TABLES = 'click_events, link_daily_stats, audit_events, link_tags, tags, links, campaigns, mail_outbox, user_tokens, auth_identities, workspace_invitations, workspace_members, workspaces, users';
+const TABLES = 'job_runs, click_events, link_daily_stats, audit_events, link_tags, tags, links, link_imports, campaigns, mail_outbox, user_tokens, auth_identities, workspace_invitations, workspace_members, workspaces, users';
 
 const DATABASE_EXISTS = '42P04';
 

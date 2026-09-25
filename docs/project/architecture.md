@@ -57,11 +57,12 @@ Bots use the default destination and do not consume visit limits.
 ## Cache
 
 Each process keeps resolved links in memory for 60 seconds and misses for 15
-seconds. Keys include the workspace ID and slug.
+seconds by default. Keys include the workspace ID and slug.
 
-Writes invalidate the affected link entries. Several app instances have
-separate caches, so a value can remain stale on another instance until its
-short lifetime ends.
+Writes invalidate the affected link entries. With shared invalidation a change
+reaches every instance within 1 s while Redis is reachable; otherwise within
+the TTL; with TTL 0 immediately.
+
 
 ## Durable state
 
