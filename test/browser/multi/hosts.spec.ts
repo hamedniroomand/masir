@@ -49,8 +49,7 @@ test('serves the root site on a reserved subdomain', async ({ page, server }) =>
 test('moves to another workspace from the sidebar and stays signed in', async ({ page, login, server }) => {
   await login();
   await page.goto(`${server.hostUrl('acme')}/`);
-  await page.getByRole('button', { name: /Account menu/ }).click();
-  await page.getByRole('menuitem', { name: 'Switch workspace' }).click();
+  await page.getByRole('button', { name: 'Switch workspace, currently Acme' }).click();
   await expect(page.getByRole('menuitemcheckbox', { name: 'Acme' })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('menuitemcheckbox', { name: 'Beta' }).click();
   await expect(page).toHaveURL(`${server.hostUrl('beta')}/`);
@@ -62,7 +61,7 @@ test('moves to another workspace from the sidebar and stays signed in', async ({
 test('shows the workspace the host names, not the first membership', async ({ page, login, server }) => {
   await login();
   await page.goto(`${server.hostUrl('beta')}/settings/workspace`);
-  await expect(page.getByRole('link', { name: 'Beta home' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Switch workspace, currently Beta' })).toBeVisible();
   await expect(page.getByLabel('Workspace name')).toHaveValue('Beta');
   await expect(page.getByLabel('Workspace address')).toHaveValue('beta');
 });
