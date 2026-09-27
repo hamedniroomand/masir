@@ -9,15 +9,7 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
-### Changed
-
-- Removed the routing preview from link detail and link creation.
-
-### Fixed
-
-- Campaign detail now opens the shared link creation drawer with its campaign selected.
-- Campaign detail and analytics responses now report current link counts. The
-  campaign list refreshes after link assignments change.
+## [1.1.0] - 2026-09-27
 
 ### Added
 
@@ -130,10 +122,9 @@ the notes for every version between the one you run and the one you install.
 - Release 1 verification test fixtures for published address migration compatibility and
   attribution history, along with redirect latency benchmark script (`scripts/bench-redirect.ts`).
 
-
-
 ### Changed
 
+- Removed the routing preview from link detail and link creation.
 - Redirect decision logic is extracted into a pure `decideRedirect` function in
   `shared/redirect-decision.ts`. The redirect middleware now uses pure decisions
   for targeting rules, expiration, schedules, limits, and password gates.
@@ -159,6 +150,12 @@ the notes for every version between the one you run and the one you install.
   `SENTRY_PROJECT`, and `SENTRY_URL` upload source maps and no longer turn
   error reporting on by themselves.
 - `NUXT_PUBLIC_SENTRY_RELEASE` defaults to the version of the image.
+
+### Fixed
+
+- Campaign detail now opens the shared link creation drawer with its campaign selected.
+- Campaign detail and analytics responses now report current link counts. The
+  campaign list refreshes after link assignments change.
 
 ## [1.0.1] - 2026-09-20
 
