@@ -10,6 +10,7 @@ const { saving, saved, patch } = useLinkPatch(() => props.link.id);
 const state = reactive({
   campaignId: null as string | null,
   utmSource: '',
+  utmMedium: '',
   utmCampaign: '',
   utmTerm: '',
   utmContent: '',
@@ -18,6 +19,7 @@ const state = reactive({
 watch(() => props.link, (link) => {
   state.campaignId = link.campaignId;
   state.utmSource = link.utmSource ?? '';
+  state.utmMedium = link.utmMedium ?? '';
   state.utmCampaign = link.utmCampaign ?? '';
   state.utmTerm = link.utmTerm ?? '';
   state.utmContent = link.utmContent ?? '';
@@ -32,6 +34,7 @@ async function save() {
     await patch({
       campaignId: state.campaignId,
       utmSource: state.utmSource || null,
+      utmMedium: state.utmMedium || null,
       utmCampaign: state.utmCampaign || null,
       utmTerm: state.utmTerm || null,
       utmContent: state.utmContent || null,
@@ -56,6 +59,7 @@ async function save() {
     <LinkUtmFields
       v-model:campaign-id="state.campaignId"
       v-model:utm-source="state.utmSource"
+      v-model:utm-medium="state.utmMedium"
       v-model:utm-campaign="state.utmCampaign"
       v-model:utm-term="state.utmTerm"
       v-model:utm-content="state.utmContent"

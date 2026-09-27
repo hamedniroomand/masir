@@ -113,6 +113,16 @@ export const workspaces = pgTable('workspaces', {
   index('workspaces_expires_at_idx').on(table.expiresAt).where(sql`expires_at is not null`),
 ]);
 
+export const workspaceLinkPrefixes = pgTable('workspace_link_prefixes', {
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  prefix: text('prefix').notNull(),
+  state: text('state').notNull(),
+  createdAt: timestampTz('created_at').notNull().defaultNow(),
+  revokedAt: timestampTz('revoked_at'),
+}, table => [
+  primaryKey({ columns: [table.workspaceId, table.prefix] }),
+]);
+
 export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -166,6 +176,17 @@ export const campaigns = pgTable('campaigns', {
   index('campaigns_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()),
 ]);
 
+export const linkImports = pgTable('link_imports', {
+  id: uuid('id').primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  fileHash: bytea('file_hash').notNull(),
+  rowCount: integer('row_count').notNull(),
+  createdAt: timestampTz('created_at').notNull().defaultNow(),
+}, table => [
+  index('link_imports_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()),
+]);
+
 export const links = pgTable('links', {
   id: uuid('id').primaryKey().default(uuidV7),
   workspaceId: uuid('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
@@ -192,9 +213,17 @@ export const links = pgTable('links', {
   // the visit limit compares against.
   clickCount: bigint('click_count', { mode: 'number' }).notNull().default(0),
   utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
   utmCampaign: text('utm_campaign'),
   utmTerm: text('utm_term'),
   utmContent: text('utm_content'),
+  importId: uuid('import_id').references(() => linkImports.id, { onDelete: 'set null' }),
+  importRow: integer('import_row'),
+  // Who owns follow-up for this link. Cleared when that member leaves.
+  responsibleUserId: uuid('responsible_user_id').references(() => users.id, { onDelete: 'set null' }),
+  reviewAt: timestampTz('review_at'),
+  // Hidden from default lists. The redirect path does not read this column.
+  archivedAt: timestampTz('archived_at'),
   // A deleted link keeps its slug and its click history. Soft delete replaces
   // the reserved slug table.
   deletedAt: timestampTz('deleted_at'),
@@ -202,6 +231,7 @@ export const links = pgTable('links', {
   updatedAt: timestampTz('updated_at').notNull().defaultNow(),
 }, table => [
   uniqueIndex('links_workspace_slug_unique_idx').on(table.workspaceId, table.slug),
+  uniqueIndex('links_import_id_import_row_unique_idx').on(table.importId, table.importRow),
   index('links_workspace_created_idx').on(table.workspaceId, table.createdAt.desc()).where(sql`deleted_at is null`),
   index('links_workspace_clicks_idx').on(table.workspaceId, table.clickCount.desc()).where(sql`deleted_at is null`),
   index('links_campaign_idx').on(table.campaignId).where(sql`deleted_at is null`),
@@ -269,6 +299,7 @@ export const clickEvents = pgTable('click_events', {
   visitorHash: bigint('visitor_hash', { mode: 'bigint' }),
   workspaceId: uuid('workspace_id').notNull(),
   linkId: uuid('link_id').notNull(),
+  campaignId: uuid('campaign_id'),
   referrerHost: integer('referrer_host').references(() => hosts.id),
   outcome: smallint('outcome').notNull(),
   device: smallint('device').notNull(),
@@ -276,10 +307,16 @@ export const clickEvents = pgTable('click_events', {
   botCategory: smallint('bot_category'),
   country: char('country', { length: 2 }),
   isBot: boolean('is_bot').notNull(),
+  attributionVersion: smallint('attribution_version'),
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  utmContent: text('utm_content'),
 }, table => [
   primaryKey({ columns: [table.createdAt, table.id] }),
   index('click_events_link_created_idx').on(table.linkId, table.createdAt),
   index('click_events_workspace_created_idx').on(table.workspaceId, table.createdAt),
+  index('click_events_campaign_created_idx').on(table.campaignId, table.createdAt).where(sql`campaign_id is not null`),
 ]);
 
 // No reader yet. The table ships with the first tag so the hourly rollup can
@@ -321,14 +358,36 @@ export const mailOutbox = pgTable('mail_outbox', {
   createdAt: timestampTz('created_at').notNull().defaultNow(),
 });
 
+// One row for each maintenance job. The runner reads next_due_at under the
+// job lock, so two runners never run the same job for one due time.
+export const jobRuns = pgTable('job_runs', {
+  job: text('job').primaryKey(),
+  lastStartedAt: timestampTz('last_started_at'),
+  lastSuccessAt: timestampTz('last_success_at'),
+  lastErrorAt: timestampTz('last_error_at'),
+  lastError: text('last_error'),
+  nextDueAt: timestampTz('next_due_at'),
+});
+
+// Single-row status indicators for operational health and background errors.
+export const serviceSignals = pgTable('service_signals', {
+  key: text('key').primaryKey(),
+  state: text('state').notNull(),
+  detail: jsonb('detail'),
+  updatedAt: timestampTz('updated_at').notNull().defaultNow(),
+});
+
 export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceLinkPrefix = typeof workspaceLinkPrefixes.$inferSelect;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type WorkspaceInvitation = typeof workspaceInvitations.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type AuthIdentity = typeof authIdentities.$inferSelect;
 export type UserToken = typeof userTokens.$inferSelect;
 export type Link = typeof links.$inferSelect;
+export type LinkImport = typeof linkImports.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type ResolvedLink = Link & { utmMedium: string | null; utmCampaign: string | null };
 export type ClickEvent = typeof clickEvents.$inferSelect;
 export type AuditEvent = typeof auditEvents.$inferSelect;
+export type ServiceSignal = typeof serviceSignals.$inferSelect;

@@ -9,6 +9,7 @@ export type LinkItem = {
   clickCount: number;
   campaignId: string | null;
   utmSource: string | null;
+  utmMedium: string | null;
   utmCampaign: string | null;
   utmTerm: string | null;
   utmContent: string | null;
@@ -25,10 +26,25 @@ export type LinkItem = {
   successfulVisitCount: number;
   tags: string[];
   aliases: string[];
+  responsibleUserId: string | null;
+  reviewAt: string | null;
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
   // Only the detail route sends this.
   creator?: { email: string; firstName: string | null; lastName: string | null } | null;
+};
+
+export type LinkListFilter = {
+  q?: string;
+  status?: string;
+  tags?: string[];
+  campaignId?: string;
+  createdBy?: string;
+  archived?: boolean;
+  trashed?: boolean;
+  needsReview?: boolean;
+  sort?: string;
 };
 
 export function useLinksList() {
@@ -68,18 +84,53 @@ export function useLinksList() {
     }),
   });
 
+  const campaignId = computed({
+    get: () => (route.query.campaignId as string) || 'all',
+    set: (v: string) => navigateTo({
+      query: { ...route.query, campaignId: !v || v === 'all' ? undefined : v, page: undefined },
+    }),
+  });
+
+  const createdBy = computed({
+    get: () => (route.query.createdBy as string) || 'all',
+    set: (v: string) => navigateTo({
+      query: { ...route.query, createdBy: !v || v === 'all' ? undefined : v, page: undefined },
+    }),
+  });
+
+  const archived = computed(() => route.query.archived === 'true');
+  const trashed = computed(() => route.query.trashed === 'true');
+  const needsReview = computed(() => route.query.needsReview === 'true');
+
+  const listFilter = computed<LinkListFilter>(() => ({
+    q: search.value || undefined,
+    status: status.value === 'all' ? undefined : status.value,
+    tags: selectedTags.value.length ? selectedTags.value : undefined,
+    campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
+    createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
+    archived: archived.value || undefined,
+    trashed: trashed.value || undefined,
+    needsReview: needsReview.value || undefined,
+    sort: sort.value,
+  }));
+
   const { data, pending, refresh, error } = useApi(() => '/api/links', {
     query: computed(() => ({
       q: search.value || undefined,
       status: status.value === 'all' ? undefined : status.value,
       tags: selectedTags.value.length ? selectedTags.value : undefined,
+      campaignId: campaignId.value === 'all' ? undefined : campaignId.value,
+      createdBy: createdBy.value === 'all' ? undefined : createdBy.value,
+      archived: archived.value ? 'true' : undefined,
+      trashed: trashed.value ? 'true' : undefined,
+      needsReview: needsReview.value ? 'true' : undefined,
       page: page.value,
       perPage: 20,
       sort: sort.value,
     })),
   });
 
-  const { data: tagList } = useApi<{ items: { name: string }[] }>(() => '/api/tags');
+  const { data: tagList } = useApi<{ items: { id: string; name: string }[] }>(() => '/api/tags');
 
   function toggleTag(name: string) {
     const set = new Set(selectedTags.value);
@@ -90,5 +141,23 @@ export function useLinksList() {
     selectedTags.value = [...set];
   }
 
-  return { data, pending, refresh, error, search, status, page, sort, selectedTags, tagList, toggleTag };
+  return {
+    data,
+    pending,
+    refresh,
+    error,
+    search,
+    status,
+    page,
+    sort,
+    selectedTags,
+    campaignId,
+    createdBy,
+    archived,
+    trashed,
+    needsReview,
+    listFilter,
+    tagList,
+    toggleTag,
+  };
 }

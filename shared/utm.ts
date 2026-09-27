@@ -39,15 +39,35 @@ export function utmParamsFor(link: UtmSource): UtmParams {
   };
 }
 
-export function buildDestination(destinationUrl: string, utm: UtmParams, inboundQuery = ''): string {
+export function applyUtm(
+  destinationUrl: string,
+  utm: UtmParams,
+  inboundQuery = '',
+): { url: string; effective: UtmParams } {
   const entries = Object.entries(utm).filter((entry): entry is [string, string] => Boolean(entry[1]));
-  if (!entries.length && !inboundQuery)
-    return destinationUrl;
+  const url = (!entries.length && !inboundQuery)
+    ? destinationUrl
+    : (() => {
+        const parsed = new URL(destinationUrl);
+        for (const [key, value] of entries)
+          parsed.searchParams.set(key, value);
+        for (const [key, value] of new URLSearchParams(inboundQuery))
+          parsed.searchParams.set(key, value);
+        return parsed.toString();
+      })();
 
-  const url = new URL(destinationUrl);
-  for (const [key, value] of entries)
-    url.searchParams.set(key, value);
-  for (const [key, value] of new URLSearchParams(inboundQuery))
-    url.searchParams.set(key, value);
-  return url.toString();
+  const parsed = new URL(url);
+  const effective: UtmParams = {
+    utm_source: parsed.searchParams.get('utm_source'),
+    utm_medium: parsed.searchParams.get('utm_medium'),
+    utm_campaign: parsed.searchParams.get('utm_campaign'),
+    utm_term: parsed.searchParams.get('utm_term'),
+    utm_content: parsed.searchParams.get('utm_content'),
+  };
+
+  return { url, effective };
+}
+
+export function buildDestination(destinationUrl: string, utm: UtmParams, inboundQuery = ''): string {
+  return applyUtm(destinationUrl, utm, inboundQuery).url;
 }

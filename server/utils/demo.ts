@@ -72,9 +72,10 @@ export async function createDemoWorkspace(): Promise<{ user: User; workspace: Wo
   const db = await getDb();
   const id = randomId();
   const now = Date.now();
-  // Boot makes this month and the next. Only a seed that reaches back over a
-  // month boundary needs one more, and a second demo racing this one loses
-  // harmlessly: the insert below is what actually needs the partition.
+  // Boot and the click_event_partitions job make this month and the next
+  // two. Only a seed that reaches back over a month boundary needs one more,
+  // and a second demo racing this one loses harmlessly: the insert below is
+  // what actually needs the partition.
   const seedStart = new Date(now - SEED_DAYS * DAY_MS);
   if (seedStart.getUTCMonth() !== new Date(now).getUTCMonth())
     await ensureClickEventPartitions(db, seedStart).catch(() => {});
@@ -129,6 +130,8 @@ export async function findLiveDemo(userId: string): Promise<Workspace | null> {
     .limit(1);
   return rows[0]?.workspace ?? null;
 }
+
+export const DEMO_SWEEP_JOB = 'demo_sweep';
 
 // Deletes every demo whose time has passed. links, campaigns, tags, aliases,
 // members, and audit rows cascade from the workspace. click_events have no

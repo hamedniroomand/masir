@@ -21,9 +21,29 @@ Link analytics include:
 - bot categories
 
 Use the period filter for 24 hours, 7 days, 30 days, or all retained data. Use
-the traffic filter for humans, bots, or both.
+a custom UTC date range when you need exact boundaries. The end date is
+exclusive. Turn on compare previous to see absolute and percent change against
+the equal-length range that ends at the start. When the previous range has no
+clicks, the report shows "No prior data". Use the traffic filter for humans,
+bots, or both.
 
 Workspace and campaign views aggregate the same event data at a broader level.
+
+## Response fields
+
+The HTTP route `GET /api/links/:id/analytics` returns:
+
+- `periodClicks`: redirects in the selected period
+- `lifetimeClicks`: all-time successful redirects on the link (equals `totalClicks`)
+- `usedVisits`: visits counted toward the limit (equals `successfulVisitCount`)
+- `remainingVisits`: visits remaining before the limit takes effect
+- `maximumVisits`: configured visit limit
+- `uniqueVisitors`: daily unique visitors in the period
+- `botRequests`: crawler and preview requests in the period
+- `meta`: for a period request, `{ timezone: 'UTC', period, traffic }`. For a
+  custom range, `{ timezone: 'UTC', from, to, traffic, earliestEventAt, signals,
+  warning? }`
+- `previous` / `change`: present when `compare=previous`
 
 ## Understand unique visitors
 
@@ -74,8 +94,18 @@ destination instead of a targeting rule.
 Click events use monthly Postgres partitions. The application creates the
 current and next partitions at boot.
 
-Masir has no export button. Query Postgres or use the HTTP analytics routes
-when you need data outside the interface.
+Use **Download CSV** on the link, campaign, or workspace report to save the
+current range. The file starts with metric definitions and report meta
+(`key,label,definition,value`), then the time series, then the breakdowns the
+report shows (referrers, countries, devices, browsers; campaign source and
+medium when present). Workspace and campaign files also list top links as
+`slug,title,clicks` only — no link id and no notes. Totals match the on-screen
+JSON report. Formula-like cells are prefixed so spreadsheets do not run them.
+
+The plan suggested a `# metric,definition,range,traffic` comment header. This
+export keeps `key,label,definition,value` so each metric row carries its value
+next to its definition. Range and traffic stay in the meta rows and in
+`shared/analytics-metrics.ts`.
 
 <ReadMore to="/reference/data-model#click-events" title="Read the event data model" />
 

@@ -8,7 +8,7 @@ import {
   today,
 } from '@internationalized/date';
 
-const props = withDefaults(defineProps<{ emptyLabel?: string }>(), { emptyLabel: 'No expiry' });
+const props = withDefaults(defineProps<{ emptyLabel?: string; allowPast?: boolean }>(), { emptyLabel: 'No expiry', allowPast: false });
 
 const model = defineModel<number | null>({ default: null });
 
@@ -18,7 +18,7 @@ const draftDate = shallowRef<CalendarDate>();
 const draftTime = shallowRef<Time>();
 
 const formatter = new DateFormatter('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-const minDate = today(zone);
+const minDate = computed(() => props.allowPast ? undefined : today(zone));
 
 const label = computed(() => {
   if (model.value == null)

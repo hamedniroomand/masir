@@ -9,8 +9,14 @@ export type CampaignItem = {
   updatedAt: string;
 };
 
+const CAMPAIGNS_LIST_KEY = 'campaigns-list';
+
 export function useCampaignsList() {
-  return useApi<{ items: CampaignItem[]; total: number }>('/api/campaigns');
+  return useApi<{ items: CampaignItem[]; total: number }>('/api/campaigns', { key: CAMPAIGNS_LIST_KEY });
+}
+
+export function refreshCampaignsList() {
+  return refreshNuxtData(CAMPAIGNS_LIST_KEY);
 }
 
 export function useCampaignOptions() {

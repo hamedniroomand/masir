@@ -1,7 +1,7 @@
 import type { StorageConfig } from '#server/utils/storage';
+import { $ } from 'bun';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { $ } from 'bun';
 import { afterEach, describe, expect, it } from 'vitest';
 import { assertStorageConfig, buildStorageDriver } from '#server/utils/storage';
 import { createFileDriver } from '#server/utils/storage-file';

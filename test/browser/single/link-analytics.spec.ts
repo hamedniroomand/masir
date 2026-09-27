@@ -5,6 +5,7 @@ import { chooseOption } from '../ui';
 // already checks the numbers the API returns.
 let workspaceId = '';
 let busyLink = '';
+let cappedLink = '';
 let quietLink = '';
 
 // Every batch shares one timestamp. Two different ones can straddle a UTC
@@ -13,19 +14,41 @@ test.beforeAll(({ db }) => {
   ({ workspaceId } = db.reset());
   busyLink = db.insertLink({ workspaceId, slug: 'busy', title: 'Busy link', clickCount: 5 });
   quietLink = db.insertLink({ workspaceId, slug: 'quiet', title: 'Quiet link' });
+  cappedLink = db.insertLink({ workspaceId, slug: 'capped', title: 'Capped link', clickCount: 7, maximumVisits: 10 });
 
   db.insertClicks({ workspaceId, linkId: busyLink, count: 3, visitor: 11, referrer: 'news.example.com', country: 'US', device: 'desktop', browser: 'chrome', minutesAgo: 10 });
   db.insertClicks({ workspaceId, linkId: busyLink, count: 2, visitor: 22, referrer: 'social.example.com', country: 'DE', device: 'mobile', browser: 'safari', minutesAgo: 10 });
   db.insertClicks({ workspaceId, linkId: busyLink, count: 3, outcome: 'bot_request', minutesAgo: 10 });
 });
 
-test('counts total clicks, unique visitors, and bot requests', async ({ page, login }) => {
+test('counts period clicks, lifetime clicks, unique visitors, and bot requests', async ({ page, login }) => {
   await login();
   await page.goto(`/links/${busyLink}`);
-  await expect(page.getByText('Total clicks')).toBeVisible();
-  await expect(page.getByText('Total clicks').locator('xpath=following-sibling::p[1]')).toHaveText('5');
+  await expect(page.getByText('Clicks in period')).toBeVisible();
+  await expect(page.getByText('Clicks in period').locator('xpath=following-sibling::p[1]')).toHaveText('5');
+  await expect(page.getByText('Lifetime clicks')).toBeVisible();
+  await expect(page.getByText('Lifetime clicks').locator('xpath=following-sibling::p[1]')).toHaveText('5');
+  await expect(page.getByText('All time, human')).toBeVisible();
   await expect(page.getByText('Unique visitors').locator('xpath=following-sibling::p[1]')).toHaveText('2');
+  await expect(page.getByText('Unique per link per day. A person can count again on another day or link.')).toBeVisible();
   await expect(page.getByText('Bot requests').locator('xpath=following-sibling::p[1]')).toHaveText('3');
+});
+
+test('shows used and remaining visits for visit-capped links', async ({ page, login }) => {
+  await login();
+  await page.goto(`/links/${cappedLink}`);
+  await expect(page.getByText('7 used')).toBeVisible();
+  await expect(page.getByText('3 remaining')).toBeVisible();
+});
+
+test('shows retry button and keeps inputs visible on analytics error', async ({ page, login }) => {
+  await login();
+  await page.route('**/api/links/*/analytics*', route => route.abort());
+  await page.goto(`/links/${busyLink}`);
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByLabel('Chart traffic')).toBeVisible();
+  await expect(page.getByLabel('Analytics period')).toBeVisible();
+  await expect(page.getByText('Clicks in period')).not.toBeVisible();
 });
 
 test('tells the owner when the period holds no clicks', async ({ page, login }) => {

@@ -36,6 +36,7 @@ erDiagram
 | `workspace_invitations` | Open, accepted, and revoked invitations |
 | `campaigns` | Shared campaign and medium values |
 | `links` | Destination, slug, access rules, targeting, counters, and state |
+| `link_imports` | CSV import batches keyed by workspace and file hash |
 | `link_aliases` | Current and revoked extra slugs |
 | `tags` | Workspace tag names |
 | `link_tags` | Link-to-tag relationships |
@@ -90,6 +91,11 @@ Important columns include:
 | `click_count` | Atomic successful human redirect count |
 | `targeting` | Country and operating-system destinations |
 | `notes` | Private workspace text |
+| `utm_medium` | Optional link-level medium that overrides the campaign value |
+| `import_id`, `import_row` | Optional CSV import identity; unique together |
+| `responsible_user_id` | Optional member who follows up; set null on user delete or member removal |
+| `review_at` | Optional date when the link should be checked again |
+| `archived_at` | Hidden from default lists; redirects still work |
 | `deleted_at` | Soft-delete marker |
 
 Status is derived at read time. A scheduled link becomes active without a job.
@@ -116,14 +122,33 @@ A database check prevents a campaign link from also setting its own
 One event records the request outcome, daily visitor hash, referrer host,
 country, device, browser, bot class, and time.
 
-It does not store a raw IP address or full user-agent string.
+Columns include:
+
+| Column | Meaning |
+|---|---|
+| `workspace_id`, `link_id` | Scoping IDs without foreign keys |
+| `campaign_id` | Effective campaign ID snapshot |
+| `outcome` | Smallint numeric outcome code |
+| `device`, `browser` | Integer classification codes |
+| `bot_category`, `is_bot` | Bot detection attributes |
+| `country` | Two-letter ISO country code |
+| `referrer_host` | Foreign key to `hosts.id` |
+| `visitor_hash` | Daily salted visitor hash |
+| `attribution_version` | Attribution format version (1 for current attribution, null on blocks or legacy events) |
+| `utm_source` | Effective UTM source snapshot (at most 120 characters) |
+| `utm_medium` | Effective UTM medium snapshot (at most 120 characters) |
+| `utm_campaign` | Effective UTM campaign snapshot (at most 120 characters) |
+| `utm_content` | Effective UTM content snapshot (at most 120 characters) |
+
+It does not store a raw IP address or full user-agent string. It does not record `utm_term` or other query values.
 
 The visitor hash is a salted daily `bigint`. It supports daily unique counts
 for one link and cannot join a visitor across days.
 
 Events use monthly range partitions. Database preparation creates the current
-and next partitions. Retention can drop a partition instead of deleting rows
-one at a time.
+month and the next two. A daily job repeats this, so a long-running instance
+always has a partition ready. Retention can drop a partition instead of
+deleting rows one at a time.
 
 ## Audit events
 

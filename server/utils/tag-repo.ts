@@ -2,6 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
 import { InvalidTagNameError, TagNameTakenError } from '#server/utils/errors';
+import { MAX_TAGS_PER_LINK } from '#shared/link-input';
 
 export function normalizeTagName(name: string): string {
   const trimmed = name.trim();
@@ -112,4 +113,31 @@ export async function setLinkTags(linkId: string, workspaceId: string, names: st
   });
 
   return tagIds;
+}
+
+export async function addLinkTag(linkId: string, workspaceId: string, tagId: string) {
+  const db = await getDb();
+  const existing = await db.select({ tagId: linkTags.tagId }).from(linkTags).where(eq(linkTags.linkId, linkId));
+  if (existing.some(row => row.tagId === tagId))
+    return { ok: true as const, added: false };
+  if (existing.length >= MAX_TAGS_PER_LINK)
+    return { ok: false as const, error: `Use at most ${MAX_TAGS_PER_LINK} tags for a link.` };
+  try {
+    await db.insert(linkTags).values({ workspaceId, linkId, tagId });
+  }
+  catch (error) {
+    if (isUniqueViolation(error))
+      return { ok: true as const, added: false };
+    throw error;
+  }
+  return { ok: true as const, added: true };
+}
+
+export async function removeLinkTag(linkId: string, workspaceId: string, tagId: string) {
+  const db = await getDb();
+  await db.delete(linkTags).where(and(
+    eq(linkTags.linkId, linkId),
+    eq(linkTags.tagId, tagId),
+    eq(linkTags.workspaceId, workspaceId),
+  ));
 }

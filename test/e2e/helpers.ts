@@ -16,6 +16,9 @@ const sharedEnv = {
   NUXT_RATE_LIMIT_LOGIN_PER_MINUTE: '200',
   // Test files run together. A pool of 10 for each would exhaust Postgres.
   NUXT_DATABASE_POOL_MAX: '2',
+  // The job timer would send mail 30 s after boot, in the middle of a test.
+  // A file that needs the timer sets its own value.
+  NUXT_ALERTS_INTERVAL_MINUTES: '0',
 };
 
 // The Nuxt server migrates on boot, so the database must exist before setup().
@@ -122,6 +125,7 @@ export async function insertTestLink(databaseUrl: string, input: {
   expiresAt?: Date | null;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmContent?: string | null;
   passwordHash?: string | null;
   startsAt?: Date | null;
@@ -131,6 +135,9 @@ export async function insertTestLink(databaseUrl: string, input: {
   targeting?: Record<string, unknown> | null;
   maximumVisits?: number | null;
   clickCount?: number;
+  responsibleUserId?: string | null;
+  reviewAt?: Date | null;
+  archivedAt?: Date | null;
 }) {
   const db = openTestDatabase(databaseUrl);
   const [link] = await db.insert(links).values({
@@ -151,8 +158,12 @@ export async function insertTestLink(databaseUrl: string, input: {
     maximumVisits: input.maximumVisits ?? null,
     campaignId: input.campaignId ?? null,
     utmSource: input.utmSource ?? null,
+    utmMedium: input.utmMedium ?? null,
     utmContent: input.utmContent ?? null,
     clickCount: input.clickCount ?? 0,
+    responsibleUserId: input.responsibleUserId ?? null,
+    reviewAt: input.reviewAt ?? null,
+    archivedAt: input.archivedAt ?? null,
   }).returning();
   return link!.id;
 }

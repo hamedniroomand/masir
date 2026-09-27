@@ -1,9 +1,9 @@
 import type { DeploymentConfig } from '#shared/deployment';
 import type { LinkTargeting } from '#shared/link-targeting';
-import { and, desc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, like, lte, or, sql } from 'drizzle-orm';
 import { campaigns, clickEvents, linkAliases, links, linkTags, tags } from '#server/database/schema';
 import { getDb, isUniqueViolation, isUuid } from '#server/utils/db';
-import { AliasLimitError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
+import { AliasLimitError, AlreadyImportedError, SlugExhaustedError, SlugTakenError, VisitLimitBelowUsageError } from '#server/utils/errors';
 import { invalidateLink, invalidateLinkById } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
@@ -45,11 +45,15 @@ export function linkToDto(link: typeof links.$inferSelect, workspace: ShortUrlWo
     clickCount: link.clickCount,
     campaignId: link.campaignId,
     utmSource: link.utmSource,
+    utmMedium: link.utmMedium,
     utmCampaign: link.utmCampaign,
     utmTerm: link.utmTerm,
     utmContent: link.utmContent,
     tags: tagNames,
     aliases,
+    responsibleUserId: link.responsibleUserId,
+    reviewAt: link.reviewAt,
+    archived: link.archivedAt != null,
     createdAt: link.createdAt,
     updatedAt: link.updatedAt,
     shortUrl: shortUrlFor(workspace, link.slug),
@@ -142,7 +146,7 @@ export async function findLinkBySlug(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
     link: links,
-    utmMedium: campaigns.utmMedium,
+    utmMedium: sql<string | null>`coalesce(${links.utmMedium}, ${campaigns.utmMedium})`,
     utmCampaign: campaigns.utmCampaign,
   })
     .from(links)
@@ -167,7 +171,7 @@ async function findLinkByAlias(workspaceId: string, slug: string) {
   const db = await getDb();
   const rows = await db.select({
     link: links,
-    utmMedium: campaigns.utmMedium,
+    utmMedium: sql<string | null>`coalesce(${links.utmMedium}, ${campaigns.utmMedium})`,
     utmCampaign: campaigns.utmCampaign,
   })
     .from(linkAliases)
@@ -195,6 +199,14 @@ export async function findLinkById(id: string, workspaceId: string) {
   return rows[0] ?? null;
 }
 
+export async function findLinkByImportRow(importId: string, importRow: number) {
+  if (!isUuid(importId))
+    return null;
+  const db = await getDb();
+  const rows = await db.select().from(links).where(and(eq(links.importId, importId), eq(links.importRow, importRow))).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function createLink(input: {
   workspaceId: string;
   createdBy: string;
@@ -212,9 +224,12 @@ export async function createLink(input: {
   passwordHash?: string | null;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
+  importId?: string | null;
+  importRow?: number | null;
   slugGenerator?: () => string;
 }) {
   const db = await getDb();
@@ -243,9 +258,12 @@ export async function createLink(input: {
         passwordHash: input.passwordHash ?? null,
         campaignId: input.campaignId ?? null,
         utmSource: input.utmSource ?? null,
+        utmMedium: input.utmMedium ?? null,
         utmCampaign: input.utmCampaign ?? null,
         utmTerm: input.utmTerm ?? null,
         utmContent: input.utmContent ?? null,
+        importId: input.importId ?? null,
+        importRow: input.importRow ?? null,
       }).returning();
       if (!created)
         throw new Error('insert failed');
@@ -255,8 +273,14 @@ export async function createLink(input: {
       return created;
     }
     catch (error: unknown) {
-      if (isUniqueViolation(error))
+      if (isUniqueViolation(error)) {
+        if (input.importId != null && input.importRow != null) {
+          const existing = await findLinkByImportRow(input.importId, input.importRow);
+          if (existing)
+            throw new AlreadyImportedError(existing.id);
+        }
         throw new SlugTakenError();
+      }
       throw error;
     }
   }
@@ -298,18 +322,32 @@ export async function tagNamesByLinkIds(linkIds: string[]) {
   return map;
 }
 
-export async function listLinks(workspaceId: string, query: {
+export type LinkListQuery = {
   q?: string;
   destination?: string;
   status?: 'active' | 'disabled' | 'expired' | 'limit_reached' | 'scheduled';
   tags?: string[];
+  campaignId?: string;
+  createdBy?: string;
+  // Defaults to false at the API: hide archived rows from normal lists.
+  archived?: boolean;
+  // Defaults to false: hide soft-deleted rows. true returns only trash.
+  trashed?: boolean;
+  needsReview?: boolean;
   page: number;
   perPage: number;
   sort: 'createdAt' | 'clicks';
-}) {
+};
+
+export const BULK_LINK_CAP = 500;
+
+export async function listLinks(workspaceId: string, query: LinkListQuery) {
   const db = await getDb();
   const now = new Date();
-  const filters = [eq(links.workspaceId, workspaceId), isNull(links.deletedAt)];
+  const filters = [
+    eq(links.workspaceId, workspaceId),
+    query.trashed === true ? isNotNull(links.deletedAt) : isNull(links.deletedAt),
+  ];
   const notExpired = anyOf(sql`${links.expiresAt} IS NULL`, sql`${links.expiresAt} > ${now}`);
   const underVisitLimit = anyOf(sql`${links.maximumVisits} IS NULL`, sql`${links.clickCount} < ${links.maximumVisits}`);
   const started = anyOf(sql`${links.startsAt} IS NULL`, sql`${links.startsAt} <= ${now}`);
@@ -327,6 +365,38 @@ export async function listLinks(workspaceId: string, query: {
 
   if (query.destination)
     filters.push(eq(links.destinationUrl, query.destination));
+
+  if (query.campaignId) {
+    if (isUuid(query.campaignId))
+      filters.push(eq(links.campaignId, query.campaignId));
+    else
+      filters.push(sql`1=0`);
+  }
+
+  if (query.createdBy) {
+    if (isUuid(query.createdBy))
+      filters.push(eq(links.createdBy, query.createdBy));
+    else
+      filters.push(sql`1=0`);
+  }
+
+  if (query.archived === true)
+    filters.push(isNotNull(links.archivedAt));
+  else if (query.trashed !== true)
+    filters.push(isNull(links.archivedAt));
+
+  if (query.needsReview) {
+    filters.push(sql`(
+      ${links.responsibleUserId} is null
+      or (${links.reviewAt} is not null and ${links.reviewAt} <= ${now})
+      or not exists (
+        select 1 from workspace_members wm
+        where wm.workspace_id = ${links.workspaceId}
+          and wm.user_id = ${links.responsibleUserId}
+          and wm.deactivated_at is null
+      )
+    )`);
+  }
 
   if (query.tags?.length) {
     for (const raw of query.tags) {
@@ -391,9 +461,13 @@ export async function updateLink(id: string, workspaceId: string, patch: {
   isEnabled?: boolean;
   campaignId?: string | null;
   utmSource?: string | null;
+  utmMedium?: string | null;
   utmCampaign?: string | null;
   utmTerm?: string | null;
   utmContent?: string | null;
+  responsibleUserId?: string | null;
+  reviewAt?: Date | null;
+  archivedAt?: Date | null;
 }) {
   const existing = await findLinkById(id, workspaceId);
   if (!existing)
@@ -435,12 +509,20 @@ export async function updateLink(id: string, workspaceId: string, patch: {
     values.campaignId = patch.campaignId;
   if (patch.utmSource !== undefined)
     values.utmSource = patch.utmSource;
+  if (patch.utmMedium !== undefined)
+    values.utmMedium = patch.utmMedium;
   if (patch.utmCampaign !== undefined)
     values.utmCampaign = patch.utmCampaign;
   if (patch.utmTerm !== undefined)
     values.utmTerm = patch.utmTerm;
   if (patch.utmContent !== undefined)
     values.utmContent = patch.utmContent;
+  if (patch.responsibleUserId !== undefined)
+    values.responsibleUserId = patch.responsibleUserId;
+  if (patch.reviewAt !== undefined)
+    values.reviewAt = patch.reviewAt;
+  if (patch.archivedAt !== undefined)
+    values.archivedAt = patch.archivedAt;
 
   // A concurrent redirect can raise the click count after the caller read it.
   // The guard makes the limit check and the write one statement.
@@ -500,6 +582,18 @@ export async function renameLinkSlug(id: string, workspaceId: string, slug: stri
   return findLinkById(id, workspaceId);
 }
 
+// Member removal clears responsibility so the links show up in needsReview.
+export async function clearLinkResponsibility(workspaceId: string, userId: string) {
+  const db = await getDb();
+  await db.update(links)
+    .set({ responsibleUserId: null, updatedAt: new Date() })
+    .where(and(
+      eq(links.workspaceId, workspaceId),
+      eq(links.responsibleUserId, userId),
+      isNull(links.deletedAt),
+    ));
+}
+
 export async function deleteLink(id: string, workspaceId: string) {
   const existing = await findLinkById(id, workspaceId);
   if (!existing)
@@ -512,6 +606,33 @@ export async function deleteLink(id: string, workspaceId: string) {
   invalidateLink(workspaceId, existing.slug);
   invalidateLinkById(id);
   return true;
+}
+
+// Clears deleted_at. The slug never left the row, so the same addresses return.
+export async function restoreLink(id: string, workspaceId: string) {
+  if (!isUuid(id))
+    return null;
+
+  const db = await getDb();
+  const rows = await db.select().from(links).where(and(
+    eq(links.id, id),
+    eq(links.workspaceId, workspaceId),
+    isNotNull(links.deletedAt),
+  )).limit(1);
+  const existing = rows[0];
+  if (!existing)
+    return null;
+
+  await db.update(links)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(links.id, id), eq(links.workspaceId, workspaceId), isNotNull(links.deletedAt)));
+
+  invalidateLink(workspaceId, existing.slug);
+  const aliasMap = await aliasesForLinks([id]);
+  for (const alias of aliasMap.get(id) ?? [])
+    invalidateLink(workspaceId, alias);
+  invalidateLinkById(id);
+  return findLinkById(id, workspaceId);
 }
 
 // Null means the visit was refused. A number is the new count, which the

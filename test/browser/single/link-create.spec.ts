@@ -55,7 +55,7 @@ test('sends a visitor to the unlock page when the form sets a password', async (
   await expect(dialog.getByText('Link created')).toBeVisible();
 
   await page.goto('/secret-form');
-  await expect(page).toHaveURL(/\/p\/secret-form$/);
+  await expect(page).toHaveURL(url => url.pathname === '/p/secret-form' && url.searchParams.get('path') === '/secret-form');
   await expect(page.getByText('Enter the password to continue.')).toBeVisible();
 });
 

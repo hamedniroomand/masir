@@ -146,6 +146,8 @@ describe('link password API', async () => {
     expect(JSON.stringify(link)).not.toContain('passwordHash');
 
     const res = await fetch('/pwd-create', { redirect: 'manual', headers: { 'user-agent': CHROME_UA } });
-    expect(res.headers.get('location')).toBe('/p/pwd-create');
+    const location = new URL(res.headers.get('location') ?? '', 'http://localhost');
+    expect(location.pathname).toBe('/p/pwd-create');
+    expect(location.searchParams.get('path')).toBe('/pwd-create');
   });
 });

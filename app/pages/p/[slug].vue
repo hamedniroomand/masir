@@ -22,7 +22,11 @@ async function submit() {
   try {
     const result = await $fetch<{ redirectTo: string }>('/api/links/verify-password', {
       method: 'POST',
-      body: { slug: slug.value, password: password.value },
+      body: {
+        slug: slug.value,
+        password: password.value,
+        requestedPath: route.query.path as string | undefined,
+      },
     });
     await navigateTo(result.redirectTo, { external: true });
   }

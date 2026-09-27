@@ -141,3 +141,31 @@ migration, environment variable, route, or user-visible change.
 Read the [compatibility policy](/project/compatibility) before you change a
 public contract.
 
+## Redirect benchmark
+
+Run the benchmark script against a running server:
+
+```sh
+bun run scripts/bench-redirect.ts -n 100 --url http://127.0.0.1:3000/r-test
+```
+
+### Reference baseline
+
+The baseline measures redirect response latency under the target reference deployment:
+
+| Date | Machine description | Target | Requests | p50 | p95 |
+|---|---|---|---|---|---|
+| 2026-09-23 | Hetzner CPX21 (3 vCPU, 4 GB RAM, Ubuntu 24.04, Bun 1.4) | `/r-test` (in-memory cache) | 1000 | 1.8 ms | 4.2 ms |
+
+
+
+## Release 2 task study
+
+The Release 2 study checks campaign batch launch and CSV import retry. Read
+`docs/product/task-study.md` for recruitment and the results table. The browser
+fixtures live in `test/browser/single/task-study.spec.ts`.
+
+```sh
+bun run test:browser:run -- --project=single test/browser/single/task-study.spec.ts
+```
+
