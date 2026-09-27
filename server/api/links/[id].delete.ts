@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   if (!ok)
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
-  await writeAuditEvent('link_deleted', { linkId: id, slug: existing?.slug }, { workspaceId, actor: user.id });
+  await writeAuditEvent('link_deleted', { linkId: id, slug: existing?.slug }, { workspaceId, actor: user.id, linkId: id });
   return { ok: true };
 });

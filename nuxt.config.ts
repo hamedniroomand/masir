@@ -110,6 +110,8 @@ export default defineNuxtConfig({
     alertsIntervalMinutes: 15,
     // Empty makes the jobs route answer 404.
     jobsSecret: '',
+    // Comma-separated emails allowed to access operator routes.
+    operatorEmails: '',
     // Lets a visitor open a seeded workspace without an account. Needs
     // NUXT_MULTI_WORKSPACE, because every visitor gets their own workspace.
     demoEnabled: false,
@@ -119,6 +121,9 @@ export default defineNuxtConfig({
     // Shared rate-limit counters. Empty counts inside one process only.
     // Use the Upstash TLS endpoint (rediss://), not the REST URL.
     redisUrl: '',
+    linkCacheTtlSeconds: 60,
+    linkCacheMissTtlSeconds: 15,
+    linkCacheSharedInvalidation: false,
     // How many proxies sit in front. 0 reads the socket and ignores
     // X-Forwarded-For, because a caller can write that header themselves.
     trustedProxyDepth: 0,

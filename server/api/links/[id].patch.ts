@@ -12,6 +12,7 @@ import { hashSecret } from '#server/utils/password';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { shortLinkMatchesDestination, validateDestination, validateFallbackDestination, validateTargeting } from '#server/utils/url';
+import { findMember } from '#server/utils/workspace-repo';
 import { CAMPAIGN_UTM_CONFLICT, hasCampaignUtmConflict, MAX_ALIASES_PER_LINK, maximumVisitsSchema, notesSchema, tagsSchema } from '#shared/link-input';
 import { targetingSchema, targetingUrls } from '#shared/link-targeting';
 import { slugSchema } from '#shared/slug';
@@ -35,9 +36,13 @@ const bodySchema = v.object({
   keepOldSlug: v.optional(v.boolean()),
   campaignId: v.optional(v.nullable(v.string())),
   utmSource: optionalUtmSchema,
+  utmMedium: optionalUtmSchema,
   utmCampaign: optionalUtmSchema,
   utmTerm: optionalUtmSchema,
   utmContent: optionalUtmSchema,
+  responsibleUserId: v.optional(v.nullable(v.string())),
+  reviewAt: v.optional(v.nullable(v.number())),
+  archived: v.optional(v.boolean()),
 });
 
 function visitLimitBelowUsage() {
@@ -171,6 +176,8 @@ export default defineEventHandler(async (event) => {
   }
   if (body.utmSource !== undefined)
     patch.utmSource = emptyToNull(body.utmSource);
+  if (body.utmMedium !== undefined)
+    patch.utmMedium = emptyToNull(body.utmMedium);
   if (body.utmCampaign !== undefined)
     patch.utmCampaign = emptyToNull(body.utmCampaign);
   if (body.utmTerm !== undefined)
@@ -184,6 +191,21 @@ export default defineEventHandler(async (event) => {
     }
     patch.campaignId = campaignId;
   }
+  if (body.responsibleUserId !== undefined) {
+    const responsibleUserId = emptyToNull(body.responsibleUserId);
+    if (responsibleUserId) {
+      const member = await findMember(workspaceId, responsibleUserId);
+      if (!member || member.deactivatedAt) {
+        const reason = 'Responsible user must be an active member.';
+        throw createError({ statusCode: 422, statusMessage: reason, data: { reason } });
+      }
+    }
+    patch.responsibleUserId = responsibleUserId;
+  }
+  if (body.reviewAt !== undefined)
+    patch.reviewAt = body.reviewAt == null ? null : new Date(body.reviewAt);
+  if (body.archived !== undefined)
+    patch.archivedAt = body.archived ? (existing.archivedAt ?? new Date()) : null;
 
   // The patch can set either side, so the pair is judged on the row that the
   // write would leave behind.
@@ -244,7 +266,24 @@ export default defineEventHandler(async (event) => {
       { workspaceId, actor: user.id, linkId: id },
     );
   }
-  await writeAuditEvent('link_updated', { fields: Object.keys(patch).filter(k => k !== 'passwordHash') }, { workspaceId, actor: user.id, linkId: id });
+  if (patch.responsibleUserId !== undefined && patch.responsibleUserId !== existing.responsibleUserId) {
+    await writeAuditEvent(
+      'link_responsible_changed',
+      { from: existing.responsibleUserId, to: patch.responsibleUserId },
+      { workspaceId, actor: user.id, linkId: id },
+    );
+  }
+  if (body.archived !== undefined) {
+    const wasArchived = existing.archivedAt != null;
+    if (body.archived && !wasArchived)
+      await writeAuditEvent('link_archived', {}, { workspaceId, actor: user.id, linkId: id });
+    else if (!body.archived && wasArchived)
+      await writeAuditEvent('link_unarchived', {}, { workspaceId, actor: user.id, linkId: id });
+  }
+  const fieldNames = Object.keys(patch)
+    .filter(k => k !== 'passwordHash')
+    .map(k => k === 'archivedAt' ? 'archived' : k);
+  await writeAuditEvent('link_updated', { fields: fieldNames }, { workspaceId, actor: user.id, linkId: id });
   const tagMap = await tagNamesByLinkIds([updated.id]);
   const aliasMap = await aliasesForLinks([updated.id]);
   return linkToDto(updated, workspace, tagMap.get(updated.id) ?? [], aliasMap.get(updated.id) ?? []);

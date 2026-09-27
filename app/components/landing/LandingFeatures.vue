@@ -60,5 +60,33 @@ const features = [
         </dd>
       </div>
     </dl>
+
+    <div class="mt-16 grid gap-6 md:grid-cols-2">
+      <div class="rounded-xl border border-default bg-muted/20 p-6">
+        <div class="flex items-center gap-2 text-sm font-semibold text-primary">
+          <UIcon name="i-lucide-flag" class="size-4" />
+          <span>Campaign launch example</span>
+        </div>
+        <h3 class="mt-2 text-base font-semibold text-highlighted">
+          Stable printed links with recorded attribution
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-muted">
+          Print <code>/launch</code> on physical posters. Point it to a teaser page before launch, switch to the live store on launch day, and send late visitors to a waitlist when stock runs out. Effective campaign attribution is recorded at click time, so later updates never alter historical reports.
+        </p>
+      </div>
+
+      <div class="rounded-xl border border-default bg-muted/20 p-6">
+        <div class="flex items-center gap-2 text-sm font-semibold text-primary">
+          <UIcon name="i-lucide-folder-sync" class="size-4" />
+          <span>Shared resource example</span>
+        </div>
+        <h3 class="mt-2 text-base font-semibold text-highlighted">
+          Team ownership for shared assets
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-muted">
+          Share <code>/brand-kit</code> across your team handbook, email footers, and partner guides. When design moves files to a new drive or Figma link, any authorized team member can update the target URL immediately. Links belong to the workspace, not a personal account.
+        </p>
+      </div>
+    </div>
   </LandingSection>
 </template>

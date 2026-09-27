@@ -1,6 +1,9 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
+import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { clickEvents } from '#server/database/schema';
+import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl, waitFor } from './helpers';
+import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('campaigns');
 
@@ -108,5 +111,161 @@ describe('campaigns API', async () => {
 
     const after = await $fetch<{ campaignId: string | null }>(`/api/links/${link.id}`, { headers: { cookie } });
     expect(after.campaignId).toBe(null);
+  });
+
+  it('returns recorded attribution reflecting source at click time', async () => {
+    const cookie = await loginCookie();
+    const campaign = await $fetch<CampaignDto>('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Source Test', utmCampaign: 'source-test', utmMedium: 'cpc' },
+      headers: { cookie },
+    });
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/st', campaignId: campaign.id, utmSource: 'old' },
+      headers: { cookie },
+    });
+
+    // Two clicks with old source
+    await fetch(`/${link.slug}`, { redirect: 'manual' });
+    await fetch(`/${link.slug}`, { redirect: 'manual' });
+
+    // Change utmSource to new
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { utmSource: 'new' },
+      headers: { cookie },
+    });
+
+    // One click with new source
+    await fetch(`/${link.slug}`, { redirect: 'manual' });
+
+    // Wait for event writes and query recorded analytics
+    const recorded = await waitFor(
+      () => $fetch<{
+        bySource: { label: string; count: number }[];
+        byMedium: { label: string; count: number }[];
+        meta: { attribution: string; legacyCount: number };
+      }>(`/api/campaigns/${campaign.id}/analytics?attribution=recorded`, { headers: { cookie } }),
+      res => res.bySource.length >= 2,
+    );
+
+    expect(recorded.meta.attribution).toBe('recorded');
+    const oldEntry = recorded.bySource.find(s => s.label === 'old');
+    const newEntry = recorded.bySource.find(s => s.label === 'new');
+    expect(oldEntry?.count).toBe(2);
+    expect(newEntry?.count).toBe(1);
+
+    // In current mode, all 3 clicks appear under the link's current source ('new')
+    const current = await $fetch<{
+      bySource: { label: string; count: number }[];
+      meta: { attribution: string; legacyCount: number };
+    }>(`/api/campaigns/${campaign.id}/analytics?attribution=current`, { headers: { cookie } });
+    expect(current.meta.attribution).toBe('current');
+    expect(current.bySource).toEqual([{ label: 'new', count: 3 }]);
+  });
+
+  it('preserves past clicks in recorded mode when a link moves to another campaign', async () => {
+    const cookie = await loginCookie();
+    const campaignA = await $fetch<CampaignDto>('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Campaign A', utmCampaign: 'camp-a' },
+      headers: { cookie },
+    });
+    const campaignB = await $fetch<CampaignDto>('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Campaign B', utmCampaign: 'camp-b' },
+      headers: { cookie },
+    });
+
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/ab', campaignId: campaignA.id, utmSource: 'social' },
+      headers: { cookie },
+    });
+
+    // Click on link while attached to campaign A
+    await fetch(`/${link.slug}`, { redirect: 'manual' });
+
+    // Move link to campaign B
+    await $fetch(`/api/links/${link.id}`, {
+      method: 'PATCH',
+      body: { campaignId: campaignB.id },
+      headers: { cookie },
+    });
+
+    // Verify recorded for campaign A keeps the earlier click
+    const recordedA = await waitFor(
+      () => $fetch<{ periodClicks: number; meta: { attribution: string } }>(
+        `/api/campaigns/${campaignA.id}/analytics?attribution=recorded`,
+        { headers: { cookie } },
+      ),
+      res => res.periodClicks >= 1,
+    );
+    expect(recordedA.periodClicks).toBe(1);
+
+    // Verify current for campaign A loses it
+    const currentA = await $fetch<{ periodClicks: number; meta: { attribution: string } }>(
+      `/api/campaigns/${campaignA.id}/analytics?attribution=current`,
+      { headers: { cookie } },
+    );
+    expect(currentA.periodClicks).toBe(0);
+  });
+
+  it('leaves events readable through utm_campaign after campaign is deleted', async () => {
+    const cookie = await loginCookie();
+    const campaign = await $fetch<CampaignDto>('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Deletable', utmCampaign: 'to-be-deleted' },
+      headers: { cookie },
+    });
+    const link = await $fetch<{ id: string; slug: string }>('/api/links', {
+      method: 'POST',
+      body: { destinationUrl: 'https://example.com/del', campaignId: campaign.id },
+      headers: { cookie },
+    });
+
+    await fetch(`/${link.slug}`, { redirect: 'manual' });
+
+    // Delete campaign
+    await $fetch(`/api/campaigns/${campaign.id}`, { method: 'DELETE', headers: { cookie } });
+
+    // Verify event in DB is still readable through utm_campaign
+    const db = openTestDatabase(TEST_DB);
+    const events = await waitFor(
+      () => db.select().from(clickEvents).where(eq(clickEvents.utmCampaign, 'to-be-deleted')),
+      rows => rows.length >= 1,
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0]?.utmCampaign).toBe('to-be-deleted');
+    expect(events[0]?.campaignId).toBe(campaign.id);
+  });
+
+  it('returns unchanged response fields to an existing client without query', async () => {
+    const cookie = await loginCookie();
+    const campaign = await $fetch<CampaignDto>('/api/campaigns', {
+      method: 'POST',
+      body: { name: 'Compat', utmCampaign: 'compat' },
+      headers: { cookie },
+    });
+
+    const analytics = await $fetch<{
+      totalClicks: number;
+      linkCount: number;
+      bySource: unknown[];
+      topLinks: unknown[];
+      periodClicks: number;
+      series: unknown[];
+      meta: { attribution: string; legacyCount: number };
+    }>(`/api/campaigns/${campaign.id}/analytics`, { headers: { cookie } });
+
+    expect(analytics).toHaveProperty('totalClicks');
+    expect(analytics).toHaveProperty('linkCount');
+    expect(analytics).toHaveProperty('bySource');
+    expect(analytics).toHaveProperty('topLinks');
+    expect(analytics).toHaveProperty('periodClicks');
+    expect(analytics).toHaveProperty('series');
+    expect(analytics.meta.attribution).toBe('current');
+    expect(analytics.meta.legacyCount).toBe(0);
   });
 });

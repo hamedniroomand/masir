@@ -1,23 +1,38 @@
 <script setup lang="ts">
 import type { LinkItem } from '~/composables/useLinks';
 
-const props = defineProps<{ link: LinkItem }>();
+const props = defineProps<{
+  link: LinkItem;
+  selected?: boolean;
+  selectable?: boolean;
+  inTrash?: boolean;
+}>();
 
-const emit = defineEmits<{ refresh: [] }>();
+const emit = defineEmits<{ refresh: []; 'update:selected': [value: boolean] }>();
 
 const { $api } = useNuxtApp();
 
 const { canManageLinks } = useCurrentWorkspace();
 const { copy, copied } = useClipboard();
 const showError = useErrorToast();
+const { offerUndo, offerExpiredRestore, restoreLink } = useLinkUndoToast();
 const { saving: togglingEnabled, patch } = useLinkPatch(() => props.link.id);
 const deleting = ref(false);
+const archiving = ref(false);
+const restoring = ref(false);
 const modal = ref(false);
 const qrOpen = ref(false);
 
 const name = computed(() => props.link.title || props.link.slug);
 
 const menuItems = computed(() => {
+  if (props.inTrash) {
+    if (!canManageLinks.value)
+      return [[{ label: 'In trash', icon: 'i-lucide-trash-2', disabled: true }]];
+    return [[
+      { label: 'Restore', icon: 'i-lucide-undo-2', disabled: restoring.value, onSelect: restore },
+    ]];
+  }
   const read = [
     { label: 'View analytics', icon: 'i-lucide-chart-no-axes-column-increasing', to: `/links/${props.link.id}#analytics` },
     { label: 'QR code', icon: 'i-lucide-qr-code', onSelect: () => { qrOpen.value = true; } },
@@ -29,6 +44,7 @@ const menuItems = computed(() => {
     [{ label: 'Edit link', icon: 'i-lucide-pencil', to: `/links/${props.link.id}?tab=settings` }, ...read],
     [
       { label: props.link.isEnabled ? 'Disable link' : 'Enable link', icon: props.link.isEnabled ? 'i-lucide-pause' : 'i-lucide-play', disabled: togglingEnabled.value, onSelect: toggleEnabled },
+      { label: props.link.archived ? 'Unarchive' : 'Archive', icon: props.link.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive', disabled: archiving.value, onSelect: toggleArchive },
       { label: 'Delete link', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => { modal.value = true; } },
     ],
   ];
@@ -44,12 +60,62 @@ async function toggleEnabled() {
   }
 }
 
+async function toggleArchive() {
+  const next = !props.link.archived;
+  archiving.value = true;
+  try {
+    await patch({ archived: next });
+    emit('refresh');
+    offerUndo(
+      next ? 'Archived.' : 'Removed from archive.',
+      async () => {
+        await $api(`/api/links/${props.link.id}`, { method: 'PATCH', body: { archived: !next } });
+      },
+      () => emit('refresh'),
+    );
+  }
+  catch (error) {
+    showError(error);
+  }
+  finally {
+    archiving.value = false;
+  }
+}
+
+async function restore() {
+  restoring.value = true;
+  try {
+    const restored = await restoreLink(props.link.id);
+    emit('refresh');
+    if (restored.status === 'expired')
+      offerExpiredRestore(props.link.id);
+  }
+  catch (error) {
+    showError(error);
+  }
+  finally {
+    restoring.value = false;
+  }
+}
+
 async function remove() {
   deleting.value = true;
   try {
-    await $api(`/api/links/${props.link.id}`, { method: 'DELETE' });
+    const id = props.link.id;
+    await $api(`/api/links/${id}`, { method: 'DELETE' });
+    if (props.link.campaignId)
+      void refreshCampaignsList();
     modal.value = false;
     emit('refresh');
+    offerUndo(
+      'Moved to trash.',
+      async () => {
+        const restored = await restoreLink(id);
+        if (restored.status === 'expired')
+          offerExpiredRestore(id);
+      },
+      () => emit('refresh'),
+    );
   }
   catch (error) {
     showError(error);
@@ -62,17 +128,39 @@ async function remove() {
 
 <template>
   <article class="link-grid group px-5 py-4 transition-colors hover:bg-muted/60">
+    <div v-if="selectable" class="flex items-center">
+      <UCheckbox
+        :model-value="selected"
+        :aria-label="`Select ${name}`"
+        @update:model-value="emit('update:selected', $event === true)"
+      />
+    </div>
+    <div v-else />
     <div class="flex min-w-0 items-center gap-3.5">
       <div class="record-icon" aria-hidden="true">
         {{ link.destinationHost.replace(/^www\./, '').charAt(0).toUpperCase() }}
       </div>
       <div class="min-w-0">
-        <NuxtLink :to="`/links/${link.id}`" class="block truncate text-[13px] font-semibold text-highlighted hover:text-primary">
+        <NuxtLink
+          v-if="!inTrash"
+          :to="`/links/${link.id}`"
+          class="block truncate text-[13px] font-semibold text-highlighted hover:text-primary"
+        >
           {{ name }}
         </NuxtLink>
+        <p v-else class="truncate text-[13px] font-semibold text-highlighted">
+          {{ name }}
+        </p>
         <div class="mt-1 flex min-w-0 items-center gap-1.5 text-xs">
           <UIcon v-if="link.isProtected" name="i-lucide-lock-keyhole" class="size-3 shrink-0 text-muted" />
-          <a :href="link.shortUrl" target="_blank" rel="noopener noreferrer" class="truncate text-primary hover:underline">{{ link.shortUrl.replace(/^https?:\/\//, '') }}</a>
+          <a
+            v-if="!inTrash"
+            :href="link.shortUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="truncate text-primary hover:underline"
+          >{{ link.shortUrl.replace(/^https?:\/\//, '') }}</a>
+          <span v-else class="truncate text-muted">{{ link.shortUrl.replace(/^https?:\/\//, '') }}</span>
         </div>
         <div v-if="link.tags.length" class="mt-2 flex flex-wrap gap-1">
           <UBadge v-for="tag in link.tags" :key="tag" :label="tag" color="neutral" variant="soft" size="sm" />
@@ -82,29 +170,49 @@ async function remove() {
     <span class="hidden truncate text-xs text-muted xl:block" :title="link.destinationUrl">{{ link.destinationHost }}</span>
     <div class="flex items-center justify-between gap-3 ps-13.5 md:contents">
       <LinkStatusBadge :link="link" />
-      <NuxtLink :to="`/links/${link.id}#analytics`" class="flex items-center justify-end gap-1.5 text-xs tabular-nums text-muted hover:text-primary" :aria-label="`${link.clickCount} clicks. View analytics for ${name}`">
+      <NuxtLink
+        v-if="!inTrash"
+        :to="`/links/${link.id}#analytics`"
+        class="flex items-center justify-end gap-1.5 text-xs tabular-nums text-muted hover:text-primary"
+        :aria-label="`${link.clickCount} clicks. View analytics for ${name}`"
+      >
         <UIcon name="i-lucide-chart-no-axes-column-increasing" class="size-3.5" />
         <span class="font-medium text-highlighted">{{ link.clickCount.toLocaleString() }}</span><span class="md:hidden">clicks</span>
       </NuxtLink>
+      <span v-else class="flex items-center justify-end gap-1.5 text-xs tabular-nums text-muted">
+        <UIcon name="i-lucide-chart-no-axes-column-increasing" class="size-3.5" />
+        <span class="font-medium text-highlighted">{{ link.clickCount.toLocaleString() }}</span><span class="md:hidden">clicks</span>
+      </span>
       <div class="flex items-center justify-end gap-0.5">
-        <UTooltip :text="copied ? 'Copied' : 'Copy link'">
+        <UTooltip v-if="!inTrash" :text="copied ? 'Copied' : 'Copy link'">
           <UButton size="sm" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" :aria-label="copied ? 'Copied' : `Copy ${name}`" color="neutral" variant="ghost" @click="copy(link.shortUrl)" />
         </UTooltip>
-        <UDropdownMenu :items="menuItems">
+        <UButton
+          v-if="inTrash && canManageLinks"
+          size="sm"
+          icon="i-lucide-undo-2"
+          label="Restore"
+          color="neutral"
+          variant="ghost"
+          :loading="restoring"
+          @click="restore"
+        />
+        <UDropdownMenu v-else :items="menuItems">
           <UButton icon="i-lucide-ellipsis" :aria-label="`Actions for ${name}`" size="sm" color="neutral" variant="ghost" />
         </UDropdownMenu>
       </div>
     </div>
     <LinkQrSlideover
+      v-if="!inTrash"
       v-model:open="qrOpen"
       :link-id="link.id"
       :short-url="link.shortUrl"
       :label="name"
     />
-    <UModal v-if="canManageLinks" v-model:open="modal" title="Delete link" description="This action cannot be undone.">
+    <UModal v-if="canManageLinks && !inTrash" v-model:open="modal" title="Delete link" description="The link moves to Trash. You can restore it later.">
       <template #body>
         <p class="text-sm">
-          Delete <strong>{{ name }}</strong>? Anyone with this short link or QR code will no longer reach the destination.
+          Delete <strong>{{ name }}</strong>? Anyone with this short link or QR code will no longer reach the destination until you restore it.
         </p>
       </template>
       <template #footer>

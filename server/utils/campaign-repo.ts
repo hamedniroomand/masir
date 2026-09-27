@@ -38,6 +38,24 @@ export async function listCampaigns(workspaceId: string) {
   }));
 }
 
+export async function getCampaignStats(id: string, workspaceId: string) {
+  const db = await getDb();
+  const [stats] = await db.select({
+    linkCount: sql<number>`count(${links.id}) filter (where ${links.deletedAt} is null)`,
+    clickCount: sql<number>`coalesce(sum(${links.clickCount}), 0)`,
+  })
+    .from(campaigns)
+    .leftJoin(links, eq(links.campaignId, campaigns.id))
+    .where(and(eq(campaigns.id, id), eq(campaigns.workspaceId, workspaceId)))
+    .groupBy(campaigns.id)
+    .limit(1);
+
+  return {
+    linkCount: Number(stats?.linkCount ?? 0),
+    clickCount: Number(stats?.clickCount ?? 0),
+  };
+}
+
 export async function findCampaignForWorkspace(id: string, workspaceId: string) {
   if (!isUuid(id))
     return null;

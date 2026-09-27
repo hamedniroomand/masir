@@ -19,7 +19,7 @@
     "docs:build": "bun --filter masir-docs build",
     "docs:preview": "bun --filter masir-docs preview",
     "postinstall": "nuxt prepare",
-    "lint": "eslint .",
+    "lint": "bun --bun eslint .",
     "typecheck": "nuxt typecheck",
     "pretest": "sh scripts/test-db.sh",
     "test": "bun --bun vitest run",
@@ -33,6 +33,7 @@
     "db:migrate": "bun run scripts/migrate.ts",
     "db:studio": "bun --bun drizzle-kit studio",
     "db:seed:admin": "bun run scripts/seed-admin.ts",
+    "bench:redirect": "bun run scripts/bench-redirect.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -58,7 +59,7 @@
     "@commitlint/config-conventional": "^21.2.3",
     "@nuxt/test-utils": "^4.3.2",
     "@playwright/test": "^1.63.0",
-    "@sentry/cli": "^2.58.6",
+    "@sentry/cli": "^3.8.0",
     "@types/bun": "^1.4.2",
     "@types/nodemailer": "^8.0.2",
     "@vitest/coverage-v8": "^5.0.1",

@@ -3,12 +3,17 @@ import type { WorkspaceRole } from '#shared/permissions';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { users, workspaceMembers, workspaces } from '#server/database/schema';
 import { getDb, isUuid } from '#server/utils/db';
+import { getRetainedPrefixesCached } from '#server/utils/link-prefix-repo';
 import { roleLabel, roleName } from '#shared/permissions';
 
 export async function findWorkspaceBySlug(slug: string) {
   const db = await getDb();
   const rows = await db.select().from(workspaces).where(and(eq(workspaces.slug, slug), isNull(workspaces.deletedAt))).limit(1);
-  return rows[0] ?? null;
+  const workspace = rows[0];
+  if (!workspace)
+    return null;
+  const retainedPrefixes = await getRetainedPrefixesCached(workspace.id);
+  return { ...workspace, retainedPrefixes };
 }
 
 export async function findWorkspaceById(id: string) {
@@ -16,7 +21,11 @@ export async function findWorkspaceById(id: string) {
     return null;
   const db = await getDb();
   const rows = await db.select().from(workspaces).where(and(eq(workspaces.id, id), isNull(workspaces.deletedAt))).limit(1);
-  return rows[0] ?? null;
+  const workspace = rows[0];
+  if (!workspace)
+    return null;
+  const retainedPrefixes = await getRetainedPrefixesCached(workspace.id);
+  return { ...workspace, retainedPrefixes };
 }
 
 // Self-hosted holds one workspace. The host carries no subdomain there.
@@ -27,7 +36,11 @@ export async function findWorkspaceById(id: string) {
 export async function findSingleWorkspace() {
   const db = await getDb();
   const rows = await db.select().from(workspaces).where(isNull(workspaces.deletedAt)).limit(1);
-  return rows[0] ?? null;
+  const workspace = rows[0];
+  if (!workspace)
+    return null;
+  const retainedPrefixes = await getRetainedPrefixesCached(workspace.id);
+  return { ...workspace, retainedPrefixes };
 }
 
 export async function findMembership(workspaceId: string, userId: string) {

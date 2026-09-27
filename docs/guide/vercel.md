@@ -48,11 +48,16 @@ Country targeting and analytics will then use the platform value.
 
 Set `NUXT_ALERTS_INTERVAL_MINUTES=0` and a strong `NUXT_JOBS_SECRET`.
 
-Configure a scheduler to send `POST /api/jobs/alerts` with:
+Configure a daily scheduler to send `POST /api/jobs/alerts` with:
 
 ```text
 Authorization: Bearer <NUXT_JOBS_SECRET>
 ```
+
+This route is the single maintenance entry point. Each call runs every
+maintenance job, such as the expiry alert sweep and the demo sweep. With the
+internal loop off, two calls at the same time can run the same job at the same
+time. Each sweep claims its rows, so no alert goes out two times.
 
 The route returns `404` when no secret is configured and `401` for a wrong
 secret.
@@ -66,4 +71,3 @@ secret.
 - Migrations must run outside request startup.
 
 <ReadMore to="/reference/environment" title="Review every runtime value" />
-

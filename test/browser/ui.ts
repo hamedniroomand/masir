@@ -21,7 +21,7 @@ export async function pickDate(page: Page, trigger: Locator, date: Date) {
 // A Nuxt UI select is a combobox button, not a native select, so the choice
 // takes two clicks.
 export async function chooseOption(page: Page, label: string, option: string) {
-  await page.getByLabel(label, { exact: true }).click();
+  await page.getByRole('combobox', { name: label, exact: true }).click();
   await page.getByRole('option', { name: option, exact: true }).click();
 }
 

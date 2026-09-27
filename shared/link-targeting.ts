@@ -47,20 +47,31 @@ export function normalizeTargeting(input: LinkTargeting | null | undefined): Lin
   return Object.keys(out).length ? out : null;
 }
 
+export type TargetingRule = 'country' | 'os' | 'default';
+
 // A country rule is the rarer and more deliberate one, so it wins over an os
 // rule when both match.
-export function resolveDestination(
-  link: { destinationUrl: string; targeting: LinkTargeting | null },
+export function resolveDestinationWithRule(
+  link: { destinationUrl: string; targeting?: LinkTargeting | null },
   meta: { os: RequestOs; country: string | null },
-): string {
+): { destination: string; rule: TargetingRule } {
   const targeting = link.targeting;
   if (!targeting)
-    return link.destinationUrl;
+    return { destination: link.destinationUrl, rule: 'default' };
   const byCountry = meta.country ? targeting.country?.[meta.country] : undefined;
   if (byCountry)
-    return byCountry;
+    return { destination: byCountry, rule: 'country' };
   const byOs = meta.os === 'other' ? undefined : targeting.os?.[meta.os];
-  return byOs ?? link.destinationUrl;
+  if (byOs)
+    return { destination: byOs, rule: 'os' };
+  return { destination: link.destinationUrl, rule: 'default' };
+}
+
+export function resolveDestination(
+  link: { destinationUrl: string; targeting?: LinkTargeting | null },
+  meta: { os: RequestOs; country: string | null },
+): string {
+  return resolveDestinationWithRule(link, meta).destination;
 }
 
 export function targetingUrls(targeting: LinkTargeting | null | undefined): string[] {

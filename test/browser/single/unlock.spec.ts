@@ -12,7 +12,7 @@ test.beforeAll(({ db, server }) => {
 
 test('opens the destination when the password is right', async ({ page, server }) => {
   await page.goto('/vault');
-  await expect(page).toHaveURL(/\/p\/vault$/);
+  await expect(page).toHaveURL(url => url.pathname === '/p/vault' && url.searchParams.get('path') === '/vault');
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(`${server.baseURL}/login?via=vault`);
@@ -20,7 +20,7 @@ test('opens the destination when the password is right', async ({ page, server }
 
 test('lets the visitor through again inside the grant window', async ({ page, server }) => {
   await page.goto('/vault');
-  await expect(page).toHaveURL(/\/p\/vault$/);
+  await expect(page).toHaveURL(url => url.pathname === '/p/vault' && url.searchParams.get('path') === '/vault');
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(`${server.baseURL}/login?via=vault`);
