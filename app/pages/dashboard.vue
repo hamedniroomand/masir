@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { LinkItem } from '~/composables/useLinks';
+
 definePageMeta({ layout: 'default' });
 useHead({ title: 'Overview · Masir' });
 
@@ -27,10 +29,18 @@ const { period, fromDate, toDate, compare, query: rangeQuery } = useAnalyticsRan
 const createOpen = ref(false);
 const { current, canManageLinks } = useCurrentWorkspace();
 
-const { data, pending, error, refresh } = useApi<Dashboard>('/api/workspaces/analytics', {
+const { data, pending: analyticsPending, error, refresh: refreshAnalytics } = useApi<Dashboard>('/api/workspaces/analytics', {
   query: rangeQuery,
   watch: [rangeQuery],
 });
+const { data: links, pending: linksPending, refresh: refreshLinks } = useApi<{ items: LinkItem[]; total: number }>('/api/links', {
+  query: { perPage: 10 },
+});
+const pending = computed(() => analyticsPending.value || linksPending.value);
+
+function refresh() {
+  return Promise.all([refreshAnalytics(), refreshLinks()]);
+}
 
 const hourly = computed(() => {
   if (period.value === '24h')
@@ -95,12 +105,6 @@ function noteFor(group: string, link: Summary) {
       </div>
     </div>
 
-    <FirstUseChecklist
-      v-if="canManageLinks && current"
-      :workspace-id="current.id"
-      @create-link="createOpen = true"
-    />
-
     <div v-if="pending" class="space-y-4" role="status" aria-label="Loading the overview">
       <USkeleton v-for="n in 3" :key="n" class="h-24 w-full" /><span class="sr-only">Loading the overview</span>
     </div>
@@ -110,6 +114,14 @@ function noteFor(group: string, link: Summary) {
     </div>
 
     <template v-else-if="data">
+      <FirstUseChecklist
+        v-if="canManageLinks && current && links"
+        :workspace-id="current.id"
+        :links="links.items"
+        :link-count="links.total"
+        @create-link="createOpen = true"
+      />
+
       <div v-if="isEmpty" class="surface relative isolate overflow-hidden px-5 py-20 text-center">
         <BrandPattern variant="edges" />
         <div class="mx-auto mb-5 flex size-14 items-center justify-center rounded-xl border border-default bg-primary/5 shadow-control">

@@ -3,6 +3,8 @@ import type { LinkItem } from '~/composables/useLinks';
 
 const props = defineProps<{
   workspaceId: string;
+  links: LinkItem[];
+  linkCount: number;
 }>();
 
 const emit = defineEmits<{
@@ -17,78 +19,34 @@ type StoredState = {
   inspected: boolean;
 };
 
-const storageKey = computed(() => `masir:first-use:${props.workspaceId}`);
-const dismissed = ref(false);
-const shared = ref(false);
-const inspected = ref(false);
-
-onMounted(() => {
-  try {
-    const raw = localStorage.getItem(storageKey.value);
-    if (raw) {
-      if (raw === 'dismissed') {
-        dismissed.value = true;
-      }
-      else {
-        const parsed = JSON.parse(raw) as Partial<StoredState>;
-        dismissed.value = Boolean(parsed.dismissed);
-        shared.value = Boolean(parsed.shared);
-        inspected.value = Boolean(parsed.inspected);
-      }
-    }
-  }
-  catch {
-    // Ignore storage parse issues
-  }
-});
-
-function saveState() {
-  try {
-    localStorage.setItem(
-      storageKey.value,
-      JSON.stringify({
-        dismissed: dismissed.value,
-        shared: shared.value,
-        inspected: inspected.value,
-      }),
-    );
-  }
-  catch {
-    // Ignore storage issues
-  }
-}
+const state = useLocalStorage<StoredState>(
+  () => `masir:first-use:${props.workspaceId}`,
+  { dismissed: false, shared: false, inspected: false },
+);
 
 function dismiss() {
-  dismissed.value = true;
-  saveState();
+  state.value.dismissed = true;
 }
 
 function onShare(shortUrl: string) {
   copy(shortUrl);
-  shared.value = true;
-  saveState();
+  state.value.shared = true;
 }
 
 function onInspect() {
-  inspected.value = true;
-  saveState();
+  state.value.inspected = true;
 }
 
-const { data: linksData } = useApi<{ items: LinkItem[]; total: number }>('/api/links', {
-  query: computed(() => ({ perPage: 10 })),
-});
+const firstLink = computed(() => props.links[0] ?? null);
+const hasClicks = computed(() => props.links.some(item => item.clickCount > 0));
 
-const linkCount = computed(() => linksData.value?.total ?? 0);
-const firstLink = computed(() => linksData.value?.items?.[0] ?? null);
-const hasClicks = computed(() => (linksData.value?.items ?? []).some(item => item.clickCount > 0));
-
-const createdStep = computed(() => linkCount.value > 0);
-const sharedStep = computed(() => shared.value || hasClicks.value);
-const inspectedStep = computed(() => inspected.value);
+const createdStep = computed(() => props.linkCount > 0);
+const sharedStep = computed(() => state.value.shared || hasClicks.value);
+const inspectedStep = computed(() => state.value.inspected);
 
 const { isOperator } = useOperatorStatus();
 
-const visible = computed(() => !dismissed.value && linkCount.value < 3);
+const visible = computed(() => !state.value.dismissed && props.linkCount < 3);
 </script>
 
 <template>
