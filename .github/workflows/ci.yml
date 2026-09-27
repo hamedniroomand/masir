@@ -1,10 +1,10 @@
 name: ci
 
-# main pushes run through deploy.yml and tag pushes through release.yml.
-# Both call this workflow, so main is excluded here to stop a double run.
+# Pushes to main run through deploy.yml. Tag pushes run through release.yml.
+# Both call this workflow, so main is not a push trigger here.
 on:
-  push:
-    branches: ['**', '!main']
+  pull_request:
+    branches: [main]
   workflow_call:
 
 jobs:
