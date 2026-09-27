@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM oven/bun:1 AS build
+FROM oven/bun:1.4.2-slim AS build
 WORKDIR /app
 # Compiles the Sentry module in. It stays off until a DSN is set at run time.
 ENV SENTRY_BUILD=true
@@ -20,7 +20,7 @@ RUN bun build scripts/migrate.ts scripts/seed-admin.ts --target bun --outdir .ou
 # second version to track.
 RUN cp "$(bun -e "console.log(require('@sentry/cli').getPath())")" /usr/local/bin/sentry-cli
 
-FROM oven/bun:1
+FROM oven/bun:1.4.2-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build --chown=bun:bun /app/.output ./.output
