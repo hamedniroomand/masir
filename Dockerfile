@@ -18,7 +18,7 @@ RUN bun build scripts/migrate.ts scripts/seed-admin.ts --target bun --outdir .ou
 # The image carries sentry-cli to upload the source maps when the container
 # starts. It comes from the lockfile, so there is no download to verify and no
 # second version to track.
-RUN cp "$(bun -e "console.log(require('@sentry/cli').getPath())")" /usr/local/bin/sentry-cli
+RUN cp "$(bun -e "console.log(require('@sentry/cli').SentryCli.getPath())")" /usr/local/bin/sentry-cli
 
 FROM oven/bun:1.4.2-slim
 WORKDIR /app
