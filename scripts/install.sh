@@ -79,7 +79,7 @@ Admin:    $(sed -n 's/^ADMIN_EMAIL=//p' .env) / $(sed -n 's/^ADMIN_PASSWORD=//p'
 
 Next:
   1. Point a reverse proxy with TLS at port $(sed -n 's/^MASIR_APP_PORT=//p' .env).
-     https://hamedniroomand.github.io/masir/guide/self-hosting#behind-a-reverse-proxy
+     https://docs.masir.dev/guide/self-hosting#behind-a-reverse-proxy
   2. Create the first account, then change its password after sign-in:
        cd $DIR && docker compose exec app bun run db:seed:admin
 MSG

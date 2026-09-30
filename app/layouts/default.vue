@@ -31,7 +31,7 @@ const workspaceMenuItems = computed(() => {
 
 const accountMenu = computed(() => {
   const help = [
-    { label: 'Documentation', icon: 'i-lucide-book-open', to: 'https://hamedniroomand.github.io/masir/', target: '_blank' },
+    { label: 'Documentation', icon: 'i-lucide-book-open', to: 'https://docs.masir.dev/', target: '_blank' },
     { label: 'GitHub', icon: 'i-simple-icons-github', to: 'https://github.com/hamedniroomand/masir', target: '_blank' },
   ];
   return [

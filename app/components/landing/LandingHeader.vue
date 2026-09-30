@@ -14,7 +14,7 @@ const sections = [
       <a href="#top" aria-label="Masir home"><AppLogo /></a>
       <nav class="hidden items-center gap-1 md:flex" aria-label="Sections">
         <UButton v-for="section in sections" :key="section.to" :label="section.label" :to="section.to" color="neutral" variant="ghost" size="sm" />
-        <UButton label="Docs" to="https://hamedniroomand.github.io/masir/" target="_blank" rel="noopener" color="neutral" variant="ghost" size="sm" />
+        <UButton label="Docs" to="https://docs.masir.dev/" target="_blank" rel="noopener" color="neutral" variant="ghost" size="sm" />
       </nav>
       <div class="flex items-center gap-2">
         <UButton label="Sign in" :to="`${appUrl}/login`" external color="neutral" variant="outline" size="sm" />

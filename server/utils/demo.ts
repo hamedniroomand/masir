@@ -19,9 +19,9 @@ const ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 const ID_LENGTH = 8;
 
 export const SEED_LINKS = [
-  { slug: 'install', title: 'Install guide', destinationUrl: 'https://hamedniroomand.github.io/masir/guide/installation', humanClicks: 120 },
-  { slug: 'features', title: 'Feature tour', destinationUrl: 'https://hamedniroomand.github.io/masir/features/', humanClicks: 90 },
-  { slug: 'analytics', title: 'Analytics docs', destinationUrl: 'https://hamedniroomand.github.io/masir/features/analytics', humanClicks: 60 },
+  { slug: 'install', title: 'Install guide', destinationUrl: 'https://docs.masir.dev/guide/installation', humanClicks: 120 },
+  { slug: 'features', title: 'Feature tour', destinationUrl: 'https://docs.masir.dev/features/', humanClicks: 90 },
+  { slug: 'analytics', title: 'Analytics docs', destinationUrl: 'https://docs.masir.dev/features/analytics', humanClicks: 60 },
   { slug: 'source', title: 'Source on GitHub', destinationUrl: 'https://github.com/hamedniroomand/masir', humanClicks: 30 },
 ] as const;
 

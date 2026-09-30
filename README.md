@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://hamedniroomand.github.io/masir/">Documentation</a> ·
-  <a href="https://hamedniroomand.github.io/masir/guide/installation">Install</a> ·
-  <a href="https://hamedniroomand.github.io/masir/reference/environment">Configuration</a> ·
+  <a href="https://docs.masir.dev/">Documentation</a> ·
+  <a href="https://docs.masir.dev/guide/installation">Install</a> ·
+  <a href="https://docs.masir.dev/reference/environment">Configuration</a> ·
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
@@ -52,16 +52,16 @@ Then create the first account and sign in at `/login`:
 docker compose exec app bun run db:seed:admin
 ```
 
-The [installation guide](https://hamedniroomand.github.io/masir/guide/installation) covers the image, building it yourself, running from source, Vercel, and multi-workspace mode.
+The [installation guide](https://docs.masir.dev/guide/installation) covers the image, building it yourself, running from source, Vercel, and multi-workspace mode.
 
 ## Documentation
 
-Everything lives at **[hamedniroomand.github.io/masir](https://hamedniroomand.github.io/masir/)**.
+Everything lives at **[docs.masir.dev](https://docs.masir.dev/)**.
 
-- [Guide](https://hamedniroomand.github.io/masir/guide/) covers installation, workspaces, sign-in, and deployment.
-- [Features](https://hamedniroomand.github.io/masir/features/) explains links, access control, targeting, analytics, and campaigns.
-- [Reference](https://hamedniroomand.github.io/masir/reference/) lists every environment variable, script, and API route.
-- [Project](https://hamedniroomand.github.io/masir/project/) describes the architecture, security model, and how to contribute.
+- [Guide](https://docs.masir.dev/guide/) covers installation, workspaces, sign-in, and deployment.
+- [Features](https://docs.masir.dev/features/) explains links, access control, targeting, analytics, and campaigns.
+- [Reference](https://docs.masir.dev/reference/) lists every environment variable, script, and API route.
+- [Project](https://docs.masir.dev/project/) describes the architecture, security model, and how to contribute.
 
 ## Built with
 

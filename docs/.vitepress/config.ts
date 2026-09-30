@@ -15,7 +15,7 @@ export default defineConfig({
   description: DESCRIPTION,
   lang: 'en-US',
 
-  base: '/masir/',
+  base: '/',
 
   cleanUrls: true,
   lastUpdated: true,
@@ -23,24 +23,24 @@ export default defineConfig({
   // Working notes live beside the site and are not pages.
   srcExclude: ['plans/**', 'product/**', 'superpowers/**'],
 
-  sitemap: { hostname: 'https://hamedniroomand.github.io/masir/' },
+  sitemap: { hostname: 'https://docs.masir.dev/' },
 
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/masir/icon.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }],
     ['meta', { name: 'theme-color', content: '#2566f0' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Masir Documentation' }],
     ['meta', { property: 'og:description', content: DESCRIPTION }],
-    ['meta', { property: 'og:image', content: 'https://hamedniroomand.github.io/masir/og-image.png' }],
+    ['meta', { property: 'og:image', content: 'https://docs.masir.dev/og-image.png' }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: 'Masir Documentation' }],
     ['meta', { name: 'twitter:description', content: DESCRIPTION }],
-    ['meta', { name: 'twitter:image', content: 'https://hamedniroomand.github.io/masir/og-image.png' }],
+    ['meta', { name: 'twitter:image', content: 'https://docs.masir.dev/og-image.png' }],
   ],
 
   markdown: {

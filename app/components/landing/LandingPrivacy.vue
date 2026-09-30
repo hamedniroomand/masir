@@ -42,7 +42,7 @@ const selfHosted = [
             </dd>
           </div>
         </dl>
-        <UButton label="Read the install guide" to="https://hamedniroomand.github.io/masir/guide/installation" target="_blank" rel="noopener" color="neutral" variant="outline" class="mt-8" />
+        <UButton label="Read the install guide" to="https://docs.masir.dev/guide/installation" target="_blank" rel="noopener" color="neutral" variant="outline" class="mt-8" />
       </div>
     </div>
   </LandingSection>

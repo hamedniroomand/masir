@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{ expiresAt: string }>();
 
-const INSTALL_GUIDE = 'https://hamedniroomand.github.io/masir/guide/installation';
+const INSTALL_GUIDE = 'https://docs.masir.dev/guide/installation';
 
 const hoursLeft = computed(() => Math.max(0, Math.ceil((new Date(props.expiresAt).getTime() - Date.now()) / 3_600_000)));
 </script>

@@ -17,7 +17,7 @@ defineProps<{ appUrl: string; registration: boolean; demo: boolean }>();
           <LandingDemoButton v-if="demo" />
           <UButton v-if="registration" label="Create your workspace" :to="`${appUrl}/register`" external size="lg" :variant="demo ? 'outline' : 'solid'" :color="demo ? 'neutral' : 'primary'" />
           <UButton label="Sign in" :to="`${appUrl}/login`" external size="lg" :variant="registration ? 'outline' : 'solid'" :color="registration ? 'neutral' : 'primary'" />
-          <UButton label="Read the install guide" to="https://hamedniroomand.github.io/masir/guide/installation" target="_blank" rel="noopener" size="lg" color="neutral" variant="ghost" />
+          <UButton label="Read the install guide" to="https://docs.masir.dev/guide/installation" target="_blank" rel="noopener" size="lg" color="neutral" variant="ghost" />
         </div>
       </div>
       <LandingPreview class="mt-16 sm:mt-20" />

@@ -9,6 +9,11 @@ the notes for every version between the one you run and the one you install.
 
 ## [Unreleased]
 
+### Changed
+
+- The documentation site moves to `https://docs.masir.dev/`. The old
+  `hamedniroomand.github.io/masir` address redirects to it.
+
 ## [1.1.0] - 2026-09-27
 
 ### Added
