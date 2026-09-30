@@ -2,6 +2,8 @@ import { defineConfig } from 'vitepress';
 
 import { icon } from './icons.ts';
 
+const SITE_URL = 'https://docs.masir.dev/';
+
 const DESCRIPTION
   = 'Masir is an open-source link management platform for teams. Run it on your infrastructure, publish links on your domain, and keep control after you share them.';
 
@@ -23,24 +25,25 @@ export default defineConfig({
   // Working notes live beside the site and are not pages.
   srcExclude: ['plans/**', 'product/**', 'superpowers/**'],
 
-  sitemap: { hostname: 'https://docs.masir.dev/' },
+  sitemap: { hostname: SITE_URL },
 
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }],
+    ['script', { defer: '', src: 'https://umami.niroomand.dev/script.js', 'data-website-id': '711941b0-b16a-4192-8c89-151f36e2e589', 'data-domains': new URL(SITE_URL).hostname }],
     ['meta', { name: 'theme-color', content: '#2566f0' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Masir Documentation' }],
     ['meta', { property: 'og:description', content: DESCRIPTION }],
-    ['meta', { property: 'og:image', content: 'https://docs.masir.dev/og-image.png' }],
+    ['meta', { property: 'og:image', content: SITE_URL + 'og-image.png' }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: 'Masir Documentation' }],
     ['meta', { name: 'twitter:description', content: DESCRIPTION }],
-    ['meta', { name: 'twitter:image', content: 'https://docs.masir.dev/og-image.png' }],
+    ['meta', { name: 'twitter:image', content: SITE_URL + 'og-image.png' }],
   ],
 
   markdown: {
