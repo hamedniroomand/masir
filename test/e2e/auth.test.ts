@@ -1,7 +1,6 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
-import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { users, workspaceMembers } from '#server/database/schema';
+import { workspaceMembers } from '#server/database/schema';
 import { e2eSetupOptions, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
@@ -48,7 +47,6 @@ describe('auth API', async () => {
   it('lets a 1.x user who never verified the email sign in and read links', async () => {
     const db = openTestDatabase(TEST_DB);
     const userId = await insertTestUser(TEST_DB, { email: 'unverified@example.com', password: TEST_PASSWORD });
-    await db.update(users).set({ emailVerifiedAt: null }).where(eq(users.id, userId));
     await db.insert(workspaceMembers).values({ workspaceId, userId, role: 'member' });
 
     const login = await fetch('/api/auth/login', {

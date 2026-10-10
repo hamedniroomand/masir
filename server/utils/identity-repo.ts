@@ -4,7 +4,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { authIdentities, users } from '#server/database/schema';
 import { getDb, isUuid } from '#server/utils/db';
 
-export const authProviders = ['PASSWORD', 'GOOGLE', 'MICROSOFT'] as const;
+export const authProviders = ['PASSWORD'] as const;
 
 export type AuthProvider = typeof authProviders[number];
 
@@ -12,14 +12,10 @@ export type AuthProvider = typeof authProviders[number];
 // labels. The two maps are the only place the two spellings meet.
 const PROVIDER_LABEL: Record<AuthProvider, AuthProviderLabel> = {
   PASSWORD: 'password',
-  GOOGLE: 'google',
-  MICROSOFT: 'microsoft',
 };
 
 const PROVIDER_NAME: Record<AuthProviderLabel, AuthProvider> = {
   password: 'PASSWORD',
-  google: 'GOOGLE',
-  microsoft: 'MICROSOFT',
 };
 
 export type Identity = Omit<AuthIdentity, 'provider'> & { provider: AuthProvider };

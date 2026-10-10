@@ -91,7 +91,7 @@ describe('password reset', async () => {
 
   it('lets a user with no password identity set one', async () => {
     const db = openTestDatabase(TEST_DB);
-    const [user] = await db.insert(users).values({ email: 'oauth-only@example.com', emailVerifiedAt: new Date() }).returning();
+    const [user] = await db.insert(users).values({ email: 'oauth-only@example.com' }).returning();
     await db.insert(workspaceMembers).values({ workspaceId, userId: user!.id, role: 'member' });
 
     await $fetch('/api/auth/forgot', { method: 'POST', body: { email: 'oauth-only@example.com' } });

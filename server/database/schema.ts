@@ -28,23 +28,19 @@ function timestampTz(name: string) {
 // application, so every insert reads it back with returning().
 const uuidV7 = sql`uuidv7()`;
 
-export const authProviderEnum = pgEnum('auth_provider', ['password', 'google', 'microsoft']);
-export const tokenPurposeEnum = pgEnum('token_purpose', ['email_verify', 'password_reset']);
-export const workspacePlanEnum = pgEnum('workspace_plan', ['trial', 'active', 'trial_expired']);
+export const authProviderEnum = pgEnum('auth_provider', ['password']);
+export const tokenPurposeEnum = pgEnum('token_purpose', ['password_reset']);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'member', 'viewer']);
 
 export type AuthProviderLabel = typeof authProviderEnum.enumValues[number];
 export type TokenPurpose = typeof tokenPurposeEnum.enumValues[number];
-export type WorkspacePlanLabel = typeof workspacePlanEnum.enumValues[number];
 export type MemberRoleLabel = typeof memberRoleEnum.enumValues[number];
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().default(uuidV7),
   email: text('email').notNull().unique(),
-  emailVerifiedAt: timestampTz('email_verified_at'),
   firstName: text('first_name'),
   lastName: text('last_name'),
-  avatarUrl: text('avatar_url'),
   // Every sealed session carries this number. Raising it refuses every session
   // that a password change or a sign-out-everywhere should end.
   sessionVersion: integer('session_version').notNull().default(0),
@@ -95,22 +91,11 @@ export const workspaces = pgTable('workspaces', {
   // Null keeps the slugs at the root. A value moves every link under
   // host/{link_prefix}/{slug} and stops the root paths resolving.
   linkPrefix: text('link_prefix'),
-  plan: workspacePlanEnum('plan').notNull().default('active'),
-  trialStartedAt: timestampTz('trial_started_at'),
-  trialEndsAt: timestampTz('trial_ends_at'),
-  subscriptionStatus: text('subscription_status'),
-  // A deleted workspace keeps its slug. A subdomain must never change hands
-  // without an operator action.
-  deletedAt: timestampTz('deleted_at'),
-  // Set only on a demo workspace. The sweep deletes the row and its owner
-  // once the time has passed.
-  expiresAt: timestampTz('expires_at'),
   createdAt: timestampTz('created_at').notNull().defaultNow(),
   updatedAt: timestampTz('updated_at').notNull().defaultNow(),
 }, table => [
   check('workspaces_slug_format_check', sql`${table.slug} ~ '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$'`),
   check('workspaces_link_prefix_format_check', sql`${table.linkPrefix} is null or ${table.linkPrefix} ~ '^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$'`),
-  index('workspaces_expires_at_idx').on(table.expiresAt).where(sql`expires_at is not null`),
 ]);
 
 export const workspaceLinkPrefixes = pgTable('workspace_link_prefixes', {

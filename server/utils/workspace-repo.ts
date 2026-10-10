@@ -9,7 +9,7 @@ export async function findWorkspaceById(id: string) {
   if (!isUuid(id))
     return null;
   const db = await getDb();
-  const rows = await db.select().from(workspaces).where(and(eq(workspaces.id, id), isNull(workspaces.deletedAt))).limit(1);
+  const rows = await db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
   const workspace = rows[0];
   if (!workspace)
     return null;
@@ -24,7 +24,7 @@ export async function findWorkspaceById(id: string) {
 // resolves, invisibly across instances. Revisit only if a profile says so.
 export async function findSingleWorkspace() {
   const db = await getDb();
-  const rows = await db.select().from(workspaces).where(isNull(workspaces.deletedAt)).orderBy(asc(workspaces.createdAt)).limit(1);
+  const rows = await db.select().from(workspaces).orderBy(asc(workspaces.createdAt)).limit(1);
   const workspace = rows[0];
   if (!workspace)
     return null;
@@ -76,7 +76,6 @@ export async function listMembershipsForUser(userId: string) {
     .where(and(
       eq(workspaceMembers.userId, userId),
       isNull(workspaceMembers.deactivatedAt),
-      isNull(workspaces.deletedAt),
     ));
   return rows.map(row => ({ ...row, role: roleName(row.role) }));
 }
