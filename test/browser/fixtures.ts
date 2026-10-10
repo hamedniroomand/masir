@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
-import { cleanEnv, databaseUrlOf, hostUrl, originOf } from './scenario';
+import { cleanEnv, databaseUrlOf, originOf } from './scenario';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const BRIDGE = resolve(ROOT, 'test/browser/bridge.ts');
@@ -23,7 +23,6 @@ function bridge<TResult>(command: string, input: Record<string, unknown>): TResu
 export type TestServer = {
   scenario: Scenario;
   baseURL: string;
-  hostUrl: (slug: string) => string;
 };
 
 export type LinkSeed = {
@@ -86,7 +85,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   scenario: ['single', { scope: 'worker', option: true }],
 
   server: [async ({ scenario }, use) => {
-    await use({ scenario, baseURL: originOf(scenario), hostUrl: slug => hostUrl(scenario, slug) });
+    await use({ scenario, baseURL: originOf(scenario) });
   }, { scope: 'worker' }],
 
   db: [async ({ scenario }, use) => {

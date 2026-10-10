@@ -5,7 +5,7 @@ export type Workspace = { id: string; name: string; slug: string; linkPrefix: st
 
 // One key, so a refresh on the settings page updates the sidebar too.
 export function useWorkspaces() {
-  return useApi<{ currentId: string | null; items: Workspace[]; multiWorkspace: boolean }>('/api/workspaces', { key: 'workspaces' });
+  return useApi<{ currentId: string | null; items: Workspace[] }>('/api/workspaces', { key: 'workspaces' });
 }
 
 // The default layout fetches the list before any page renders, so this reads

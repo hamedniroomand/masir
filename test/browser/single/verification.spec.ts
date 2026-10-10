@@ -13,13 +13,9 @@ test.beforeAll(({ db }) => {
   db.insertUser({ email: GUEST, password: PASSWORD, verified: false });
 });
 
-test('marks an unverified account and refuses a new workspace', async ({ page, login }) => {
+test('marks an unverified account', async ({ page, login }) => {
   await login(PENDING, PASSWORD);
   await expect(page.getByText('Email not verified')).toBeVisible();
-
-  const response = await page.request.post('/api/workspaces', { data: { name: 'Nope', slug: 'nope-team' } });
-  expect(response.status()).toBe(403);
-  expect((await response.json()).statusMessage).toBe('Verify your email before you make a workspace.');
 });
 
 test('refuses an unverified invitee at the invitation', async ({ page, login, db, browser, server }) => {

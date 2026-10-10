@@ -4,7 +4,7 @@ import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { findInvitationById, replaceInvitationToken } from '#server/utils/invitation-repo';
 import { sendMail } from '#server/utils/mail';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { workspaceUrl } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'members.manage');
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
   // A resend replaces the token, so the previous link stops working.
   const raw = await replaceInvitationToken(id);
-  const base = workspaceUrl(workspace.slug, config as never);
+  const base = appUrl(config as never);
   await sendMail(inviteMessage(invitation.email, workspace.name, `${base}/invite?token=${raw}`));
   await writeAuditEvent('invitation_resent', { invitationId: id }, { workspaceId, actor: user.id });
 

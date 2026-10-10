@@ -10,6 +10,7 @@ import {
   resetTestDb,
   TEST_EMAIL,
   TEST_PASSWORD,
+  TEST_WORKSPACE_SLUG,
   testDatabaseUrl,
 } from './helpers';
 import { openTestDatabase } from './test-db';
@@ -66,6 +67,13 @@ describe('workspace isolation', async () => {
       linkId: linkInB,
       tagId: tagInB!.id,
     });
+  });
+
+  it('serves the oldest workspace when the database holds two', async () => {
+    const cookie = await loginCookie();
+    const list = await $fetch<{ currentId: string; items: { id: string; slug: string }[] }>('/api/workspaces', { headers: { cookie } });
+    expect(list.items.find(item => item.id === list.currentId)?.slug).toBe(TEST_WORKSPACE_SLUG);
+    expect(list).not.toHaveProperty('multiWorkspace');
   });
 
   it('refuses to read another workspace link by id', async () => {

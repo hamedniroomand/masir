@@ -6,9 +6,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: 'short',
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_SESSION_PASSWORD/);
   });
@@ -17,9 +15,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'file:./data/x.db',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000' },
     })).toThrow(/NUXT_DATABASE_URL/);
   });
@@ -28,9 +24,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', scripts: { googleAnalytics: { id: 'UA-123' } } },
     })).toThrow(/NUXT_PUBLIC_SCRIPTS_GOOGLE_ANALYTICS_ID/);
   });
@@ -39,9 +33,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', scripts: { googleAnalytics: { id: '' } } },
     })).not.toThrow();
   });
@@ -50,9 +42,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: 'abc' } } },
     })).toThrow(/NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_WEBSITE_ID/);
   });
@@ -61,9 +51,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: '94db1cb1-74f4-4a40-ad6c-962362670409', hostUrl: 'umami.example.com' } } },
     })).toThrow(/NUXT_PUBLIC_SCRIPTS_UMAMI_ANALYTICS_HOST_URL/);
   });
@@ -73,9 +61,7 @@ describe('assertRuntimeConfig', () => {
       expect(() => assertRuntimeConfig({
         sessionPassword: '0'.repeat(32),
         databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-        deploymentMode: 'SELF_HOSTED' as const,
         rootDomain: 'http://localhost:3000',
-        multiWorkspace: false,
         public: { shortDomain: 'http://localhost:3000', scripts: { umamiAnalytics: { websiteId: '94DB1CB1-74F4-4A40-AD6C-962362670409', hostUrl } } },
       })).not.toThrow();
     }
@@ -85,9 +71,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', sentry: { dsn: '' } },
     })).not.toThrow();
   });
@@ -96,9 +80,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', sentry: { dsn: 'not-a-url' } },
     })).toThrow(/NUXT_PUBLIC_SENTRY_DSN/);
   });
@@ -107,9 +89,7 @@ describe('assertRuntimeConfig', () => {
     expect(() => assertRuntimeConfig({
       sessionPassword: '0'.repeat(32),
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000', sentry: { tracesSampleRate: 2 } },
     })).toThrow(/NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE/);
   });
@@ -118,9 +98,7 @@ describe('assertRuntimeConfig', () => {
     const base = {
       sessionPassword: '01234567890123456789012345678901',
       databaseUrl: 'postgres://u:p@127.0.0.1:5432/x',
-      deploymentMode: 'SELF_HOSTED' as const,
       rootDomain: 'http://localhost:3000',
-      multiWorkspace: false,
       public: { shortDomain: 'http://localhost:3000' },
     };
     expect(() => assertRuntimeConfig({ ...base, alertsIntervalMinutes: -1 })).toThrow(/NUXT_ALERTS_INTERVAL_MINUTES/);

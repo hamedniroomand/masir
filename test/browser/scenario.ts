@@ -4,7 +4,7 @@ import process from 'node:process';
 
 // Each scenario is one operator's .env. A project runs its tests against a
 // server started with exactly that configuration, on its own port and database.
-export type Scenario = 'single' | 'multi' | 'cloud';
+export type Scenario = 'single';
 
 export const SESSION_PASSWORD = '01234567890123456789012345678901';
 
@@ -13,29 +13,18 @@ export const SESSION_PASSWORD = '01234567890123456789012345678901';
 // Keep it in step with scripts/stop-browser-servers.sh.
 const SLOT = Number(process.env.MASIR_TEST_SLOT) || 0;
 
-const PORTS: Record<Scenario, number> = { single: 3101 + SLOT * 10, multi: 3102 + SLOT * 10, cloud: 3103 + SLOT * 10 };
+const PORTS: Record<Scenario, number> = { single: 3101 + SLOT * 10 };
 
-// Chromium stores a cookie for `localhost` as host-only and ignores a Domain
-// of `.localhost`, so a session set on the root host never reaches
-// `acme.localhost`. The multi-workspace scenarios use a dotted name instead,
-// which playwright.config maps onto loopback inside the browser.
-export const TEST_DOMAIN = 'masir.test';
-
-function hostOf(scenario: Scenario) {
-  return scenario === 'single' ? 'localhost' : TEST_DOMAIN;
+function hostOf(_scenario: Scenario) {
+  return 'localhost';
 }
 
 export function originOf(scenario: Scenario) {
   return `http://${hostOf(scenario)}:${PORTS[scenario]}`;
 }
 
-// Node resolves nothing under masir.test, so readiness checks use localhost.
 export function healthUrlOf(scenario: Scenario) {
   return `http://localhost:${PORTS[scenario]}/api/health`;
-}
-
-export function hostUrl(scenario: Scenario, slug: string) {
-  return `http://${slug}.${hostOf(scenario)}:${PORTS[scenario]}`;
 }
 
 export function databaseUrlOf(scenario: Scenario) {
@@ -71,30 +60,5 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     NUXT_STORAGE_LOCAL_ROOT: join(tmpdir(), 'masir-browser-uploads'),
     NUXT_STORAGE_PUBLIC_BASE_URL: `${origin}/uploads`,
   };
-  const multi = {
-    NUXT_MULTI_WORKSPACE: 'true',
-    NUXT_SESSION_COOKIE_DOMAIN: `.${TEST_DOMAIN}`,
-    // Chromium accepts a Secure cookie from http://localhost but not from
-    // http://masir.test.
-    NUXT_SESSION_COOKIE_SECURE: 'false',
-  };
-  switch (scenario) {
-    case 'single':
-      return { ...shared, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED', NUXT_MULTI_WORKSPACE: 'false' };
-    case 'multi':
-      return { ...shared, ...multi, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED' };
-    case 'cloud':
-      return {
-        ...shared,
-        ...multi,
-        NUXT_DEPLOYMENT_MODE: 'CLOUD',
-        // CLOUD refuses disk storage, so a bucket must be named. Nothing uploads.
-        NUXT_STORAGE_BUCKET: 'test-bucket',
-        NUXT_STORAGE_ACCESS_KEY_ID: 'test',
-        NUXT_STORAGE_SECRET_ACCESS_KEY: 'test',
-        NUXT_STORAGE_ENDPOINT: 'http://127.0.0.1:9',
-        NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test-client',
-        NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test-secret',
-      };
-  }
+  return shared;
 }

@@ -1,33 +1,15 @@
 <script setup lang="ts">
 const { user } = useUserSession();
-const { data: workspaces } = await useWorkspaces();
+await useWorkspaces();
 const { current, can } = useCurrentWorkspace();
 
-// Every page in this layout is workspace-scoped, so without one the person sits
-// on a shell whose every request answers 404. The list is already fetched, so
-// this costs no extra call.
-if (!workspaces.value?.items.length)
-  await navigateTo('/workspaces/new');
-// No current workspace means the root host. Never fall back to the first
-// membership: the shell would show one workspace and edit another.
-else if (!current.value)
-  await landInWorkspace(workspaces.value?.items ?? []);
+// Every page in this layout is workspace-scoped. A user without a
+// membership sees only 404 answers here.
+if (!current.value)
+  await navigateTo('/no-access');
 
 const canManageWorkspace = computed(() => can('workspace.manage'));
 const signOut = useSignOut();
-
-const workspaceMenuItems = computed(() => {
-  const items = workspaces.value?.items ?? [];
-  return [
-    items.map(workspace => ({
-      label: workspace.name,
-      type: 'checkbox' as const,
-      checked: workspace.id === current.value?.id,
-      avatar: { src: workspace.logoUrl ?? undefined, alt: workspace.name, icon: 'i-lucide-building-2' },
-      onSelect: () => { window.location.href = workspace.url; },
-    })),
-  ];
-});
 
 const accountMenu = computed(() => {
   const help = [
@@ -77,26 +59,7 @@ watch(() => route.fullPath, () => {
   <div class="min-h-screen lg:py-2 lg:pr-2 lg:pl-60">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-default focus:p-3">Skip to content</a>
     <aside class="fixed inset-y-0 left-0 hidden w-60 flex-col bg-[var(--workspace-bg)] px-4 py-6 lg:flex">
-      <UDropdownMenu
-        v-if="(workspaces?.items.length ?? 0) > 1"
-        :items="workspaceMenuItems"
-        :content="{ align: 'start' }"
-        class="mb-8 w-full"
-      >
-        <button
-          type="button"
-          :aria-label="`Switch workspace, currently ${current?.name ?? 'Workspace'}`"
-          class="flex w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left hover:bg-default/70 focus:outline-none"
-        >
-          <UAvatar :src="current?.logoUrl ?? undefined" :alt="current?.name ?? 'Workspace'" icon="i-lucide-building-2" size="md" class="rounded-lg shadow-control" />
-          <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-semibold tracking-tight text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
-            <span class="block truncate text-xs text-muted" :title="domain">{{ domain }}</span>
-          </span>
-          <UIcon name="i-lucide-chevrons-up-down" class="size-4 shrink-0 text-muted" />
-        </button>
-      </UDropdownMenu>
-      <NuxtLink v-else to="/" :aria-label="`${current?.name ?? 'Workspace'} home`" class="mb-8 flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-default/70">
+      <NuxtLink to="/" :aria-label="`${current?.name ?? 'Workspace'} home`" class="mb-8 flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-default/70">
         <UAvatar :src="current?.logoUrl ?? undefined" :alt="current?.name ?? 'Workspace'" icon="i-lucide-building-2" size="md" class="rounded-lg shadow-control" />
         <span class="min-w-0 flex-1">
           <span class="block truncate text-sm font-semibold tracking-tight text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
@@ -147,25 +110,13 @@ watch(() => route.fullPath, () => {
             <UButton icon="i-lucide-menu" aria-label="Open navigation" color="neutral" variant="ghost" size="sm" class="lg:hidden" />
             <template #body>
               <div class="space-y-6">
-                <UDropdownMenu
-                  v-if="(workspaces?.items.length ?? 0) > 1"
-                  :items="workspaceMenuItems"
-                  :content="{ align: 'start' }"
-                  class="w-full"
-                >
-                  <button
-                    type="button"
-                    :aria-label="`Switch workspace, currently ${current?.name ?? 'Workspace'}`"
-                    class="flex w-full items-center gap-3 rounded-lg border border-default p-2 text-left hover:bg-muted/50 focus:outline-none"
-                  >
-                    <UAvatar :src="current?.logoUrl ?? undefined" :alt="current?.name ?? 'Workspace'" icon="i-lucide-building-2" size="sm" class="rounded-lg" />
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate text-sm font-semibold text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
-                      <span class="block truncate text-xs text-muted">{{ domain }}</span>
-                    </span>
-                    <UIcon name="i-lucide-chevrons-up-down" class="size-4 shrink-0 text-muted" />
-                  </button>
-                </UDropdownMenu>
+                <NuxtLink to="/" :aria-label="`${current?.name ?? 'Workspace'} home`" class="flex items-center gap-3 rounded-lg border border-default p-2 hover:bg-muted/50">
+                  <UAvatar :src="current?.logoUrl ?? undefined" :alt="current?.name ?? 'Workspace'" icon="i-lucide-building-2" size="sm" class="rounded-lg" />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold text-highlighted">{{ current?.name ?? 'Workspace' }}</span>
+                    <span class="block truncate text-xs text-muted">{{ domain }}</span>
+                  </span>
+                </NuxtLink>
                 <nav class="space-y-7">
                   <UNavigationMenu :items="workspaceNav" orientation="vertical" />
                   <div v-if="adminNav.length">

@@ -7,7 +7,7 @@ import { isUniqueViolation } from '#server/utils/db';
 import { createInvitation, isAlreadyMember } from '#server/utils/invitation-repo';
 import { sendMail } from '#server/utils/mail';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { workspaceUrl } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
   });
   const { id, raw } = invitation;
 
-  const base = workspaceUrl(workspace.slug, config as never);
+  const base = appUrl(config as never);
   await sendMail(inviteMessage(body.email, workspace.name, `${base}/invite?token=${raw}`));
   await writeAuditEvent('invitation_sent', { email: body.email }, { workspaceId, actor: user.id });
 

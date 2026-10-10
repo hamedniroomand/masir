@@ -1,20 +1,9 @@
-import type { Workspace } from '#server/database/schema';
 import type { WorkspaceRole } from '#shared/permissions';
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { users, workspaceMembers, workspaces } from '#server/database/schema';
 import { getDb, isUuid } from '#server/utils/db';
 import { getRetainedPrefixesCached } from '#server/utils/link-prefix-repo';
 import { roleLabel, roleName } from '#shared/permissions';
-
-export async function findWorkspaceBySlug(slug: string) {
-  const db = await getDb();
-  const rows = await db.select().from(workspaces).where(and(eq(workspaces.slug, slug), isNull(workspaces.deletedAt))).limit(1);
-  const workspace = rows[0];
-  if (!workspace)
-    return null;
-  const retainedPrefixes = await getRetainedPrefixesCached(workspace.id);
-  return { ...workspace, retainedPrefixes };
-}
 
 export async function findWorkspaceById(id: string) {
   if (!isUuid(id))
@@ -28,14 +17,14 @@ export async function findWorkspaceById(id: string) {
   return { ...workspace, retainedPrefixes };
 }
 
-// Self-hosted holds one workspace. The host carries no subdomain there.
+// The install holds one workspace. The oldest one wins.
 // ponytail: one indexed LIMIT 1 for every request in single-workspace mode.
 // Measured at 0.04ms of query above a 0.2ms round trip, so a cache would buy
 // ~0.24ms and cost a window where a renamed or deleted workspace still
 // resolves, invisibly across instances. Revisit only if a profile says so.
 export async function findSingleWorkspace() {
   const db = await getDb();
-  const rows = await db.select().from(workspaces).where(isNull(workspaces.deletedAt)).limit(1);
+  const rows = await db.select().from(workspaces).where(isNull(workspaces.deletedAt)).orderBy(asc(workspaces.createdAt)).limit(1);
   const workspace = rows[0];
   if (!workspace)
     return null;
@@ -90,45 +79,6 @@ export async function listMembershipsForUser(userId: string) {
       isNull(workspaces.deletedAt),
     ));
   return rows.map(row => ({ ...row, role: roleName(row.role) }));
-}
-
-export async function countWorkspaces() {
-  const db = await getDb();
-  const rows = await db.select({ n: count() }).from(workspaces).where(isNull(workspaces.deletedAt));
-  return Number(rows[0]?.n ?? 0);
-}
-
-export async function isWorkspaceSlugTaken(slug: string) {
-  return (await findWorkspaceBySlug(slug)) != null;
-}
-
-export async function createWorkspaceWithOwner(input: {
-  name: string;
-  slug: string;
-  linkPrefix: string | null;
-  logoUrl: string | null;
-  ownerUserId: string;
-}): Promise<Workspace> {
-  const db = await getDb();
-
-  // One transaction. A workspace must never exist without its owner.
-  return db.transaction(async (tx) => {
-    const [created] = await tx.insert(workspaces).values({
-      name: input.name,
-      slug: input.slug,
-      linkPrefix: input.linkPrefix,
-      logoUrl: input.logoUrl,
-    }).returning();
-    if (!created)
-      throw new Error('The workspace vanished between its insert and its read.');
-
-    await tx.insert(workspaceMembers).values({
-      workspaceId: created.id,
-      userId: input.ownerUserId,
-      role: 'owner',
-    });
-    return created;
-  });
 }
 
 export async function listMembers(workspaceId: string) {
@@ -204,11 +154,4 @@ export async function updateWorkspace(workspaceId: string, patch: { name?: strin
   const db = await getDb();
   await db.update(workspaces).set({ ...patch, updatedAt: new Date() }).where(eq(workspaces.id, workspaceId));
   return findWorkspaceById(workspaceId);
-}
-
-export async function softDeleteWorkspace(workspaceId: string) {
-  const db = await getDb();
-  await db.update(workspaces)
-    .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(eq(workspaces.id, workspaceId));
 }

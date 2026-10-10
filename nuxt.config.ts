@@ -52,13 +52,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     migrateOnBoot: true,
-    // nuxt-auth-utils declares session.cookie without a domain key, and Nitro's
-    // applyEnv only overwrites keys that already exist. Without this line
-    // NUXT_SESSION_COOKIE_DOMAIN can never bind, and multi-workspace mode
-    // refuses to boot however the operator sets it.
     session: {
       cookie: {
-        domain: '',
         // Declared so NUXT_SESSION_COOKIE_SECURE=false can bind, for an
         // instance served over plain http on a private network.
         secure: true,
@@ -72,12 +67,7 @@ export default defineNuxtConfig({
     visitorHashSecret: '',
     databaseUrl: 'postgres://masir:masir@127.0.0.1:5432/masir',
     databasePoolMax: 10,
-    deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
-    // Empty keeps the app on the root domain. A value moves sign-in and the
-    // dashboard there.
-    appDomain: '',
-    multiWorkspace: false,
     mail: {
       driver: '',
       from: 'Masir <no-reply@localhost>',
@@ -126,7 +116,6 @@ export default defineNuxtConfig({
     rateLimitUpdatePerMinute: 60,
     rateLimitSlugCheckPerMinute: 30,
     rateLimitInvitePerHour: 30,
-    rateLimitWorkspacePerDay: 5,
     oauth: {
       google: { clientId: '', clientSecret: '' },
       microsoft: { clientId: '', clientSecret: '', tenant: 'common' },
@@ -179,10 +168,6 @@ export default defineNuxtConfig({
       include: [
         '@vue/devtools-core',
       ],
-    },
-    server: {
-      // A leading dot allows the domain and all its subdomains.
-      allowedHosts: ['.lvh.me'],
     },
   },
 

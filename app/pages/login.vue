@@ -61,8 +61,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       return;
     }
 
-    const { items } = await $fetch<{ items: { url: string }[] }>('/api/workspaces');
-    await landInWorkspace(items);
+    await navigateTo('/dashboard');
   }
   catch (failure) {
     error.value = errorReason(failure, 'Invalid email or password.');
