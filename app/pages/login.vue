@@ -11,10 +11,6 @@ const showEmailForm = ref(!hasProviders.value);
 const route = useRoute();
 const { fetch: fetchSession } = useUserSession();
 
-const { turnstileSiteKey } = useRuntimeConfig().public;
-const turnstileToken = ref('');
-const turnstile = useTemplateRef('turnstile');
-
 const schema = v.object({
   email: v.pipe(
     v.string(),
@@ -46,7 +42,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
   try {
     await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { email: state.email, password: state.password, turnstileToken: turnstileToken.value },
+      body: { email: state.email, password: state.password },
     });
     // The route middleware reads the session it already has. Without this the
     // next client-side navigation still looks signed out and bounces back here.
@@ -70,7 +66,6 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
   }
   catch (failure) {
     error.value = errorReason(failure, 'Invalid email or password.');
-    turnstile.value?.reset();
   }
   finally {
     loading.value = false;
@@ -117,22 +112,15 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
           autocomplete="current-password"
         />
       </UFormField>
-      <TurnstileWidget v-if="turnstileSiteKey" ref="turnstile" v-model="turnstileToken" />
       <p v-if="error" role="alert" class="text-sm text-error">
         {{ error }}
       </p>
-      <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" block :loading="loading" :disabled="Boolean(turnstileSiteKey) && !turnstileToken" />
+      <UButton type="submit" label="Sign in" trailing-icon="i-lucide-arrow-right" block :loading="loading" />
     </UForm>
     <p class="mt-7 text-center text-xs text-muted">
       <ULink to="/forgot-password">
         Forgot your password?
       </ULink>
-      <template v-if="providers?.registration">
-        <span class="mx-2">·</span>
-        <ULink to="/register">
-          Create an account
-        </ULink>
-      </template>
     </p>
   </div>
 </template>

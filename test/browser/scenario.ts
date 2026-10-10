@@ -77,11 +77,10 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     // Chromium accepts a Secure cookie from http://localhost but not from
     // http://masir.test.
     NUXT_SESSION_COOKIE_SECURE: 'false',
-    NUXT_ALLOW_REGISTRATION: 'true',
   };
   switch (scenario) {
     case 'single':
-      return { ...shared, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED', NUXT_MULTI_WORKSPACE: 'false', NUXT_ALLOW_REGISTRATION: 'false' };
+      return { ...shared, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED', NUXT_MULTI_WORKSPACE: 'false' };
     case 'multi':
       return { ...shared, ...multi, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED' };
     case 'cloud':
@@ -96,10 +95,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
         NUXT_STORAGE_ENDPOINT: 'http://127.0.0.1:9',
         NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test-client',
         NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test-secret',
-        // Cloudflare's documented test keys. The widget always passes, so the
-        // wiring is checked end to end. The script itself loads from Cloudflare.
-        NUXT_PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
-        NUXT_TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
       };
   }
 }

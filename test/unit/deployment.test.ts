@@ -7,7 +7,6 @@ function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }
     deploymentMode: 'CLOUD',
     rootDomain: 'https://masir.dev',
     multiWorkspace: true,
-    allowRegistration: true,
     sessionCookieDomain: '.masir.dev',
     ...over,
   };

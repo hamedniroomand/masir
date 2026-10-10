@@ -6,7 +6,6 @@ export type DeploymentConfig = {
   // Empty means the app lives on the root domain.
   appDomain?: string;
   multiWorkspace: boolean;
-  allowRegistration: boolean;
 };
 
 const IP_HOST = /^\d{1,3}(?:\.\d{1,3}){3}$|^\[[\da-f:]+\]$/i;

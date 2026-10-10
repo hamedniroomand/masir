@@ -20,7 +20,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (!ready.value)
     await fetchSession();
 
-  const isPublic = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
+  const isPublic = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
 
   if (!loggedIn.value && !isPublic)
     return navigateTo(loginPath(to.fullPath));

@@ -78,9 +78,6 @@ export default defineNuxtConfig({
     // dashboard there.
     appDomain: '',
     multiWorkspace: false,
-    allowRegistration: false,
-    // Both Turnstile keys set turns on the robot check on the email forms.
-    turnstileSecretKey: '',
     mail: {
       driver: '',
       from: 'Masir <no-reply@localhost>',
@@ -136,7 +133,6 @@ export default defineNuxtConfig({
     },
     public: {
       shortDomain: 'http://localhost:3000',
-      turnstileSiteKey: '',
       // Declared so the Umami host and replay env vars can bind.
       scripts: { umamiAnalytics: { hostUrl: '', replays: false } },
       sentry: {
