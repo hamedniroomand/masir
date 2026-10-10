@@ -20,8 +20,7 @@ function clientOnlyRoutes() {
     if (entry.isDirectory())
       return [`/${entry.name}`, `/${entry.name}/**`];
     const name = entry.name.replace(/\.vue$/, '');
-    // "/" is decided by host in server/middleware/03.landing.ts.
-    return name === 'index' ? [] : [`/${name}`];
+    return name === 'index' ? ['/'] : [`/${name}`];
   });
 }
 
@@ -76,7 +75,7 @@ export default defineNuxtConfig({
     deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
     // Empty keeps the app on the root domain. A value moves sign-in and the
-    // dashboard there and turns the root "/" into a landing page.
+    // dashboard there.
     appDomain: '',
     multiWorkspace: false,
     allowRegistration: false,

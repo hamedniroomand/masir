@@ -4,7 +4,7 @@ import process from 'node:process';
 
 // Each scenario is one operator's .env. A project runs its tests against a
 // server started with exactly that configuration, on its own port and database.
-export type Scenario = 'single' | 'multi' | 'cloud' | 'landing';
+export type Scenario = 'single' | 'multi' | 'cloud';
 
 export const SESSION_PASSWORD = '01234567890123456789012345678901';
 
@@ -13,7 +13,7 @@ export const SESSION_PASSWORD = '01234567890123456789012345678901';
 // Keep it in step with scripts/stop-browser-servers.sh.
 const SLOT = Number(process.env.MASIR_TEST_SLOT) || 0;
 
-const PORTS: Record<Scenario, number> = { single: 3101 + SLOT * 10, multi: 3102 + SLOT * 10, cloud: 3103 + SLOT * 10, landing: 3104 + SLOT * 10 };
+const PORTS: Record<Scenario, number> = { single: 3101 + SLOT * 10, multi: 3102 + SLOT * 10, cloud: 3103 + SLOT * 10 };
 
 // Chromium stores a cookie for `localhost` as host-only and ignores a Domain
 // of `.localhost`, so a session set on the root host never reaches
@@ -84,14 +84,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
       return { ...shared, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED', NUXT_MULTI_WORKSPACE: 'false', NUXT_ALLOW_REGISTRATION: 'false' };
     case 'multi':
       return { ...shared, ...multi, NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED' };
-    case 'landing':
-      return {
-        ...shared,
-        ...multi,
-        NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED',
-        // The root serves a landing page only when the app lives elsewhere.
-        NUXT_APP_DOMAIN: `http://app.${TEST_DOMAIN}:${PORTS.landing}`,
-      };
     case 'cloud':
       return {
         ...shared,

@@ -1,4 +1,4 @@
-import { $fetch, fetch, setup } from '@nuxt/test-utils';
+import { fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   e2eSetupOptions,
@@ -35,26 +35,6 @@ describe('app host split', async () => {
     });
     return res.headers.get('set-cookie')!.split(';')[0]!;
   }
-
-  it('serves an indexable landing page on the root', async () => {
-    const res = await fetch('/');
-    expect(res.status).toBe(200);
-    expect(res.headers.get('x-robots-tag') ?? '').not.toContain('noindex');
-    const html = await res.text();
-    expect(html).toContain(`${APP}/login`);
-  });
-
-  it('reports the landing host', async () => {
-    expect(await $fetch('/api/host')).toEqual({ landing: true, appUrl: APP, registration: true });
-    const res = await globalThis.fetch(`${appHost}/api/host`);
-    expect(await res.json()).toEqual({ landing: false, appUrl: APP, registration: true });
-  });
-
-  it('bounces an app page on the root to the app host', async () => {
-    const res = await fetch('/login', { redirect: 'manual' });
-    expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe(`${APP}/login`);
-  });
 
   it('still redirects a short link on the root', async () => {
     await insertTestLink(TEST_DB, { workspaceId, slug: 'split-test', destinationUrl: 'https://example.com/split' });

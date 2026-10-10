@@ -21,8 +21,6 @@ export default defineEventHandler(async (event) => {
   const bare = host ? hostnameOf(host) : '';
   const rootHost = new URL(config.rootDomain).hostname;
   const appHost = new URL(appUrl(config as never)).hostname;
-  // The root serves a landing page only when the app lives somewhere else.
-  event.context.landing = appHost !== rootHost && bare === rootHost;
 
   if (!config.multiWorkspace) {
     const workspace = await findSingleWorkspace();
