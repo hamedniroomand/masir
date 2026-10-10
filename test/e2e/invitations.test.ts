@@ -147,4 +147,35 @@ describe('workspace invitations', async () => {
     });
     expect(second.id).not.toBe(first.id);
   });
+
+  describe('preview', () => {
+    const KNOWN = 'preview-known@example.com';
+
+    it('names the workspace and says whether the account exists', async () => {
+      const cookie = await loginCookie();
+      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email: 'preview-new@example.com' }, headers: { cookie } });
+      const token = await lastInviteToken();
+
+      const preview = await $fetch<{ workspaceName: string; email: string; role: string; accountExists: boolean }>(
+        `/api/workspaces/invitations/preview?token=${token}`,
+      );
+      expect(preview).toEqual({ workspaceName: 'Acme', email: 'preview-new@example.com', role: 'MEMBER', accountExists: false });
+    });
+
+    it('says the account exists for a known email', async () => {
+      await insertTestUser(TEST_DB, { email: KNOWN, password: TEST_PASSWORD });
+      const cookie = await loginCookie();
+      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email: KNOWN }, headers: { cookie } });
+      const token = await lastInviteToken();
+
+      const preview = await $fetch<{ accountExists: boolean }>(`/api/workspaces/invitations/preview?token=${token}`);
+      expect(preview.accountExists).toBe(true);
+    });
+
+    it('gives one answer for every bad token', async () => {
+      const res = await fetch('/api/workspaces/invitations/preview?token=not-a-token');
+      expect(res.status).toBe(400);
+      expect((await res.json()).data.reason).toBe('This invitation is not valid.');
+    });
+  });
 });
