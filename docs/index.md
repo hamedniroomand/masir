@@ -32,8 +32,9 @@ curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/i
 
 ## Try the demo
 
-The demo at [demo.masir.dev](https://demo.masir.dev) is a read-only viewer
-account. You can look at links and analytics. You cannot change them.
+The demo at [demo.masir.dev](https://demo.masir.dev) is a read-only account
+in a workspace with sample data. You can open every page, including members,
+the activity log, and system status. Changes are not saved.
 
 - Email: `demo@masir.dev`
 - Password: `masir-demo-2026`

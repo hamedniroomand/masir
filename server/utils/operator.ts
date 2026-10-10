@@ -9,7 +9,7 @@ function tokenMatches(header: string, secret: string) {
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
-export function parseOperatorEmails(input: string): Set<string> {
+export function parseEmailList(input: string): Set<string> {
   return new Set(
     input
       .split(',')
@@ -20,7 +20,9 @@ export function parseOperatorEmails(input: string): Set<string> {
 
 export async function requireOperator(event: H3Event): Promise<{ operatorEmail?: string; isSecret?: boolean }> {
   const config = useRuntimeConfig();
-  const operatorEmails = parseOperatorEmails(config.operatorEmails || '');
+  // A read-only account sees the status page too. The read-only middleware
+  // refuses its writes.
+  const operatorEmails = parseEmailList(`${config.operatorEmails},${config.readOnlyEmails}`);
   const jobsSecret = config.jobsSecret?.trim() || '';
 
   // An empty list and an empty secret answer 404.

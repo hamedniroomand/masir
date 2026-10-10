@@ -4,6 +4,7 @@ import { readValidBody } from '#server/utils/body';
 import { findIdentity, findUserByEmail, normalizeEmail, setSessionUser } from '#server/utils/identity-repo';
 import { matchAbsentSecret, verifySecret } from '#server/utils/password';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { isReadOnlyEmail } from '#server/utils/read-only';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),
@@ -25,7 +26,11 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Retry-After', byClient.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
-  const byEmail = await rateLimitCheck(`login-email:${email}`, config.rateLimitLoginPerMinute, 60_000);
+  // A read-only account has a public password and many visitors at once. The
+  // limit for each client still caps the argon2id cost.
+  const byEmail = isReadOnlyEmail(email)
+    ? { ok: true as const }
+    : await rateLimitCheck(`login-email:${email}`, config.rateLimitLoginPerMinute, 60_000);
   if (!byEmail.ok) {
     setResponseHeader(event, 'Retry-After', byEmail.retryAfterSec);
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });

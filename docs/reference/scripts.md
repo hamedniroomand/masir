@@ -29,6 +29,7 @@ bun --bun nuxt dev
 | `db:migrate` | Applies pending migrations and prepares event partitions |
 | `db:studio` | Opens Drizzle Studio |
 | `db:seed:admin` | Creates the initial user, workspace, and owner membership |
+| `db:seed:demo` | Fills an empty workspace with sample members, links, campaigns, clicks, and activity. With `DEMO_EMAIL` and `DEMO_PASSWORD`, it also creates that viewer account |
 
 After a schema change:
 
