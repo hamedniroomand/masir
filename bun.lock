@@ -15,7 +15,6 @@
         "nodemailer": "^10.1.0",
         "nuxt": "^4.6.1",
         "nuxt-auth-utils": "^0.5.31",
-        "std-env": "^4.3.0",
         "tailwindcss": "^4.3.3",
         "uqr": "^0.1.3",
         "valibot": "^1.5.0",
