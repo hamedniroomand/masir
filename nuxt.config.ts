@@ -2,14 +2,9 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { provider } from 'std-env';
 import { collectSourceMaps } from './scripts/sentry-sourcemaps';
-import { resolveNitroPreset } from './shared/nitro-preset';
 import { sentryCompiled } from './shared/sentry';
 
-// The build is the one place that knows the target for certain, so the
-// serverless flag is decided here and read from runtimeConfig at run time.
-const preset = resolveNitroPreset(process.env, provider);
 const sentry = sentryCompiled(process.env);
 
 // Every page under app/pages renders on the client. Read from the directory,
@@ -59,10 +54,6 @@ export default defineNuxtConfig({
         secure: true,
       },
     },
-    // true on a target that keeps no disk and no process between requests.
-    // Declared so NUXT_SERVERLESS=true can bind on a container that behaves
-    // the same way.
-    serverless: preset !== 'bun',
     sessionPassword: '',
     visitorHashSecret: '',
     databaseUrl: 'postgres://masir:masir@127.0.0.1:5432/masir',
@@ -91,8 +82,7 @@ export default defineNuxtConfig({
       endpoint: '',
       maxUploadBytes: 2_097_152,
     },
-    // 0 turns the in-process sweep off. A serverless deployment leaves it off
-    // and points a cron at POST /api/jobs/alerts instead.
+    // 0 turns the in-process sweep off. A cron can call POST /api/jobs/alerts instead.
     alertsIntervalMinutes: 15,
     // Empty makes the jobs route answer 404.
     jobsSecret: '',
@@ -156,7 +146,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset,
+    preset: 'bun',
   },
 
   vite: {

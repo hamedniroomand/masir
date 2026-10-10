@@ -1,9 +1,7 @@
 import type { StorageDriver, StorageProvider } from '#server/utils/storage';
 import { assertSafeKey, resolveInRoot } from '#server/utils/storage-key';
 
-// Writes to the local disk. Use it on a VPS, or in a container with a mounted
-// volume. An edge or serverless runtime has no disk that survives a request, so
-// those deployments must use the s3 provider.
+// Writes to the local disk. Use a mounted volume in a container.
 export function createFileDriver(root: string, publicBaseUrl: string): StorageDriver {
   const base = publicBaseUrl.replace(/\/$/, '');
   return {
@@ -29,6 +27,5 @@ export function createFileDriver(root: string, publicBaseUrl: string): StorageDr
 
 export const fileProvider: StorageProvider = {
   name: 'file',
-  needsDisk: true,
   create: config => (config.localRoot ? createFileDriver(config.localRoot, config.publicBaseUrl) : null),
 };

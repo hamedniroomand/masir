@@ -56,7 +56,7 @@ export function parseRequestMeta(event: H3Event): RequestMeta {
 
   const config = useRuntimeConfig();
   const geoHeader = (config.geoCountryHeader || 'cf-ipcountry').toLowerCase();
-  const countryRaw = headers[geoHeader] ?? headers['x-vercel-ip-country'];
+  const countryRaw = headers[geoHeader];
   const country = typeof countryRaw === 'string' && countryRaw.length === 2
     ? countryRaw.toUpperCase()
     : null;

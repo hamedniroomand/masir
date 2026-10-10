@@ -14,8 +14,7 @@ function runJobs() {
   });
 }
 
-// The docs advise a pool of one on serverless. A job must not wait for a
-// second connection.
+// A job must not wait for a second connection.
 describe('job route with a pool of one', async () => {
   await setup(await e2eSetupOptions(TEST_DB, { NUXT_JOBS_SECRET: JOBS_SECRET, NUXT_DATABASE_POOL_MAX: '1' }));
 
