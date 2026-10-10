@@ -1,0 +1,11 @@
+{
+  "extends": "../scripts/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "#server/*": ["../server/*"],
+      "#shared/*": ["../shared/*"],
+      "#scripts/*": ["../scripts/*"]
+    }
+  },
+  "include": ["./**/*.ts", "../.nuxt/types/nitro-imports.d.ts"]
+}

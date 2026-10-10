@@ -2,7 +2,7 @@ import type { DeploymentConfig } from '#shared/deployment';
 import { describe, expect, it } from 'vitest';
 import { appUrl, assertDeploymentConfig, isCloud, linkOrigin, workspaceUrl } from '#shared/deployment';
 
-function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }> = {}) {
+function config(over: Partial<DeploymentConfig & { sessionCookieDomain: string }> = {}): DeploymentConfig & { sessionCookieDomain: string } {
   return {
     deploymentMode: 'CLOUD',
     rootDomain: 'https://masir.dev',

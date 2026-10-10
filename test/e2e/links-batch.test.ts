@@ -98,7 +98,7 @@ describe('links batch API', async () => {
     const cookie = await loginCookie();
     const campaignId = await insertTestCampaign(TEST_DB, { workspaceId, utmCampaign: 'intra-dup' });
 
-    const slugDup = await $fetch('/api/links/batch', {
+    const slugDup = await $fetch<never>('/api/links/batch', {
       method: 'POST',
       body: {
         campaignId,
@@ -115,7 +115,7 @@ describe('links batch API', async () => {
     expect(slugDup.data?.data?.rows?.some(r => r.clientKey === 'b')).toBe(true);
     expect(await campaignLinkCount(campaignId)).toBe(0);
 
-    const keyDup = await $fetch('/api/links/batch', {
+    const keyDup = await $fetch<never>('/api/links/batch', {
       method: 'POST',
       body: {
         campaignId,
