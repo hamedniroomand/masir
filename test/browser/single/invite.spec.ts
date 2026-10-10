@@ -27,7 +27,8 @@ test('invites a teammate who joins through the emailed link', async ({ page, log
   await invitee.getByLabel('Email').fill(MATE);
   await invitee.getByLabel('Password').fill(MATE_PASSWORD);
   await invitee.getByRole('button', { name: 'Sign in' }).click();
-  await expect(invitee.getByRole('heading', { name: /All links/ })).toBeVisible();
+  await invitee.getByRole('button', { name: 'Join the workspace' }).click();
+  await expect(invitee.getByRole('heading', { name: /Overview/ })).toBeVisible();
   await invitee.close();
 
   await page.reload();
@@ -64,6 +65,7 @@ test('refuses an invitation that names another address', async ({ page, login, d
   await stranger.getByRole('button', { name: 'Sign in' }).click();
   await stranger.waitForURL(url => !url.pathname.startsWith('/login'));
   await stranger.goto(`/invite?token=${token}`);
+  await stranger.getByRole('button', { name: 'Join the workspace' }).click();
   await expect(stranger.getByRole('alert')).toHaveText('This invitation belongs to another email address.');
   await stranger.close();
 });
@@ -82,4 +84,41 @@ test('refuses a revoked invitation', async ({ page, login, db }) => {
 
   await page.goto(`/invite?token=${token}`);
   await expect(page.getByRole('alert')).toHaveText('This invitation is not valid.');
+});
+
+test('creates an account for a new teammate from the invite link', async ({ page, login, db, browser, server }) => {
+  await login();
+  await page.goto('/settings/members');
+  await page.getByPlaceholder('teammate@example.com').fill('newbie@example.com');
+  await page.getByRole('button', { name: 'Invite' }).click();
+  await expect(page.getByText('newbie@example.com')).toBeVisible();
+  const token = db.lastToken('newbie@example.com');
+
+  const invitee = await browser.newPage({ baseURL: server.baseURL });
+  await invitee.goto(`/invite?token=${token}`);
+  await expect(invitee.getByText('newbie@example.com')).toBeVisible();
+  await invitee.getByLabel('Password').fill('newbie-password-1!');
+  await invitee.getByRole('button', { name: 'Join the workspace' }).click();
+  await expect(invitee.getByRole('heading', { name: /Overview/ })).toBeVisible();
+  await invitee.close();
+});
+
+test('keeps the token through sign-in for an existing account', async ({ page, login, db, browser, server }) => {
+  db.insertUser({ email: 'returning@example.com', password: MATE_PASSWORD });
+  await login();
+  await page.goto('/settings/members');
+  await page.getByPlaceholder('teammate@example.com').fill('returning@example.com');
+  await page.getByRole('button', { name: 'Invite' }).click();
+  await expect(page.getByText('returning@example.com')).toBeVisible();
+  const token = db.lastToken('returning@example.com');
+
+  const invitee = await browser.newPage({ baseURL: server.baseURL });
+  await invitee.goto(`/invite?token=${token}`);
+  await expect(invitee).toHaveURL(new RegExp(`redirect=${encodeURIComponent(`/invite?token=${token}`)}`));
+  await invitee.getByLabel('Email').fill('returning@example.com');
+  await invitee.getByLabel('Password').fill(MATE_PASSWORD);
+  await invitee.getByRole('button', { name: 'Sign in' }).click();
+  await invitee.getByRole('button', { name: 'Join the workspace' }).click();
+  await expect(invitee.getByRole('heading', { name: /Overview/ })).toBeVisible();
+  await invitee.close();
 });

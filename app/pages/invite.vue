@@ -1,42 +1,46 @@
 <script setup lang="ts">
+import * as v from 'valibot';
+import { accountPasswordSchema } from '#shared/account-password';
+
 definePageMeta({ layout: 'auth' });
 
+type Preview = { workspaceName: string; email: string; role: string; accountExists: boolean };
+
 const { $api } = useNuxtApp();
-
 const route = useRoute();
-const { loggedIn } = useUserSession();
-const token = computed(() => typeof route.query.token === 'string' ? route.query.token : '');
+const { loggedIn, fetch: fetchSession } = useUserSession();
+const token = typeof route.query.token === 'string' ? route.query.token : '';
 
-const state = ref<'working' | 'done' | 'failed'>('working');
+const { data: preview, error: previewError } = await useApi<Preview>('/api/workspaces/invitations/preview', { query: { token } });
+
+// An existing account signs in first. The full path keeps the token.
+if (preview.value?.accountExists && !loggedIn.value)
+  await navigateTo(loginPath(route.fullPath));
+
+const schema = v.object({ password: accountPasswordSchema });
+const state = reactive({ password: '' });
 const error = ref('');
+const loading = ref(false);
 
-onMounted(async () => {
-  if (!token.value) {
-    state.value = 'failed';
-    error.value = 'This invitation link is not valid.';
-    return;
-  }
-  // The token survives the sign-in round trip in the redirect query.
-  if (!loggedIn.value) {
-    await navigateTo(loginPath(`/invite?token=`));
-    return;
-  }
+async function join() {
+  error.value = '';
+  loading.value = true;
   try {
-    const res = await $api<{ workspace: { slug: string } | null }>('/api/workspaces/invitations/accept', {
+    await $api('/api/workspaces/invitations/accept', {
       method: 'POST',
-      body: { token: token.value },
+      body: loggedIn.value ? { token } : { token, password: state.password },
     });
-    state.value = 'done';
-    const workspaces = await $api<{ items: { slug: string; url: string }[] }>('/api/workspaces');
-    const joined = workspaces.items.find(item => item.slug === res.workspace?.slug);
-    window.location.href = joined?.url ?? '/';
+    await fetchSession();
+    // A full load, so the layout reads the new membership.
+    window.location.href = '/dashboard';
   }
   catch (failure) {
-    state.value = 'failed';
-    error.value = (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason
-      ?? 'This invitation link is not valid.';
+    error.value = errorReason(failure, 'This invitation link is not valid.');
   }
-});
+  finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -44,17 +48,32 @@ onMounted(async () => {
     <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
       Join the workspace
     </h1>
-    <p v-if="state === 'working'" class="mt-2 text-sm text-muted">
-      Checking your invitation.
-    </p>
-    <p v-else-if="state === 'done'" class="mt-2 text-sm text-muted">
-      You are in. Taking you to the workspace.
-    </p>
-    <template v-else>
+    <template v-if="previewError || !preview">
       <p role="alert" class="mt-2 text-sm text-error">
-        {{ error }}
+        This invitation link is not valid.
       </p>
       <UButton to="/login" label="Back to sign in" variant="subtle" block class="mt-6" />
+    </template>
+    <template v-else>
+      <p class="mt-2 text-sm text-muted">
+        You are invited to {{ preview.workspaceName }} as {{ preview.email }}.
+      </p>
+      <UForm v-if="!loggedIn" :schema="schema" :state="state" class="mt-6 space-y-5" @submit="join">
+        <UFormField label="Password" name="password" required>
+          <UInput v-model="state.password" type="password" icon="i-lucide-lock-keyhole" autocomplete="new-password" />
+        </UFormField>
+        <PasswordRules :value="state.password" />
+        <p v-if="error" role="alert" class="text-sm text-error">
+          {{ error }}
+        </p>
+        <UButton type="submit" label="Join the workspace" block :loading="loading" />
+      </UForm>
+      <template v-else>
+        <p v-if="error" role="alert" class="mt-4 text-sm text-error">
+          {{ error }}
+        </p>
+        <UButton label="Join the workspace" block class="mt-6" :loading="loading" @click="join" />
+      </template>
     </template>
   </div>
 </template>
