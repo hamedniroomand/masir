@@ -1,18 +1,11 @@
 # Changelog
 
-All notable changes to Masir are listed here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
+All notable changes to Masir are listed here. Changesets writes new sections. The
+project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 A release that needs an action from you has an **Upgrade notes** block. Read
 the notes for every version between the one you run and the one you install.
-
-## [Unreleased]
-
-### Changed
-
-- The documentation site moves to `https://docs.masir.dev/`. The old
-  `hamedniroomand.github.io/masir` address redirects to it.
 
 ## [1.1.0] - 2026-09-27
 

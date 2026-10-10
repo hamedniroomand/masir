@@ -26,7 +26,7 @@ jobs:
             echo "tag v$version but package.json says $package"
             exit 1
           fi
-          if ! grep -q "^## \[$version\]" CHANGELOG.md; then
+          if ! grep -Eq "^## \[?$version\]?( |$)" CHANGELOG.md; then
             echo "CHANGELOG.md has no section for $version"
             exit 1
           fi
@@ -89,7 +89,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           awk -v v="$version" '
-            /^## \[/ { on = index($0, "## [" v "]") == 1 }
+            /^## / { on = ($2 == v || $2 == "[" v "]") }
             on
           ' CHANGELOG.md | tail -n +2 > notes.md
 

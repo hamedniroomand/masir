@@ -135,7 +135,7 @@ bun run docs:build
 Run browser tests when the change affects a user flow, deployment shape, or
 runtime configuration.
 
-Use a Conventional Commit subject. Add an Unreleased changelog entry for a
+Use a Conventional Commit subject. Add a changeset (`bun run changeset`) for a
 migration, environment variable, route, or user-visible change.
 
 Read the [compatibility policy](/project/compatibility) before you change a

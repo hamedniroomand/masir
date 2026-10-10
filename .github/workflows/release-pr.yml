@@ -1,0 +1,49 @@
+name: release pr
+
+# Opens or updates one pull request that versions the package from the changesets on main.
+# Merging it does not publish. A maintainer then pushes the version tag, which starts release.yml.
+#
+# A pull request opened with GITHUB_TOKEN does not start other workflows. Set the RELEASE_PR_TOKEN
+# secret (fine-grained token, contents and pull requests: write) to run CI on the release pull
+# request. Without it, close and reopen the pull request.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # changelog-github finds the pull request of each changeset from the git history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Release pull request
+        uses: changesets/action@v1
+        with:
+          version: bun run changeset:version
+          title: 'chore(release): version packages'
+          commit: 'chore(release): version packages'
+          createGithubReleases: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || github.token }}

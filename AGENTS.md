@@ -65,4 +65,4 @@ Masir is self-hosted. Operators upgrade on their own schedule and skip versions.
 - Old code must work against the new schema during a rolling deploy.
 - Every new env var has a default and a row in `docs/reference/environment.md`. Never rename, remove, or change the default of one in a minor.
 - Slugs, routes, response fields, sessions, stored hashes, and upload keys that worked before the upgrade work after it.
-- Every PR that changes a migration, an env var, a route, or user-visible behavior adds a line under `Unreleased` in `CHANGELOG.md`.
+- Every PR that changes a migration, an env var, a route, or user-visible behavior adds a changeset in `.changeset/` (run `bun run changeset`).
