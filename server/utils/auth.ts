@@ -4,15 +4,10 @@ import { sessionVersionOf } from '#server/utils/identity-repo';
 import { findMemberAccess } from '#server/utils/workspace-repo';
 import { can } from '#shared/permissions';
 
-// The session is sealed as JSON, so it holds a flag and not a date. A Date
-// would come back as a string and every comparison on it would be wrong.
 export type SessionUser = {
   id: string;
   email: string;
-  emailVerified: boolean;
   sessionVersion: number;
-  // Only POST /api/auth/demo sets it. Older cookies read undefined.
-  demo?: boolean;
 };
 
 export type WorkspaceContext = {

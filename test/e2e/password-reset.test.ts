@@ -1,7 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { desc } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { mailOutbox } from '#server/database/schema';
+import { mailOutbox, users, workspaceMembers } from '#server/database/schema';
 import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
@@ -17,8 +17,10 @@ async function lastToken() {
 describe('password reset', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
+  let workspaceId = '';
+
   beforeAll(async () => {
-    await resetTestDb(TEST_DB);
+    ({ workspaceId } = await resetTestDb(TEST_DB));
   });
 
   it('answers the same way for a known and an unknown email', async () => {
@@ -66,7 +68,7 @@ describe('password reset', async () => {
     });
     const cookie = signedIn.headers.get('set-cookie')!.split(';')[0]!;
 
-    const before = await fetch('/api/auth/identities', { headers: { cookie } });
+    const before = await fetch('/api/workspaces', { headers: { cookie } });
     expect(before.status).toBe(200);
 
     await $fetch('/api/auth/forgot', { method: 'POST', body: { email: TEST_EMAIL } });
@@ -75,7 +77,7 @@ describe('password reset', async () => {
       body: { token: await lastToken(), password: 'a-third-long-pass3!' },
     });
 
-    const after = await fetch('/api/auth/identities', { headers: { cookie } });
+    const after = await fetch('/api/workspaces', { headers: { cookie } });
     expect(after.status).toBe(401);
   });
 
@@ -85,5 +87,22 @@ describe('password reset', async () => {
       method: 'POST',
       body: { token, password: 'yet-another-pass4!' },
     })).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('lets a user with no password identity set one', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const [user] = await db.insert(users).values({ email: 'oauth-only@example.com' }).returning();
+    await db.insert(workspaceMembers).values({ workspaceId, userId: user!.id, role: 'member' });
+
+    await $fetch('/api/auth/forgot', { method: 'POST', body: { email: 'oauth-only@example.com' } });
+    const token = await lastToken();
+    await $fetch('/api/auth/reset', { method: 'POST', body: { token, password: 'new-password-1!' } });
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'oauth-only@example.com', password: 'new-password-1!' }),
+    });
+    expect(res.status).toBe(200);
   });
 });

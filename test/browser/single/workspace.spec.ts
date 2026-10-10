@@ -40,15 +40,6 @@ test('renames the workspace and the sidebar follows', async ({ page, login }) =>
   await expect(page.getByRole('link', { name: 'Acme Ltd home' })).toBeVisible();
 });
 
-test('refuses a second workspace on a single-workspace instance', async ({ page, login }) => {
-  await login();
-  await page.goto('/workspaces/new');
-  await page.getByLabel('Company or workspace name').fill('Second Team');
-  await expect(page.getByLabel('Workspace address')).toHaveValue('second-team');
-  await page.getByRole('button', { name: 'Create workspace' }).click();
-  await expect(page.getByRole('alert')).toHaveText('This instance holds one workspace.');
-});
-
 test('offers no workspace deletion', async ({ page, login }) => {
   await login();
   await page.goto('/settings/workspace');

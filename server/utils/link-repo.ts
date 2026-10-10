@@ -7,7 +7,7 @@ import { AliasLimitError, AlreadyImportedError, SlugExhaustedError, SlugTakenErr
 import { invalidateLink, invalidateLinkById } from '#server/utils/link-cache';
 import { normalizeTagName } from '#server/utils/tag-repo';
 import { destinationHostFromUrl } from '#server/utils/url';
-import { linkOrigin } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 import { MAX_ALIASES_PER_LINK } from '#shared/link-input';
 import { deriveLinkStatus } from '#shared/link-status';
 import { generateSlug, RESERVED_SLUGS } from '#shared/slug';
@@ -18,7 +18,7 @@ export type ShortUrlWorkspace = { slug: string; linkPrefix: string | null };
 
 export function shortUrlFor(workspace: ShortUrlWorkspace, linkSlug: string) {
   const config = useRuntimeConfig();
-  const base = linkOrigin(workspace.slug, config as unknown as DeploymentConfig);
+  const base = appUrl(config as unknown as DeploymentConfig);
   return workspace.linkPrefix ? `${base}/${workspace.linkPrefix}/${linkSlug}` : `${base}/${linkSlug}`;
 }
 
@@ -654,12 +654,4 @@ export async function countClickEvents(linkId: string) {
   const db = await getDb();
   const rows = await db.select({ n: countAll }).from(clickEvents).where(eq(clickEvents.linkId, linkId));
   return rows[0]?.n ?? 0;
-}
-
-export async function countLiveLinks(workspaceId: string) {
-  const db = await getDb();
-  const [row] = await db.select({ n: countAll })
-    .from(links)
-    .where(and(eq(links.workspaceId, workspaceId), isNull(links.deletedAt)));
-  return row?.n ?? 0;
 }

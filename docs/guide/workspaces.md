@@ -7,40 +7,20 @@ workspace.
 
 ## Understand the boundary
 
-A workspace has a name, permanent slug, optional logo, link prefix, plan
-state, and exactly one owner.
+A workspace has a name, permanent slug, optional logo, link prefix, and exactly one owner.
 
 Repository queries take the workspace ID as part of their input. Database
 constraints keep workspace-scoped slugs and ownership valid.
 
-## Choose one workspace or many
+## Use one workspace
 
-Single-workspace mode is the default. One team uses the configured app and
-short-link domains.
-
-Multi-workspace mode gives each workspace a subdomain:
-
-```text
-acme.example.com
-studio.example.com
-```
-
-The database model is the same in both modes.
-
-## Create a workspace
-
-Verified users can create a workspace only in multi-workspace mode. Enter a
-name and optional slug. Masir generates a slug when it is empty.
-
-The creator becomes the owner.
-
-A demo user cannot create another workspace.
+One install serves one workspace. The seed script creates it. A second team
+runs a second install.
 
 ## Treat the slug as permanent
 
-The workspace slug becomes part of the hostname in multi-workspace mode.
-Masir does not offer a rename operation. This prevents a workspace address
-from changing after people share it.
+Masir does not offer a rename operation for the workspace slug. This keeps
+the identifier the same for the life of the install.
 
 ## Set a link prefix
 
@@ -68,13 +48,6 @@ security. Results are newest first and use cursor pagination.
 
 Global events without a workspace, such as a failed sign-in, do not appear in
 this view.
-
-## Delete a workspace
-
-Only the owner can delete a workspace. Deletion is soft. Masir refuses to
-delete the only workspace on an instance.
-
-Back up the database and uploads before any administrative deletion.
 
 <ReadMore to="/guide/members" title="Invite people and assign roles" />
 

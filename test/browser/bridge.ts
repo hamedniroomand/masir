@@ -4,8 +4,7 @@
 import process from 'node:process';
 import { count, desc, eq } from 'drizzle-orm';
 import { setMemoisedDb } from '#server/database/client';
-import { authIdentities, clickEvents, hosts, mailOutbox, workspaceMembers, workspaces } from '#server/database/schema';
-import { runDemoSweep } from '#server/utils/demo';
+import { clickEvents, hosts, mailOutbox, workspaceMembers } from '#server/database/schema';
 import { hashSecret } from '#server/utils/password';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
@@ -82,8 +81,8 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     const { userId, workspaceId } = await resetTestDb(url);
     return { userId, workspaceId };
   },
-  'insert-user': async ({ url, email, password, verified }) =>
-    insertTestUser(url, { email: String(email), password: String(password), verified: verified !== false }),
+  'insert-user': async ({ url, email, password }) =>
+    insertTestUser(url, { email: String(email), password: String(password) }),
   'insert-workspace': async ({ url, slug, ownerUserId, name }) =>
     insertTestWorkspace(url, { slug: String(slug), ownerUserId: String(ownerUserId), name: name ? String(name) : undefined }),
   'insert-link': async ({ url, ...input }) => seedLink(url, input),
@@ -103,17 +102,6 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
       userId: String(userId),
       role: role === 'owner' || role === 'viewer' ? role : 'member',
       deactivatedAt: deactivated ? new Date() : null,
-    });
-    return { ok: true };
-  },
-  // Only an OAuth round trip adds a second sign-in method, and no test can make
-  // one, so a test that needs two identities seeds the row.
-  'insert-identity': async ({ url, userId, provider }) => {
-    const db = openTestDatabase(url);
-    await db.insert(authIdentities).values({
-      userId: String(userId),
-      provider: (provider ?? 'google') as 'password' | 'google' | 'microsoft',
-      providerAccountId: `${provider ?? 'google'}-${userId}`,
     });
     return { ok: true };
   },
@@ -141,20 +129,6 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     }));
     await db.insert(clickEvents).values(rows);
     return { ok: true };
-  },
-  // A demo lives 24 hours. A test that needs the expired view moves the date
-  // back instead of waiting.
-  'expire-workspace': async ({ url, slug }) => {
-    const db = openTestDatabase(url);
-    await db.update(workspaces).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(workspaces.slug, String(slug)));
-    return { ok: true };
-  },
-  // The browser scenarios set no jobs secret, so no request can start the
-  // sweep. runDemoSweep reads through getDb, so point that memo at the test
-  // database, as seedLink does.
-  'sweep-demos': async ({ url }) => {
-    setMemoisedDb(openTestDatabase(url) as Parameters<typeof setMemoisedDb>[0]);
-    return runDemoSweep();
   },
   'last-token': async ({ url, to }) => {
     const db = openTestDatabase(url);

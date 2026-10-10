@@ -3,7 +3,7 @@ import { $ } from 'bun';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { assertStorageConfig, buildStorageDriver } from '#server/utils/storage';
+import { buildStorageDriver } from '#server/utils/storage';
 import { createFileDriver } from '#server/utils/storage-file';
 
 let root = '';
@@ -52,20 +52,6 @@ describe('provider registry', () => {
 
   it('throws when the named provider has no configuration', () => {
     expect(() => buildStorageDriver(storageConfig({ driver: 's3' }))).toThrow(/unknown or not configured/);
-  });
-});
-
-describe('assertStorageConfig', () => {
-  it('refuses a disk provider on a serverless target', () => {
-    expect(() => assertStorageConfig(storageConfig(), { serverless: true })).toThrow(/needs a disk/);
-  });
-
-  it('allows a disk provider on a server with a disk', () => {
-    expect(() => assertStorageConfig(storageConfig(), { serverless: false })).not.toThrow();
-  });
-
-  it('allows s3 on a serverless target', () => {
-    expect(() => assertStorageConfig(storageConfig({ bucket: 'masir' }), { serverless: true })).not.toThrow();
   });
 });
 

@@ -1,9 +1,9 @@
 import type { Scenario } from './test/browser/scenario';
 import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
-import { cleanEnv, databaseUrlOf, healthUrlOf, originOf, serverEnv, TEST_DOMAIN } from './test/browser/scenario';
+import { cleanEnv, databaseUrlOf, healthUrlOf, originOf, serverEnv } from './test/browser/scenario';
 
-const SCENARIOS: Scenario[] = ['single', 'multi', 'cloud', 'landing'];
+const SCENARIOS: Scenario[] = ['single'];
 
 // The server migrates on boot but cannot create its database, so the bridge
 // makes it first.
@@ -25,7 +25,7 @@ export default defineConfig<{ scenario: Scenario }>({
   reporter: process.env.CI
     ? [['list'], ['html', { open: 'never' }]]
     : 'list',
-  // Three servers and a browser share one machine, and the pages fetch their
+  // A server and a browser share one machine, and the pages fetch their
   // data after they load. The 5s default reads that as a missing element.
   expect: { timeout: 10_000 },
   use: {
@@ -34,8 +34,6 @@ export default defineConfig<{ scenario: Scenario }>({
     // page puts its buttons below that fold, where a click never lands.
     viewport: { width: 1280, height: 1024 },
     trace: 'on-first-retry',
-    // See TEST_DOMAIN: the multi-workspace hosts resolve inside Chromium only.
-    launchOptions: { args: [`--host-resolver-rules=MAP *.${TEST_DOMAIN} 127.0.0.1, MAP ${TEST_DOMAIN} 127.0.0.1`] },
   },
   projects: SCENARIOS.map(scenario => ({
     name: scenario,

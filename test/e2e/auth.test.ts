@@ -1,6 +1,8 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { workspaceMembers } from '#server/database/schema';
+import { e2eSetupOptions, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
+import { openTestDatabase } from './test-db';
 
 const TEST_DB = testDatabaseUrl('auth');
 
@@ -9,8 +11,10 @@ type FetchError = { statusCode?: number; data?: { error?: string } };
 describe('auth API', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
+  let workspaceId: string;
+
   beforeAll(async () => {
-    await resetTestDb(TEST_DB);
+    ({ workspaceId } = await resetTestDb(TEST_DB));
   });
 
   it('returns 401 for links without a session', async () => {
@@ -40,5 +44,23 @@ describe('auth API', async () => {
     });
     expect(res.status).toBe(200);
     expect(res.headers.get('set-cookie')).toMatch(/nuxt-session/i);
+  });
+
+  it('lets a 1.x user who never verified the email sign in and read links', async () => {
+    const db = openTestDatabase(TEST_DB);
+    const userId = await insertTestUser(TEST_DB, { email: 'unverified@example.com', password: TEST_PASSWORD });
+    await db.insert(workspaceMembers).values({ workspaceId, userId, role: 'member' });
+
+    const login = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'unverified@example.com', password: TEST_PASSWORD }),
+    });
+    const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
+    const session = await $fetch<{ user: Record<string, unknown> }>('/api/_auth/session', { headers: { cookie } });
+    expect(session.user).not.toHaveProperty('emailVerified');
+
+    const links = await fetch('/api/links', { headers: { cookie } });
+    expect(links.status).toBe(200);
   });
 });

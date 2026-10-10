@@ -1,14 +1,13 @@
 import { requireUser } from '#server/utils/auth';
 import { publicUrlOrNull } from '#server/utils/storage';
 import { listMembershipsForUser } from '#server/utils/workspace-repo';
-import { workspaceUrl } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
   const config = useRuntimeConfig();
   const rows = await listMembershipsForUser(user.id);
   return {
-    multiWorkspace: Boolean(config.multiWorkspace),
     currentId: (event.context.workspace as { id: string } | undefined)?.id ?? null,
     items: rows.map(row => ({
       id: row.workspace.id,
@@ -16,9 +15,8 @@ export default defineEventHandler(async (event) => {
       slug: row.workspace.slug,
       linkPrefix: row.workspace.linkPrefix,
       logoUrl: publicUrlOrNull(row.workspace.logoUrl),
-      expiresAt: row.workspace.expiresAt?.toISOString() ?? null,
       role: row.role,
-      url: workspaceUrl(row.workspace.slug, config as never),
+      url: appUrl(config as never),
     })),
   };
 });

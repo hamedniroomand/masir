@@ -61,7 +61,7 @@ Invite people and assign owner, member, or viewer access.
 
 <Card title="Accounts and sign-in" icon="key-round" to="/guide/authentication">
 
-Use passwords, Google, Microsoft, recovery, and connected identities.
+Use passwords, invitations, and recovery.
 
 </Card>
 
@@ -72,8 +72,8 @@ Use passwords, Google, Microsoft, recovery, and connected identities.
 Masir is focused on durable shared links.
 
 - The API uses session cookies. API tokens are not available.
-- Workspaces use subdomains in multi-workspace mode. Per-workspace custom
-  domains are not available.
+- One install serves one workspace. Custom domains for each workspace are
+  not available.
 - Analytics describe link traffic. Masir does not provide funnels, retention,
   or session replay.
 - Two-factor authentication and billing are not included.

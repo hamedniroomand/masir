@@ -16,19 +16,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (useError().value)
     return;
 
-  // "/" is the landing page on the root host and the links list elsewhere.
-  if (to.path === '/') {
-    const { data: host } = await useHostInfo();
-    if (host.value?.landing)
-      return;
-    setPageLayout('default');
-  }
-
   const { loggedIn, ready, fetch: fetchSession } = useUserSession();
   if (!ready.value)
     await fetchSession();
 
-  const isPublic = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/report'].includes(to.path) || isPublicShortLinkPath(to.path);
+  const isPublic = ['/login', '/forgot-password', '/reset-password', '/report', '/invite'].includes(to.path) || isPublicShortLinkPath(to.path);
 
   if (!loggedIn.value && !isPublic)
     return navigateTo(loginPath(to.fullPath));

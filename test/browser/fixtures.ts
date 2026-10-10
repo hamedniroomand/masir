@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
-import { cleanEnv, databaseUrlOf, hostUrl, originOf } from './scenario';
+import { cleanEnv, databaseUrlOf, originOf } from './scenario';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const BRIDGE = resolve(ROOT, 'test/browser/bridge.ts');
@@ -23,7 +23,6 @@ function bridge<TResult>(command: string, input: Record<string, unknown>): TResu
 export type TestServer = {
   scenario: Scenario;
   baseURL: string;
-  hostUrl: (slug: string) => string;
 };
 
 export type LinkSeed = {
@@ -59,16 +58,13 @@ export type ClickSeed = {
 
 export type Db = {
   reset: () => { userId: string; workspaceId: string };
-  insertUser: (input: { email: string; password: string; verified?: boolean }) => string;
+  insertUser: (input: { email: string; password: string }) => string;
   insertWorkspace: (input: { slug: string; ownerUserId: string; name?: string }) => string;
   insertLink: (input: LinkSeed) => string;
   insertLinks: (input: Omit<LinkSeed, 'slug'> & { slugs: string[] }) => string[];
   insertCampaign: (input: { workspaceId: string; utmCampaign: string; name?: string }) => string;
   insertMember: (input: { workspaceId: string; userId: string; role?: 'owner' | 'member' | 'viewer'; deactivated?: boolean }) => void;
-  insertIdentity: (input: { userId: string; provider?: 'google' | 'microsoft' }) => void;
   insertClicks: (input: ClickSeed) => void;
-  expireWorkspace: (slug: string) => void;
-  sweepDemos: () => number;
   lastToken: (to: string) => string | null;
   mailCount: (to: string) => number;
 };
@@ -88,7 +84,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   scenario: ['single', { scope: 'worker', option: true }],
 
   server: [async ({ scenario }, use) => {
-    await use({ scenario, baseURL: originOf(scenario), hostUrl: slug => hostUrl(scenario, slug) });
+    await use({ scenario, baseURL: originOf(scenario) });
   }, { scope: 'worker' }],
 
   db: [async ({ scenario }, use) => {
@@ -101,10 +97,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       insertLinks: input => bridge('insert-links', { url, ...input }),
       insertCampaign: input => bridge('insert-campaign', { url, ...input }),
       insertMember: input => bridge('insert-member', { url, ...input }),
-      insertIdentity: input => bridge('insert-identity', { url, ...input }),
       insertClicks: input => bridge('insert-clicks', { url, ...input }),
-      expireWorkspace: slug => bridge('expire-workspace', { url, slug }),
-      sweepDemos: () => bridge('sweep-demos', { url }),
       lastToken: to => bridge('last-token', { url, to }),
       mailCount: to => bridge('mail-count', { url, to }),
     });

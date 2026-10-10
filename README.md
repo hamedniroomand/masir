@@ -5,7 +5,7 @@
 <h1 align="center">Masir</h1>
 
 <p align="center">
-  Short links your team owns. Self-hosted, with workspaces, access control, and privacy-friendly analytics.
+  Short links your team owns. Self-hosted, with a team workspace, access control, and privacy-friendly analytics.
 </p>
 
 <p align="center">
@@ -22,15 +22,15 @@ Masir turns long URLs into short ones on your own domain, and keeps them under y
 ## Highlights
 
 - **Editable destinations.** The short URL never changes. Where it goes can.
-- **Workspaces and roles.** Links belong to a team, not to a person. One owner, any number of members, and read-only viewers.
+- **Team roles.** Links belong to a team, not to a person. One owner, any number of members, and read-only viewers.
 - **Access control.** Passwords, start dates, expiry dates, visit caps, and one-time links. Each blocked state can send visitors to a fallback page instead of a 404.
 - **Targeting.** One link, a different destination for iOS, Android, desktop, or a country.
 - **Rename without breaking.** Change a short address and keep the old one working. A link can hold several addresses, and an address that once worked is never handed to another link.
 - **Analytics without tracking.** Clicks, unique visitors, referrers, countries, devices, and browsers. Bots are counted separately. No IP addresses, no user agents, no cookies on visitors.
 - **Tags and campaigns.** Group links and share UTM values across a campaign.
 - **Alerts before a link stops.** Email the owner before a link reaches its visit cap or expires.
-- **One instance, one team or many.** Run a single workspace on your domain, or give every workspace its own subdomain.
-- **Sign in your way.** Email and password, Google, or Microsoft.
+- **One install, one team.** Run a single workspace on your domain.
+- **Invite-only accounts.** Users sign in with email and password. The owner invites new users by email.
 
 ## Quick start
 
@@ -52,7 +52,7 @@ Then create the first account and sign in at `/login`:
 docker compose exec app bun run db:seed:admin
 ```
 
-The [installation guide](https://docs.masir.dev/guide/installation) covers the image, building it yourself, running from source, Vercel, and multi-workspace mode.
+The [installation guide](https://docs.masir.dev/guide/installation) covers the image, building it yourself, and running from source.
 
 ## Documentation
 

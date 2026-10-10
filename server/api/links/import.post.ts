@@ -1,4 +1,3 @@
-import type { ShortUrlWorkspace } from '#server/utils/link-repo';
 import type { LinkImportValues } from '#shared/link-import';
 import { Buffer } from 'node:buffer';
 import { setResponseHeader } from 'h3';
@@ -6,7 +5,6 @@ import * as v from 'valibot';
 import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
-import { DEMO_LINK_CAP, demoRefusal } from '#server/utils/demo';
 import { AlreadyImportedError, SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
 import {
   ensureLinkImport,
@@ -14,7 +12,7 @@ import {
   validateImportValues,
   valuesToCreateFields,
 } from '#server/utils/link-import';
-import { countLiveLinks, createLink, findLinkByImportRow } from '#server/utils/link-repo';
+import { createLink, findLinkByImportRow } from '#server/utils/link-repo';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { setLinkTags } from '#server/utils/tag-repo';
 import {
@@ -72,7 +70,6 @@ function asValues(input: v.InferOutput<typeof valuesSchema>): LinkImportValues {
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as ShortUrlWorkspace & { expiresAt: Date | null };
   const config = useRuntimeConfig();
   const body = await readValidBody(event, bodySchema);
 
@@ -96,9 +93,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { retryAfterSec: rl.retryAfterSec } });
     }
   }
-
-  if (workspace.expiresAt != null && await countLiveLinks(workspaceId) + body.rows.length > DEMO_LINK_CAP)
-    throw demoRefusal(`The demo allows ${DEMO_LINK_CAP} links.`);
 
   await ensureLinkImport({
     importId: body.importId,

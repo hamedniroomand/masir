@@ -63,8 +63,8 @@ priority, so no other rule can make the link resolve.
 Masir can email the workspace owner before a link expires or approaches its
 visit limit.
 
-A long-running server checks on an interval. A serverless deployment calls the
-protected alerts job from a scheduler. Each alert uses a claim stamp so
+A long-running server checks on an interval. You can also call the protected
+alerts job from a scheduler. Each alert uses a claim stamp so
 several instances do not send it twice.
 
 <ReadMore to="/guide/self-hosting#alerts" title="Configure the alert runner" />

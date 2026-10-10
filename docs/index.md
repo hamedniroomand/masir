@@ -16,6 +16,9 @@ hero:
       text: Install Masir
       link: /guide/installation
     - theme: alt
+      text: Try the demo
+      link: https://demo.masir.dev
+    - theme: alt
       text: Explore the user guide
       link: /features/
     - theme: alt
@@ -26,6 +29,11 @@ hero:
 ```sh
 curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/install.sh | sh
 ```
+
+## Try the demo
+
+The demo at [demo.masir.dev](https://demo.masir.dev) is a read-only viewer
+account. You can look at links and analytics. You cannot change them.
 
 ## Start with your role
 
@@ -103,16 +111,13 @@ and bots. Masir stores neither visitor IP addresses nor user-agent strings.
 
 </CardGroup>
 
-## One service, two deployment models
+## One service for one team
 
-Masir runs as one application beside Postgres.
-
-- **Single workspace** is the default. One team uses one domain.
-- **Multi-workspace** gives each workspace a subdomain behind wildcard DNS and
-  a wildcard certificate.
+Masir runs as one application beside Postgres. One install serves one team
+workspace on one domain. The owner invites other users by email.
 
 Docker Compose is the recommended production path. You can also build the
-image yourself, run from source, or deploy the Bun server on Vercel.
+image yourself or run from source. Masir runs on Bun on a server.
 
 ```mermaid
 flowchart LR

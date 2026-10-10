@@ -2,14 +2,9 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { provider } from 'std-env';
 import { collectSourceMaps } from './scripts/sentry-sourcemaps';
-import { resolveNitroPreset } from './shared/nitro-preset';
 import { sentryCompiled } from './shared/sentry';
 
-// The build is the one place that knows the target for certain, so the
-// serverless flag is decided here and read from runtimeConfig at run time.
-const preset = resolveNitroPreset(process.env, provider);
 const sentry = sentryCompiled(process.env);
 
 // Every page under app/pages renders on the client. Read from the directory,
@@ -20,8 +15,7 @@ function clientOnlyRoutes() {
     if (entry.isDirectory())
       return [`/${entry.name}`, `/${entry.name}/**`];
     const name = entry.name.replace(/\.vue$/, '');
-    // "/" is decided by host in server/middleware/03.landing.ts.
-    return name === 'index' ? [] : [`/${name}`];
+    return name === 'index' ? ['/'] : [`/${name}`];
   });
 }
 
@@ -53,35 +47,18 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     migrateOnBoot: true,
-    // nuxt-auth-utils declares session.cookie without a domain key, and Nitro's
-    // applyEnv only overwrites keys that already exist. Without this line
-    // NUXT_SESSION_COOKIE_DOMAIN can never bind, and multi-workspace mode
-    // refuses to boot however the operator sets it.
     session: {
       cookie: {
-        domain: '',
         // Declared so NUXT_SESSION_COOKIE_SECURE=false can bind, for an
         // instance served over plain http on a private network.
         secure: true,
       },
     },
-    // true on a target that keeps no disk and no process between requests.
-    // Declared so NUXT_SERVERLESS=true can bind on a container that behaves
-    // the same way.
-    serverless: preset !== 'bun',
     sessionPassword: '',
     visitorHashSecret: '',
     databaseUrl: 'postgres://masir:masir@127.0.0.1:5432/masir',
     databasePoolMax: 10,
-    deploymentMode: 'SELF_HOSTED',
     rootDomain: 'http://localhost:3000',
-    // Empty keeps the app on the root domain. A value moves sign-in and the
-    // dashboard there and turns the root "/" into a landing page.
-    appDomain: '',
-    multiWorkspace: false,
-    allowRegistration: false,
-    // Both Turnstile keys set turns on the robot check on the email forms.
-    turnstileSecretKey: '',
     mail: {
       driver: '',
       from: 'Masir <no-reply@localhost>',
@@ -105,16 +82,12 @@ export default defineNuxtConfig({
       endpoint: '',
       maxUploadBytes: 2_097_152,
     },
-    // 0 turns the in-process sweep off. A serverless deployment leaves it off
-    // and points a cron at POST /api/jobs/alerts instead.
+    // 0 turns the in-process sweep off. A cron can call POST /api/jobs/alerts instead.
     alertsIntervalMinutes: 15,
     // Empty makes the jobs route answer 404.
     jobsSecret: '',
     // Comma-separated emails allowed to access operator routes.
     operatorEmails: '',
-    // Lets a visitor open a seeded workspace without an account. Needs
-    // NUXT_MULTI_WORKSPACE, because every visitor gets their own workspace.
-    demoEnabled: false,
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,
@@ -131,16 +104,9 @@ export default defineNuxtConfig({
     rateLimitRedirectPerMinute: 120,
     rateLimitPasswordPerMinute: 10,
     rateLimitUpdatePerMinute: 60,
-    rateLimitSlugCheckPerMinute: 30,
     rateLimitInvitePerHour: 30,
-    rateLimitWorkspacePerDay: 5,
-    oauth: {
-      google: { clientId: '', clientSecret: '' },
-      microsoft: { clientId: '', clientSecret: '', tenant: 'common' },
-    },
     public: {
       shortDomain: 'http://localhost:3000',
-      turnstileSiteKey: '',
       // Declared so the Umami host and replay env vars can bind.
       scripts: { umamiAnalytics: { hostUrl: '', replays: false } },
       sentry: {
@@ -179,7 +145,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-30',
 
   nitro: {
-    preset,
+    preset: 'bun',
   },
 
   vite: {
@@ -187,10 +153,6 @@ export default defineNuxtConfig({
       include: [
         '@vue/devtools-core',
       ],
-    },
-    server: {
-      // A leading dot allows the domain and all its subdomains.
-      allowedHosts: ['.lvh.me'],
     },
   },
 

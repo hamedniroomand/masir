@@ -27,9 +27,6 @@ export type StorageConfig = {
 // no credentials for that backend, so the resolver can try the next one.
 export type StorageProvider = {
   name: string;
-  // true when the provider needs a disk that lives longer than one request. An
-  // edge or serverless runtime has none.
-  needsDisk?: boolean;
   create: (config: StorageConfig) => StorageDriver | null;
 };
 
@@ -70,14 +67,6 @@ export function buildStorageDriver(config: StorageConfig): { name: string; drive
       return { name, driver };
   }
   throw new Error('No storage provider is configured; set NUXT_STORAGE_LOCAL_ROOT or NUXT_STORAGE_BUCKET');
-}
-
-// A serverless target keeps no disk between requests. Refuse at boot rather
-// than lose every upload at the first cold start.
-export function assertStorageConfig(config: StorageConfig, target: { serverless: boolean }) {
-  const { name } = buildStorageDriver(config);
-  if (target.serverless && providers.get(name)?.needsDisk)
-    throw new Error(`Storage provider "${name}" needs a disk, and a serverless deployment keeps none between requests. Set NUXT_STORAGE_BUCKET to store uploads in a bucket.`);
 }
 
 export function setStorageDriver(driver: StorageDriver | null) {

@@ -6,7 +6,7 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { getDb } from '#server/utils/db';
 import { shortUrlFor } from '#server/utils/link-repo';
 import { sendMail } from '#server/utils/mail';
-import { workspaceUrl } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 
 export const EXPIRY_ALERT_DAYS = 3;
 export const CAP_ALERT_RATIO = 0.9;
@@ -73,7 +73,7 @@ async function addressesFor(link: Link) {
   const config = useRuntimeConfig();
   return {
     shortUrl: shortUrlFor(workspace, link.slug),
-    linkUrl: `${workspaceUrl(workspace.slug, config as never)}/links/${link.id}`,
+    linkUrl: `${appUrl(config as never)}/links/${link.id}`,
   };
 }
 

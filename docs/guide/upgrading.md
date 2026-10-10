@@ -62,16 +62,50 @@ analytics record its request.
 You can skip releases. Read and apply the notes for every skipped version in
 order. Database migrations run in order and use an advisory lock.
 
-## Upgrade on serverless
+## 1.x to 2.0
 
-Set `NUXT_MIGRATE_ON_BOOT=false`. Run the migration command once during
-deployment against the direct Postgres connection:
+Masir 2.0 serves one workspace, signs users in with a password only, and runs
+on Bun on a server only.
 
-```sh
-bun run db:migrate
-```
+1. Back up the database. The 2.0 migration deletes data. Masir has no down
+   migrations.
+2. Keep one workspace on 1.x and delete the others. The migration stops when
+   more than one live workspace exists. Stay on 1.x if you need several
+   workspaces. A demo workspace counts as live until 1.x deletes it, so delete
+   demo workspaces before the upgrade.
+3. Stop every instance. 1.x code does not work against the 2.0 schema, so a
+   rolling deploy does not work for this release.
+4. Upgrade and start the new version.
+5. Delete the removed variables from `.env`. The app ignores them.
 
-Do not let every cold start attempt the migration.
+The migration permanently deletes:
+
+- soft-deleted workspaces with their links
+- Google and Microsoft sign-in records
+- email verification tokens
+
+A user who signed in only with Google or Microsoft uses **Forgot password** to
+set a password.
+
+The migration also drops the workspace plan, trial, subscription, demo expiry,
+and deletion columns. It drops the user email verification and avatar columns.
+
+Short links on workspace subdomains stop working. Short links on
+`NUXT_PUBLIC_SHORT_DOMAIN` keep working.
+
+The `/no-access` page is new, so `no-access` is now a reserved slug. A short
+link or link prefix named `no-access` stops working. Rename it before the
+upgrade.
+
+The `x-vercel-ip-country` fallback is gone. Set `NUXT_GEO_COUNTRY_HEADER` if
+your proxy sends the country in another header.
+
+Masir 2.0 removes these variables: `NUXT_DEMO_ENABLED`,
+`NUXT_ALLOW_REGISTRATION`, `NUXT_PUBLIC_TURNSTILE_SITE_KEY`,
+`NUXT_TURNSTILE_SECRET_KEY`, `NUXT_DEPLOYMENT_MODE`, `NUXT_MULTI_WORKSPACE`,
+`NUXT_APP_DOMAIN`, `NUXT_SESSION_COOKIE_DOMAIN`,
+`NUXT_RATE_LIMIT_WORKSPACE_PER_DAY`, `NUXT_RATE_LIMIT_SLUG_CHECK_PER_MINUTE`, the five `NUXT_OAUTH_*` variables, and
+`NUXT_SERVERLESS`.
 
 ## Roll back
 

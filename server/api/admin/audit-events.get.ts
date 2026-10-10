@@ -12,8 +12,8 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const db = await getDb();
 
-  // A row with no workspace belongs to no tenant: sign-in failures, OAuth
-  // errors, abuse reports. eq() never matches null, so those stay operator-only
+  // A row with no workspace belongs to no tenant: sign-in failures and
+  // abuse reports. eq() never matches null, so those stay operator-only
   // and never reach a workspace.
   const filters = [eq(auditEvents.workspaceId, workspaceId)];
 

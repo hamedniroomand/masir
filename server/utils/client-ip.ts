@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3';
-import process from 'node:process';
 import { getRequestHeader } from 'h3';
 
 // h3's getRequestIP takes the LEFTMOST X-Forwarded-For entry. Proxies append,
@@ -10,17 +9,6 @@ import { getRequestHeader } from 'h3';
 // entry at position `depth` from the end is the one the outermost trusted proxy
 // wrote, and nothing further left can be trusted.
 export function clientIp(event: H3Event, trustedProxyDepth: number): string {
-  // Only on Vercel, which sets this header itself and strips any client copy.
-  // Anywhere else it is just another header a caller can write, and trusting it
-  // would undo the whole point of this function. Vercel's own socket address is
-  // an internal one shared by every request, so without this each deployment
-  // would put all callers in one bucket.
-  if (process.env.VERCEL) {
-    const platform = getRequestHeader(event, 'x-vercel-forwarded-for')?.trim();
-    if (platform)
-      return platform;
-  }
-
   const socket = event.node.req.socket.remoteAddress ?? 'unknown';
   if (trustedProxyDepth < 1)
     return socket;

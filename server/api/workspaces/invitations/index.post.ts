@@ -4,11 +4,10 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { isUniqueViolation } from '#server/utils/db';
-import { demoRefusal } from '#server/utils/demo';
 import { createInvitation, isAlreadyMember } from '#server/utils/invitation-repo';
 import { sendMail } from '#server/utils/mail';
 import { rateLimitCheck } from '#server/utils/rate-limit';
-import { workspaceUrl } from '#shared/deployment';
+import { appUrl } from '#shared/deployment';
 
 const bodySchema = v.object({
   email: v.pipe(v.string(), v.trim(), v.email('Enter a valid email.')),
@@ -19,9 +18,7 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'members.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as { slug: string; name: string; expiresAt: Date | null };
-  if (workspace.expiresAt != null)
-    throw demoRefusal('A demo workspace cannot invite members.');
+  const workspace = event.context.workspace as { slug: string; name: string };
   const config = useRuntimeConfig();
 
   const limit = Number(config.rateLimitInvitePerHour) || 30;
@@ -55,7 +52,7 @@ export default defineEventHandler(async (event) => {
   });
   const { id, raw } = invitation;
 
-  const base = workspaceUrl(workspace.slug, config as never);
+  const base = appUrl(config as never);
   await sendMail(inviteMessage(body.email, workspace.name, `${base}/invite?token=${raw}`));
   await writeAuditEvent('invitation_sent', { email: body.email }, { workspaceId, actor: user.id });
 

@@ -5,15 +5,9 @@ test.beforeAll(({ db }) => {
 });
 
 test('sends a signed-out visitor to the login page with the return path', async ({ page }) => {
-  await page.goto('/settings/account');
+  await page.goto('/settings/security');
   await expect(page).toHaveURL(/\/login\?redirect=/);
-  expect(new URL(page.url()).searchParams.get('redirect')).toBe('/settings/account');
-});
-
-test('shows no provider buttons when no OAuth client is configured', async ({ page }) => {
-  await page.goto('/login');
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Continue with/ })).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.get('redirect')).toBe('/settings/security');
 });
 
 test('shows field errors on an empty submit and clears them as the user types', async ({ page }) => {
@@ -44,16 +38,9 @@ test('signs in, lands on the overview, and cannot reopen the login page', async 
 });
 
 test('returns to the requested page after sign-in', async ({ page }) => {
-  await page.goto('/settings/account');
+  await page.goto('/settings/security');
   await page.getByLabel('Email').fill('test@example.com');
   await page.getByLabel('Password').fill('test-password-12345');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/settings\/account$/);
-});
-
-test('sends a verification visit without a token to the login page', async ({ page }) => {
-  await page.goto('/verify-email');
-  await expect(page).toHaveURL(/\/login$/);
-  await page.goto('/verify-email?email=someone%40example.com');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/settings\/security$/);
 });

@@ -1,7 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils';
 import { desc, eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { mailOutbox, workspaceMembers } from '#server/database/schema';
+import { mailOutbox, users, workspaceMembers } from '#server/database/schema';
 import { e2eSetupOptions, insertTestUser, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUrl } from './helpers';
 import { openTestDatabase } from './test-db';
 
@@ -146,5 +146,90 @@ describe('workspace invitations', async () => {
       headers: { cookie },
     });
     expect(second.id).not.toBe(first.id);
+  });
+
+  describe('preview', () => {
+    const KNOWN = 'preview-known@example.com';
+
+    it('names the workspace and says whether the account exists', async () => {
+      const cookie = await loginCookie();
+      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email: 'preview-new@example.com' }, headers: { cookie } });
+      const token = await lastInviteToken();
+
+      const preview = await $fetch<{ workspaceName: string; email: string; role: string; accountExists: boolean }>(
+        `/api/workspaces/invitations/preview?token=${token}`,
+      );
+      expect(preview).toEqual({ workspaceName: 'Acme', email: 'preview-new@example.com', role: 'MEMBER', accountExists: false });
+    });
+
+    it('says the account exists for a known email', async () => {
+      await insertTestUser(TEST_DB, { email: KNOWN, password: TEST_PASSWORD });
+      const cookie = await loginCookie();
+      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email: KNOWN }, headers: { cookie } });
+      const token = await lastInviteToken();
+
+      const preview = await $fetch<{ accountExists: boolean }>(`/api/workspaces/invitations/preview?token=${token}`);
+      expect(preview.accountExists).toBe(true);
+    });
+
+    it('gives one answer for every bad token', async () => {
+      const res = await fetch('/api/workspaces/invitations/preview?token=not-a-token');
+      expect(res.status).toBe(400);
+      expect((await res.json()).data.reason).toBe('This invitation is not valid.');
+    });
+  });
+
+  describe('accept as a new user', () => {
+    const TAKEN = 'accept-taken@example.com';
+
+    async function inviteToken(email: string) {
+      const cookie = await loginCookie();
+      await $fetch('/api/workspaces/invitations', { method: 'POST', body: { email }, headers: { cookie } });
+      return lastInviteToken();
+    }
+
+    function accept(token: string, password: string) {
+      return fetch('/api/workspaces/invitations/accept', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token, password }),
+      });
+    }
+
+    it('creates the account, adds the membership, and signs the user in', async () => {
+      const token = await inviteToken('fresh@example.com');
+      const res = await accept(token, 'fresh-password-1!');
+      expect(res.status).toBe(200);
+      expect((await res.json()).workspace.name).toBe('Acme');
+      expect(res.headers.get('set-cookie')).toBeTruthy();
+
+      const cookie = await loginCookie('fresh@example.com', 'fresh-password-1!');
+      const links = await fetch('/api/links', { headers: { cookie } });
+      expect(links.status).toBe(200);
+    });
+
+    it('refuses a password that breaks the rules', async () => {
+      const token = await inviteToken('weak@example.com');
+      const res = await accept(token, 'short');
+      expect(res.status).toBe(422);
+    });
+
+    it('refuses a new account for an email that already has one', async () => {
+      await insertTestUser(TEST_DB, { email: TAKEN, password: TEST_PASSWORD });
+      const token = await inviteToken(TAKEN);
+      const res = await accept(token, 'fresh-password-1!');
+      expect(res.status).toBe(409);
+      expect((await res.json()).data.reason).toBe('Sign in to accept this invitation.');
+    });
+
+    it('lets only one of two requests with the same token win', async () => {
+      const token = await inviteToken('race@example.com');
+      const statuses = (await Promise.all([accept(token, 'race-password-1!'), accept(token, 'race-password-1!')])).map(res => res.status).sort();
+      expect(statuses).toEqual([200, 400]);
+
+      const db = openTestDatabase(TEST_DB);
+      const members = await db.select().from(workspaceMembers).innerJoin(users, eq(workspaceMembers.userId, users.id)).where(eq(users.email, 'race@example.com'));
+      expect(members).toHaveLength(1);
+    });
   });
 });

@@ -13,7 +13,6 @@ const pathMode = ref<'preserve' | 'replace'>('preserve');
 const message = ref('');
 const error = ref('');
 const saving = ref(false);
-const confirming = ref(false);
 const logoFile = ref<File | null>(null);
 const logoBusy = ref(false);
 const revokingPrefix = ref<string | null>(null);
@@ -126,18 +125,6 @@ function removeLogo() {
     await $api('/api/workspaces/logo', { method: 'DELETE', body });
   }, 'We could not remove the logo.');
 }
-
-async function remove() {
-  error.value = '';
-  try {
-    await $api('/api/workspaces', { method: 'DELETE' });
-    // Still signed in, so /login would bounce back to the deleted workspace.
-    await navigateTo('/workspaces');
-  }
-  catch (failure) {
-    error.value = reasonOf(failure) ?? 'We could not delete the workspace.';
-  }
-}
 </script>
 
 <template>
@@ -230,21 +217,5 @@ async function remove() {
     </div>
 
     <QuickCreateCard v-if="can('links.manage')" />
-
-    <USeparator v-if="can('links.manage')" />
-
-    <div v-if="can('workspace.delete') && data?.multiWorkspace" class="space-y-3">
-      <h2 class="text-sm font-medium text-highlighted">
-        Delete this workspace
-      </h2>
-      <p class="text-sm text-muted">
-        Its links stop working and its address stops resolving.
-      </p>
-      <UButton v-if="!confirming" label="Delete workspace" color="error" variant="subtle" @click="confirming = true" />
-      <div v-else class="flex gap-2">
-        <UButton label="Yes, delete it" color="error" @click="remove" />
-        <UButton label="Cancel" variant="ghost" @click="confirming = false" />
-      </div>
-    </div>
   </div>
 </template>

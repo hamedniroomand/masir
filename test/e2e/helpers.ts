@@ -9,7 +9,6 @@ export { testDatabaseUrl } from './test-db';
 const sharedEnv = {
   NUXT_SESSION_PASSWORD: '01234567890123456789012345678901',
   NUXT_PUBLIC_SHORT_DOMAIN: 'http://127.0.0.1:3000',
-  NUXT_ALLOW_REGISTRATION: 'true',
   NUXT_MAIL_DRIVER: 'outbox',
   // A test file signs in once for each case. The default of 10 refuses the
   // eleventh. rate-limit.test.ts sets its own value and is not affected.
@@ -49,12 +48,10 @@ export const TEST_WORKSPACE_SLUG = 'acme';
 export async function insertTestUser(databaseUrl: string, input: {
   email: string;
   password: string;
-  verified?: boolean;
 }) {
   const db = openTestDatabase(databaseUrl);
   const [user] = await db.insert(users).values({
     email: input.email,
-    emailVerifiedAt: input.verified === false ? null : new Date(),
     firstName: 'Test',
     lastName: 'User',
   }).returning();
