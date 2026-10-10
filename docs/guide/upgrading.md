@@ -16,10 +16,11 @@ them. A tested backup is the rollback path.
 
 ## Upgrade the published image
 
-Pin the target release in `.env`:
+Pin the target release in `.env`. Use the version number from the
+[releases page](https://github.com/hamedniroomand/masir/releases), without the `v`:
 
 ```sh
-MASIR_VERSION=1.1.0
+MASIR_VERSION=x.y.z
 ```
 
 Pull and restart:
