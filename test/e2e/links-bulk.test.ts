@@ -123,7 +123,7 @@ describe('links bulk API', async () => {
     const db = openTestDatabase(TEST_DB);
     const before = await db.select().from(linkTags).where(eq(linkTags.linkId, local));
 
-    const res = await $fetch('/api/links/bulk', {
+    const res = await $fetch<never>('/api/links/bulk', {
       method: 'POST',
       body: {
         selection: { ids: [local, foreignLinkId] },
@@ -159,7 +159,7 @@ describe('links bulk API', async () => {
 
     const before = await db.select().from(linkTags).where(eq(linkTags.tagId, capTag!.id));
 
-    const res = await $fetch('/api/links/bulk', {
+    const res = await $fetch<never>('/api/links/bulk', {
       method: 'POST',
       body: {
         selection: { filter: { campaignId } },
