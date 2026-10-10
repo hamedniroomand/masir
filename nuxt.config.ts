@@ -236,6 +236,8 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
+    tsConfig: { include: ['../sentry.client.config.ts'] },
+    nodeTsConfig: { include: ['../sentry.server.config.ts'] },
   },
 
   // Hidden client maps. The upload happens at build when a token is present,
