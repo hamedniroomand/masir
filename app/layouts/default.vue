@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { user } = useUserSession();
 await useWorkspaces();
-const { current, can } = useCurrentWorkspace();
+const { current, readOnly, can } = useCurrentWorkspace();
 
 // Every page in this layout is workspace-scoped. A user without a
 // membership sees only 404 answers here.
@@ -102,6 +102,10 @@ watch(() => route.fullPath, () => {
       </div>
     </aside>
     <div class="min-h-[calc(100dvh-1rem)] bg-default lg:rounded-xl lg:border lg:border-default lg:shadow-panel">
+      <p v-if="readOnly" role="status" class="flex items-center justify-center gap-2 border-b border-default bg-primary/10 px-4 py-2 text-center text-xs text-highlighted lg:rounded-t-xl">
+        <UIcon name="i-lucide-eye" class="size-3.5 shrink-0 text-primary" />
+        Read-only account. You can open every page and form, but changes are not saved.
+      </p>
       <header class="flex h-14 items-center justify-between gap-3 border-b border-default px-4 sm:px-8">
         <div class="flex min-w-0 items-center gap-2">
           <USlideover v-model:open="mobileOpen" :title="current?.name ?? 'Workspace'" side="left">

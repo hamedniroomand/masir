@@ -34,6 +34,7 @@
     "db:migrate": "bun run scripts/migrate.ts",
     "db:studio": "bun --bun drizzle-kit studio",
     "db:seed:admin": "bun run scripts/seed-admin.ts",
+    "db:seed:demo": "bun run scripts/seed-demo.ts",
     "bench:redirect": "bun run scripts/bench-redirect.ts",
     "prepare": "husky",
     "changeset": "changeset",

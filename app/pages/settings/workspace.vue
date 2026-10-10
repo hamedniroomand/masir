@@ -44,10 +44,6 @@ const pathModeOptions = [
   { label: 'Replace immediately', value: 'replace' },
 ];
 
-function reasonOf(failure: unknown) {
-  return (failure as { data?: { data?: { reason?: string } } }).data?.data?.reason;
-}
-
 async function save() {
   error.value = '';
   message.value = '';
@@ -65,7 +61,7 @@ async function save() {
     message.value = 'Saved.';
   }
   catch (failure) {
-    error.value = reasonOf(failure) ?? 'We could not save the workspace.';
+    error.value = errorReason(failure, 'We could not save the workspace.');
   }
   finally {
     saving.value = false;
@@ -80,7 +76,7 @@ async function revokePrefix(prefix: string) {
     await refreshRetainedPrefixes();
   }
   catch (failure) {
-    error.value = reasonOf(failure) ?? 'We could not revoke the link path.';
+    error.value = errorReason(failure, 'We could not revoke the link path.');
   }
   finally {
     revokingPrefix.value = null;
@@ -98,7 +94,7 @@ async function saveLogo(request: () => Promise<unknown>, fallback: string) {
     await refresh();
   }
   catch (failure) {
-    error.value = reasonOf(failure) ?? fallback;
+    error.value = errorReason(failure, fallback);
   }
   finally {
     logoFile.value = null;

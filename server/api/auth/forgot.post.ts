@@ -5,6 +5,7 @@ import { readValidBody } from '#server/utils/body';
 import { findUserByEmail, normalizeEmail } from '#server/utils/identity-repo';
 import { sendMail } from '#server/utils/mail';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
+import { isReadOnlyEmail } from '#server/utils/read-only';
 import { appUrl } from '#shared/deployment';
 
 const bodySchema = v.object({
@@ -24,7 +25,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
   }
 
-  const user = await findUserByEmail(email);
+  // A read-only account cannot change its password either. The answer stays
+  // the same, so it does not name the account.
+  const user = isReadOnlyEmail(email) ? null : await findUserByEmail(email);
   if (user) {
     const raw = await createAuthToken('password_reset', user.id, RESET_LIFETIME_MS);
     const link = `${appUrl(useRuntimeConfig() as never)}/reset-password?token=${raw}`;

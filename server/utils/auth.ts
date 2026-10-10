@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3';
 import type { Permission, WorkspaceRole } from '#shared/permissions';
 import { sessionVersionOf } from '#server/utils/identity-repo';
+import { effectiveRole } from '#server/utils/read-only';
 import { findMemberAccess } from '#server/utils/workspace-repo';
 import { can } from '#shared/permissions';
 
@@ -57,7 +58,7 @@ export async function requireMemberOf(
     throw workspaceNotFound();
   }
 
-  const role = access.role as WorkspaceRole;
+  const role = effectiveRole(user.email, access.role as WorkspaceRole);
   if (!can(role, permission))
     throw workspaceNotFound();
 

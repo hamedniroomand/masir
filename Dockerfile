@@ -14,7 +14,7 @@ RUN bun run build
 RUN bun -e "await Bun.write('.output/release', 'masir@' + (await Bun.file('package.json').json()).version)"
 # The runtime image has no source or node_modules, so the operator scripts
 # ship as bundles next to the server.
-RUN bun build scripts/migrate.ts scripts/seed-admin.ts --target bun --outdir .output/scripts
+RUN bun build scripts/migrate.ts scripts/seed-admin.ts scripts/seed-demo.ts --target bun --outdir .output/scripts
 # The image carries sentry-cli to upload the source maps when the container
 # starts. It comes from the lockfile, so there is no download to verify and no
 # second version to track.
@@ -27,10 +27,10 @@ COPY --from=build --chown=bun:bun /app/.output ./.output
 COPY --from=build --chown=bun:bun /app/drizzle ./drizzle
 COPY --from=build /usr/local/bin/sentry-cli /usr/local/bin/sentry-cli
 COPY --chown=bun:bun docker/entrypoint.sh ./entrypoint.sh
-# Keeps `bun run db:migrate` and `bun run db:seed:admin` working inside the
+# Keeps `bun run db:migrate` and the seed scripts working inside the
 # container, as the docs say.
 COPY <<EOF package.json
-{"scripts":{"db:migrate":"bun .output/scripts/migrate.js","db:seed:admin":"bun .output/scripts/seed-admin.js"}}
+{"scripts":{"db:migrate":"bun .output/scripts/migrate.js","db:seed:admin":"bun .output/scripts/seed-admin.js","db:seed:demo":"bun .output/scripts/seed-demo.js"}}
 EOF
 RUN mkdir -p data/uploads && chown bun:bun data/uploads
 

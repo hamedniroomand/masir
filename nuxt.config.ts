@@ -89,6 +89,9 @@ export default defineNuxtConfig({
     jobsSecret: '',
     // Comma-separated emails allowed to access operator routes.
     operatorEmails: '',
+    // Comma-separated emails that read the whole app as owner and operator but
+    // cannot change anything, such as a public demo account.
+    readOnlyEmails: '',
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,
