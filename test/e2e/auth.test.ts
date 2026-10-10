@@ -4,6 +4,8 @@ import { e2eSetupOptions, resetTestDb, TEST_EMAIL, TEST_PASSWORD, testDatabaseUr
 
 const TEST_DB = testDatabaseUrl('auth');
 
+type FetchError = { statusCode?: number; data?: { error?: string } };
+
 describe('auth API', async () => {
   await setup(await e2eSetupOptions(TEST_DB));
 
@@ -16,14 +18,14 @@ describe('auth API', async () => {
   });
 
   it('returns the same generic error for wrong password and unknown email', async () => {
-    const wrong = await $fetch('/api/auth/login', {
+    const wrong = await $fetch<never>('/api/auth/login', {
       method: 'POST',
       body: { email: TEST_EMAIL, password: 'wrong-password' },
-    }).catch(e => e);
-    const unknown = await $fetch('/api/auth/login', {
+    }).catch((e: FetchError) => e);
+    const unknown = await $fetch<never>('/api/auth/login', {
       method: 'POST',
       body: { email: 'nobody@example.com', password: 'wrong-password' },
-    }).catch(e => e);
+    }).catch((e: FetchError) => e);
     expect(wrong.statusCode).toBe(401);
     expect(unknown.statusCode).toBe(401);
     expect(wrong.data?.error).toBe('Invalid email or password.');

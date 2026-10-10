@@ -33,7 +33,7 @@ function png(size = 64) {
   return out;
 }
 
-function form(bytes: Uint8Array, name = 'logo.png') {
+function form(bytes: Uint8Array<ArrayBuffer>, name = 'logo.png') {
   const body = new FormData();
   body.set('workspaceId', workspaceId);
   body.set('file', new Blob([bytes]), name);

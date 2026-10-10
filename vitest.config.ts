@@ -14,7 +14,6 @@ export default defineConfig({
       '#server': `${root}server`,
       '#shared': `${root}shared`,
       '#scripts': `${root}scripts`,
-      'bun:test': `${root}test/stubs/bun-test.ts`,
     },
   },
   // @nuxt/test-utils dynamically import("vitest"). Bun's runtime would
