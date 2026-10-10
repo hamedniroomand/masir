@@ -38,6 +38,7 @@ hash secret so this does not also reset daily unique counts.
 | `NUXT_ROOT_DOMAIN` | `http://localhost:3000` | Origin of the app and the dashboard |
 | `NUXT_PUBLIC_SHORT_DOMAIN` | `http://localhost:3000` | Displayed short-link origin |
 | `NUXT_SESSION_COOKIE_SECURE` | `true` | Sends the session only over HTTPS |
+| `NUXT_PUBLIC_LOGIN_NOTICE` | empty | Plain text shown above the sign-in form, such as demo credentials |
 
 ## Mail
 
