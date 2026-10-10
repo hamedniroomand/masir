@@ -8,7 +8,6 @@ import { APP_VERSION } from '#shared/version';
 
 const NEXT_ACTIONS: Record<string, string> = {
   expiry_alerts: 'Verify mail configuration and recipient settings.',
-  demo_sweep: 'Check database permissions and demo retention settings.',
   click_event_partitions: 'Verify database DDL permissions for partition creation.',
 };
 

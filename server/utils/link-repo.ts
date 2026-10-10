@@ -655,11 +655,3 @@ export async function countClickEvents(linkId: string) {
   const rows = await db.select({ n: countAll }).from(clickEvents).where(eq(clickEvents.linkId, linkId));
   return rows[0]?.n ?? 0;
 }
-
-export async function countLiveLinks(workspaceId: string) {
-  const db = await getDb();
-  const [row] = await db.select({ n: countAll })
-    .from(links)
-    .where(and(eq(links.workspaceId, workspaceId), isNull(links.deletedAt)));
-  return row?.n ?? 0;
-}

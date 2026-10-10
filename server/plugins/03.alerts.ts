@@ -1,6 +1,5 @@
 import { CLICK_EVENT_PARTITIONS_JOB, runClickEventPartitionSweep } from '#server/database/migrate';
 import { getDb } from '#server/utils/db';
-import { DEMO_SWEEP_JOB, runDemoSweep } from '#server/utils/demo';
 import { registerJob, runDueJobs } from '#server/utils/jobs';
 import { EXPIRY_ALERT_JOB, runExpiryAlertSweep } from '#server/utils/link-alerts';
 
@@ -13,7 +12,7 @@ const BOOT_DELAY_MS = 30_000;
 const PARTITION_INTERVAL_MS = 24 * 3_600_000;
 
 export default defineNitroPlugin((nitro) => {
-  const { serverless, alertsIntervalMinutes, demoEnabled } = useRuntimeConfig();
+  const { serverless, alertsIntervalMinutes } = useRuntimeConfig();
   const minutes = Number(alertsIntervalMinutes) || 0;
   // A serverless instance stops between requests, so an interval there would
   // never fire. That deployment points a cron at POST /api/jobs/alerts.
@@ -22,8 +21,6 @@ export default defineNitroPlugin((nitro) => {
   const intervalMs = timerOn ? minutes * 60_000 : 0;
 
   registerJob({ name: EXPIRY_ALERT_JOB, intervalMs, run: runExpiryAlertSweep });
-  if (demoEnabled)
-    registerJob({ name: DEMO_SWEEP_JOB, intervalMs, run: runDemoSweep });
   registerJob({
     name: CLICK_EVENT_PARTITIONS_JOB,
     intervalMs: PARTITION_INTERVAL_MS,

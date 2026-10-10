@@ -26,7 +26,6 @@ describe('job route with a pool of one', async () => {
   it('runs the jobs', async () => {
     expect(await runJobs()).toMatchObject({
       sent: 0,
-      demosDeleted: 0,
       jobs: [{ job: 'expiry_alerts', status: 'ran' }, { job: 'click_event_partitions', status: 'ran' }],
     });
   });

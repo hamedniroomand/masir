@@ -62,8 +62,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
     NUXT_ROOT_DOMAIN: origin,
     NUXT_PUBLIC_SHORT_DOMAIN: origin,
     NUXT_MAIL_DRIVER: 'outbox',
-    // A test sweeps demos through the bridge. A timer sweep between two steps
-    // would take the work first.
     NUXT_ALERTS_INTERVAL_MINUTES: '0',
     // Every test signs in from one loopback address inside one minute. The
     // default of 10 refuses the eleventh test.
@@ -93,7 +91,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
         NUXT_DEPLOYMENT_MODE: 'SELF_HOSTED',
         // The root serves a landing page only when the app lives elsewhere.
         NUXT_APP_DOMAIN: `http://app.${TEST_DOMAIN}:${PORTS.landing}`,
-        NUXT_DEMO_ENABLED: 'true',
       };
     case 'cloud':
       return {
@@ -111,7 +108,6 @@ export function serverEnv(scenario: Scenario): Record<string, string> {
         // wiring is checked end to end. The script itself loads from Cloudflare.
         NUXT_PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
         NUXT_TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
-        NUXT_DEMO_ENABLED: 'true',
       };
   }
 }

@@ -112,9 +112,6 @@ export default defineNuxtConfig({
     jobsSecret: '',
     // Comma-separated emails allowed to access operator routes.
     operatorEmails: '',
-    // Lets a visitor open a seeded workspace without an account. Needs
-    // NUXT_MULTI_WORKSPACE, because every visitor gets their own workspace.
-    demoEnabled: false,
     allowPrivateDestinations: false,
     geoCountryHeader: '',
     rateLimitLoginPerMinute: 10,

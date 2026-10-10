@@ -9,7 +9,7 @@ const TEST_DB = testDatabaseUrl('jobs');
 const JOBS_SECRET = 'test-jobs-secret';
 const DAY_MS = 86_400_000;
 
-type JobsResult = { sent: number; demosDeleted: number; jobs: { job: string; status: string }[] };
+type JobsResult = { sent: number; jobs: { job: string; status: string }[] };
 
 function runJobs() {
   return $fetch<JobsResult>('/api/jobs/alerts', {

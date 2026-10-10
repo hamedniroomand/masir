@@ -1,6 +1,5 @@
 import { Buffer } from 'node:buffer';
 import { timingSafeEqual } from 'node:crypto';
-import { DEMO_SWEEP_JOB } from '#server/utils/demo';
 import { runDueJobs } from '#server/utils/jobs';
 import { EXPIRY_ALERT_JOB } from '#server/utils/link-alerts';
 import { hashClientKey, rateLimitCheck } from '#server/utils/rate-limit';
@@ -34,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const jobs = await runDueJobs();
   const countOf = (name: string) => jobs.find(report => report.job === name)?.count ?? 0;
-  const result = { sent: countOf(EXPIRY_ALERT_JOB), demosDeleted: countOf(DEMO_SWEEP_JOB), jobs };
+  const result = { sent: countOf(EXPIRY_ALERT_JOB), jobs };
   // A cron monitor watches the status. A failed job still answers 500, as a
   // failed sweep did before, after every other job ran.
   if (jobs.some(report => report.status === 'failed'))

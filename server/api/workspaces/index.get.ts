@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
       slug: row.workspace.slug,
       linkPrefix: row.workspace.linkPrefix,
       logoUrl: publicUrlOrNull(row.workspace.logoUrl),
-      expiresAt: row.workspace.expiresAt?.toISOString() ?? null,
       role: row.role,
       url: workspaceUrl(row.workspace.slug, config as never),
     })),

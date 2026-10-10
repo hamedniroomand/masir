@@ -1,7 +1,7 @@
 import type { Permission, WorkspaceRole } from '#shared/permissions';
 import { can as checkPermission } from '#shared/permissions';
 
-export type Workspace = { id: string; name: string; slug: string; linkPrefix: string | null; logoUrl: string | null; expiresAt: string | null; role: string; url: string };
+export type Workspace = { id: string; name: string; slug: string; linkPrefix: string | null; logoUrl: string | null; role: string; url: string };
 
 // One key, so a refresh on the settings page updates the sidebar too.
 export function useWorkspaces() {

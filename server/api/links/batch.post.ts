@@ -5,9 +5,8 @@ import { writeAuditEvent } from '#server/utils/audit-log';
 import { requireUser, requireWorkspaceMember } from '#server/utils/auth';
 import { readValidBody } from '#server/utils/body';
 import { findCampaignForWorkspace } from '#server/utils/campaign-repo';
-import { DEMO_LINK_CAP, demoRefusal } from '#server/utils/demo';
 import { SlugExhaustedError, SlugTakenError } from '#server/utils/errors';
-import { countLiveLinks, createLink, isSlugTaken, linkToDto } from '#server/utils/link-repo';
+import { createLink, isSlugTaken, linkToDto } from '#server/utils/link-repo';
 import { rateLimitCheck } from '#server/utils/rate-limit';
 import { validateDestination } from '#server/utils/url';
 import { slugSchema } from '#shared/slug';
@@ -37,7 +36,7 @@ const bodySchema = v.object({
 export default defineEventHandler(async (event) => {
   const { workspaceId } = await requireWorkspaceMember(event, 'links.manage');
   const user = await requireUser(event);
-  const workspace = event.context.workspace as ShortUrlWorkspace & { expiresAt: Date | null };
+  const workspace = event.context.workspace as ShortUrlWorkspace;
   const config = useRuntimeConfig();
 
   const body = await readValidBody(event, bodySchema);
@@ -60,9 +59,6 @@ export default defineEventHandler(async (event) => {
   const campaignId = emptyToNull(body.campaignId);
   if (campaignId && !await findCampaignForWorkspace(campaignId, workspaceId))
     throw createError({ statusCode: 422, statusMessage: 'Campaign not found.', data: { reason: 'Campaign not found.' } });
-
-  if (workspace.expiresAt != null && await countLiveLinks(workspaceId) + body.items.length > DEMO_LINK_CAP)
-    throw demoRefusal(`The demo allows ${DEMO_LINK_CAP} links.`);
 
   const rowErrors: { clientKey: string; error: string }[] = [];
   const validated: { clientKey: string; utmSource: string | null; utmMedium: string | null; utmContent: string | null; slug?: string }[] = [];
