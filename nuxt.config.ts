@@ -182,6 +182,18 @@ export default defineNuxtConfig({
     preset,
   },
 
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+      ],
+    },
+    server: {
+      // A leading dot allows the domain and all its subdomains.
+      allowedHosts: ['.lvh.me'],
+    },
+  },
+
   hooks: {
     // Nitro copies the public assets before this hook and writes their
     // manifest after it. That is the only point where the client maps can

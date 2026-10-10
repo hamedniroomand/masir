@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.1.0",
   "private": true,
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.3",
   "description": "Every link has a destination.",
   "workspaces": [
     "docs"
@@ -37,43 +37,43 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@iconify-json/lucide": "^1.2.137",
-    "@iconify-json/simple-icons": "^1.2.98",
+    "@iconify-json/lucide": "^1.2.142",
+    "@iconify-json/simple-icons": "^1.2.99",
     "@internationalized/date": "^3.12.4",
-    "@nuxt/scripts": "^1.3.10",
-    "@nuxt/ui": "^4.11.2",
-    "@sentry/nuxt": "^11.1.0",
+    "@nuxt/scripts": "^1.3.12",
+    "@nuxt/ui": "^4.11.3",
+    "@sentry/nuxt": "^11.6.0",
     "drizzle-orm": "rc",
-    "nodemailer": "^10.0.12",
-    "nuxt": "^4.5.2",
-    "nuxt-auth-utils": "^0.5.30",
+    "nodemailer": "^10.1.0",
+    "nuxt": "^4.6.1",
+    "nuxt-auth-utils": "^0.5.31",
     "std-env": "^4.3.0",
     "tailwindcss": "^4.3.3",
     "uqr": "^0.1.3",
     "valibot": "^1.5.0",
-    "vue-router": "^5.3.1"
+    "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.5.1",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
-    "@nuxt/test-utils": "^4.3.2",
-    "@playwright/test": "^1.63.0",
+    "@nuxt/test-utils": "^4.3.3",
+    "@playwright/test": "^1.64.0",
     "@sentry/cli": "^3.8.0",
     "@types/bun": "^1.4.2",
     "@types/nodemailer": "^8.0.2",
-    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
     "@vue/test-utils": "^2.5.1",
     "@vueuse/core": "^15.0.0",
     "@vueuse/nuxt": "^15.0.0",
     "drizzle-kit": "rc",
-    "eslint": "^10.11.0",
-    "happy-dom": "^20.14.5",
+    "eslint": "^10.12.0",
+    "happy-dom": "^20.14.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.2",
-    "vue-tsc": "^3.3.11"
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.12"
   },
   "lint-staged": {
     "*": "bun lint --fix"

@@ -10,5 +10,4 @@ Sentry.init({
   environment: sentry.environment || undefined,
   release: sentry.release || undefined,
   tracesSampleRate: sentryTracesSampleRate(sentry.tracesSampleRate),
-  sendDefaultPii: false,
 });

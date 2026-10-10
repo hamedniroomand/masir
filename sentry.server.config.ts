@@ -10,5 +10,4 @@ Sentry.init({
   tracesSampleRate: sentryTracesSampleRate(
     process.env.NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? process.env.SENTRY_TRACES_SAMPLE_RATE,
   ),
-  sendDefaultPii: false,
 });
