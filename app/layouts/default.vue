@@ -17,7 +17,6 @@ const accountMenu = computed(() => {
     { label: 'GitHub', icon: 'i-simple-icons-github', to: 'https://github.com/hamedniroomand/masir', target: '_blank' },
   ];
   return [
-    [{ label: 'Account settings', icon: 'i-lucide-user', to: '/settings/account' }],
     help,
     [{ label: 'Sign out', icon: 'i-lucide-log-out', onSelect: signOut }],
   ];
@@ -126,10 +125,6 @@ watch(() => route.fullPath, () => {
                     <UNavigationMenu :items="adminNav" orientation="vertical" />
                   </div>
                   <div class="space-y-1 border-t border-default pt-4">
-                    <UNavigationMenu
-                      :items="[{ label: 'Account settings', icon: 'i-lucide-user', to: '/settings/account' }]"
-                      orientation="vertical"
-                    />
                     <UButton label="Sign out" icon="i-lucide-log-out" color="neutral" variant="ghost" class="w-full justify-start" @click="signOut" />
                   </div>
                 </nav>

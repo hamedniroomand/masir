@@ -4,10 +4,6 @@ import * as v from 'valibot';
 
 definePageMeta({ layout: 'auth' });
 
-const { data: providers } = await useFetch('/api/auth/providers');
-const hasProviders = computed(() => Boolean(providers.value?.google || providers.value?.microsoft));
-const showEmailForm = ref(!hasProviders.value);
-
 const route = useRoute();
 const { fetch: fetchSession } = useUserSession();
 
@@ -85,14 +81,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         Sign in to your link workspace.
       </p>
     </div>
-    <div v-if="hasProviders && providers" class="mb-5">
-      <AuthProviders :providers="providers" />
-      <USeparator v-if="showEmailForm" label="or" class="mt-5" />
-      <p v-else class="mt-5 text-center text-sm text-muted">
-        <UButton variant="link" class="p-0" label="Sign in with email instead" @click="showEmailForm = true" />
-      </p>
-    </div>
-    <UForm v-if="showEmailForm" ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
+    <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
         <UInput
           v-model="state.email"

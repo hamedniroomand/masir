@@ -116,10 +116,6 @@ export default defineNuxtConfig({
     rateLimitUpdatePerMinute: 60,
     rateLimitSlugCheckPerMinute: 30,
     rateLimitInvitePerHour: 30,
-    oauth: {
-      google: { clientId: '', clientSecret: '' },
-      microsoft: { clientId: '', clientSecret: '', tenant: 'common' },
-    },
     public: {
       shortDomain: 'http://localhost:3000',
       // Declared so the Umami host and replay env vars can bind.

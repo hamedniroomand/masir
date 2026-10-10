@@ -4,7 +4,7 @@
 import process from 'node:process';
 import { count, desc, eq } from 'drizzle-orm';
 import { setMemoisedDb } from '#server/database/client';
-import { authIdentities, clickEvents, hosts, mailOutbox, workspaceMembers } from '#server/database/schema';
+import { clickEvents, hosts, mailOutbox, workspaceMembers } from '#server/database/schema';
 import { hashSecret } from '#server/utils/password';
 import { setLinkTags } from '#server/utils/tag-repo';
 import { BROWSER, DEVICE, OUTCOME } from '#shared/codes';
@@ -102,17 +102,6 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
       userId: String(userId),
       role: role === 'owner' || role === 'viewer' ? role : 'member',
       deactivatedAt: deactivated ? new Date() : null,
-    });
-    return { ok: true };
-  },
-  // Only an OAuth round trip adds a second sign-in method, and no test can make
-  // one, so a test that needs two identities seeds the row.
-  'insert-identity': async ({ url, userId, provider }) => {
-    const db = openTestDatabase(url);
-    await db.insert(authIdentities).values({
-      userId: String(userId),
-      provider: (provider ?? 'google') as 'password' | 'google' | 'microsoft',
-      providerAccountId: `${provider ?? 'google'}-${userId}`,
     });
     return { ok: true };
   },
