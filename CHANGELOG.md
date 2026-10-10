@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- [#23](https://github.com/hamedniroomand/masir/pull/23) [`74a6789`](https://github.com/hamedniroomand/masir/commit/74a67896faa280f826cc96f830bbf2abc79c3a4c) - Add `NUXT_PUBLIC_LOGIN_NOTICE`. When it is set, the sign-in page shows its plain text above the form, for example demo credentials. The default is empty, so the sign-in page does not change.
+
+- [#25](https://github.com/hamedniroomand/masir/pull/25) [`f721dfd`](https://github.com/hamedniroomand/masir/commit/f721dfd10cce27fbe0098e81a9f45faeb9adc8bf) - Add `NUXT_READ_ONLY_EMAILS`. A user in this list sees every page that the owner and an operator see: workspace settings, members, the activity log, and system status. The server refuses each change from this user with 403, and the app shows a read-only banner. Many visitors can share one read-only account, so its sign-in skips the limit for each email. The limit for each client stays. "Forgot password" sends no mail to a read-only account. The default is empty, so no user changes.
+  
+  Add `bun run db:seed:demo`. It fills an empty workspace with sample members, links, campaigns, clicks, and activity, for a demo install.
+
 ## 2.0.0
 
 ### Major Changes
