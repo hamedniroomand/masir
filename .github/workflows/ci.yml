@@ -1,9 +1,10 @@
 name: ci
 
-# Pushes to main run through deploy.yml. Tag pushes run through release.yml.
-# Both call this workflow, so main is not a push trigger here.
+# Tag pushes run through release.yml, which calls this workflow.
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_call:
 
