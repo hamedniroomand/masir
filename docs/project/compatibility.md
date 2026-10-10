@@ -65,7 +65,7 @@ storage, or data disclosure. Document the setting and its migration path.
 ## Changelog rules
 
 Every pull request that changes a migration, environment variable, route, or
-user-visible behavior adds an entry under **Unreleased**.
+user-visible behavior adds a changeset. Run `bun run changeset`.
 
 The entry states what changed and what an operator must do. It does not repeat
 the commit message.

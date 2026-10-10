@@ -6,6 +6,7 @@
   "packageManager": "bun@1.4.3",
   "description": "Every link has a destination.",
   "workspaces": [
+    ".",
     "docs"
   ],
   "engines": {
@@ -34,7 +35,9 @@
     "db:studio": "bun --bun drizzle-kit studio",
     "db:seed:admin": "bun run scripts/seed-admin.ts",
     "bench:redirect": "bun run scripts/bench-redirect.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "changeset": "changeset",
+    "changeset:version": "changeset version"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.142",
@@ -55,6 +58,8 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.5.1",
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@nuxt/test-utils": "^4.3.3",
