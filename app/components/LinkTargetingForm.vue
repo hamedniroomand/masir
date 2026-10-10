@@ -77,30 +77,13 @@ async function save() {
         <h3 class="mb-2 text-xs font-medium text-highlighted">
           Countries
         </h3>
-        <div v-for="(rule, index) in countryRules" :key="index" class="mb-2 flex items-start gap-2">
-          <UInput
-            v-model="rule.code"
-            :aria-label="`Country code ${index + 1}`"
-            placeholder="DE"
-            maxlength="2"
-            class="w-20"
-          />
-          <UInput
-            v-model="rule.url"
-            type="url"
-            inputmode="url"
-            :aria-label="`Country destination ${index + 1}`"
-            placeholder="https://example.com/de"
-            class="flex-1"
-          />
-          <UButton
-            icon="i-lucide-x"
-            color="neutral"
-            variant="ghost"
-            :aria-label="`Remove country rule ${index + 1}`"
-            @click="removeCountry(index)"
-          />
-        </div>
+        <LinkCountryRule
+          v-for="(_, index) in countryRules"
+          :key="index"
+          v-model="countryRules[index]!"
+          :position="index + 1"
+          @remove="removeCountry(index)"
+        />
         <UButton label="Add a country" icon="i-lucide-plus" size="xs" color="neutral" variant="outline" @click="addCountry" />
       </div>
 
