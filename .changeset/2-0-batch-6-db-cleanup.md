@@ -9,6 +9,7 @@
 - Masir 2.0 serves one workspace. The migration stops when more than one live
   workspace exists. On 1.x, keep one workspace and delete the others. Stay on
   1.x if you need several workspaces.
+- A demo workspace counts as live until 1.x deletes it. Delete demo workspaces before the upgrade.
 - The migration permanently deletes soft-deleted workspaces with their links,
   Google and Microsoft sign-in records, and email verification tokens.
 - Stop every instance before the upgrade. 1.x code does not work against the
