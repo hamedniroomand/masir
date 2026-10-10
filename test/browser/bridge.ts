@@ -81,8 +81,8 @@ const commands: Record<string, (input: Input) => Promise<unknown>> = {
     const { userId, workspaceId } = await resetTestDb(url);
     return { userId, workspaceId };
   },
-  'insert-user': async ({ url, email, password, verified }) =>
-    insertTestUser(url, { email: String(email), password: String(password), verified: verified !== false }),
+  'insert-user': async ({ url, email, password }) =>
+    insertTestUser(url, { email: String(email), password: String(password) }),
   'insert-workspace': async ({ url, slug, ownerUserId, name }) =>
     insertTestWorkspace(url, { slug: String(slug), ownerUserId: String(ownerUserId), name: name ? String(name) : undefined }),
   'insert-link': async ({ url, ...input }) => seedLink(url, input),

@@ -96,7 +96,6 @@ watch(() => route.fullPath, () => {
             <UAvatar :alt="user.email" size="xs" />
             <span class="min-w-0 flex-1 text-left">
               <span class="block truncate text-sm font-medium">{{ user.email }}</span>
-              <span v-if="!user.emailVerified" class="block text-xs font-normal text-warning">Email not verified</span>
             </span>
           </UButton>
         </UDropdownMenu>

@@ -48,12 +48,10 @@ export const TEST_WORKSPACE_SLUG = 'acme';
 export async function insertTestUser(databaseUrl: string, input: {
   email: string;
   password: string;
-  verified?: boolean;
 }) {
   const db = openTestDatabase(databaseUrl);
   const [user] = await db.insert(users).values({
     email: input.email,
-    emailVerifiedAt: input.verified === false ? null : new Date(),
     firstName: 'Test',
     lastName: 'User',
   }).returning();

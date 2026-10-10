@@ -82,13 +82,6 @@ export async function setPasswordHash(userId: string, passwordHash: string) {
   await attachIdentity(userId, { provider: 'PASSWORD', passwordHash });
 }
 
-export async function markVerified(userId: string) {
-  const db = await getDb();
-  await db.update(users)
-    .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
-    .where(eq(users.id, userId));
-}
-
 export async function sessionVersionOf(userId: string): Promise<number | null> {
   const db = await getDb();
   const rows = await db.select({ v: users.sessionVersion }).from(users).where(eq(users.id, userId)).limit(1);
@@ -113,7 +106,6 @@ export async function setSessionUser(event: H3Event, user: User) {
     user: {
       id: user.id,
       email: user.email,
-      emailVerified: user.emailVerifiedAt != null,
       sessionVersion: user.sessionVersion,
     },
   });

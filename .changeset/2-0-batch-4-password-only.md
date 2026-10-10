@@ -8,3 +8,5 @@
   `GET /api/auth/providers`, the account settings page, and the five
   `NUXT_OAUTH_*` variables. A user who signed in only with a provider uses
   "Forgot password" to set a password.
+- Email verification, `/verify-email`, and the `/api/auth/verify` routes. An
+  invitation proves the email address.

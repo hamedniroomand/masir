@@ -58,7 +58,7 @@ export type ClickSeed = {
 
 export type Db = {
   reset: () => { userId: string; workspaceId: string };
-  insertUser: (input: { email: string; password: string; verified?: boolean }) => string;
+  insertUser: (input: { email: string; password: string }) => string;
   insertWorkspace: (input: { slug: string; ownerUserId: string; name?: string }) => string;
   insertLink: (input: LinkSeed) => string;
   insertLinks: (input: Omit<LinkSeed, 'slug'> & { slugs: string[] }) => string[];

@@ -143,7 +143,7 @@ export async function acceptInvitationAsNewUser(input: {
       return null;
 
     const [user] = await tx.insert(users)
-      .values({ email: normalizeEmail(input.email), emailVerifiedAt: new Date() })
+      .values({ email: normalizeEmail(input.email) })
       .onConflictDoNothing({ target: users.email })
       .returning();
     if (!user) {

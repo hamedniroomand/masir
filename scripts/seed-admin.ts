@@ -26,7 +26,6 @@ if (existing.length > 0) {
 const normalizedEmail = email.toLowerCase();
 const [user] = await db.insert(users).values({
   email: normalizedEmail,
-  emailVerifiedAt: new Date(),
   firstName: 'Admin',
 }).returning();
 if (!user)
