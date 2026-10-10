@@ -104,7 +104,6 @@ export default defineNuxtConfig({
     rateLimitRedirectPerMinute: 120,
     rateLimitPasswordPerMinute: 10,
     rateLimitUpdatePerMinute: 60,
-    rateLimitSlugCheckPerMinute: 30,
     rateLimitInvitePerHour: 30,
     public: {
       shortDomain: 'http://localhost:3000',
