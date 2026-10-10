@@ -68,7 +68,7 @@ describe('password reset', async () => {
     });
     const cookie = signedIn.headers.get('set-cookie')!.split(';')[0]!;
 
-    const before = await fetch('/api/links', { headers: { cookie } });
+    const before = await fetch('/api/workspaces', { headers: { cookie } });
     expect(before.status).toBe(200);
 
     await $fetch('/api/auth/forgot', { method: 'POST', body: { email: TEST_EMAIL } });
@@ -77,7 +77,7 @@ describe('password reset', async () => {
       body: { token: await lastToken(), password: 'a-third-long-pass3!' },
     });
 
-    const after = await fetch('/api/links', { headers: { cookie } });
+    const after = await fetch('/api/workspaces', { headers: { cookie } });
     expect(after.status).toBe(401);
   });
 
