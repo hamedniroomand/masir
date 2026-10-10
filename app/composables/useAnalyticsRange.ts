@@ -1,4 +1,4 @@
-import type { AnalyticsPeriod } from '~/components/AnalyticsRangeControls.vue';
+export type AnalyticsPeriod = '24h' | '7d' | '30d' | 'all' | 'custom';
 
 function utcToday(): string {
   return new Date().toISOString().slice(0, 10);

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { CalendarDate } from '@internationalized/date';
+import type { AnalyticsPeriod } from '~/composables/useAnalyticsRange';
 import { DateFormatter, getLocalTimeZone, parseDate, today } from '@internationalized/date';
-
-export type AnalyticsPeriod = '24h' | '7d' | '30d' | 'all' | 'custom';
 
 const period = defineModel<AnalyticsPeriod>('period', { required: true });
 const fromDate = defineModel<string>('fromDate', { required: true });

@@ -48,6 +48,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     migrateOnBoot: true,
     session: {
+      password: '',
       cookie: {
         // Declared so NUXT_SESSION_COOKIE_SECURE=false can bind, for an
         // instance served over plain http on a private network.
