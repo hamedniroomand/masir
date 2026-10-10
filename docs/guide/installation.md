@@ -78,7 +78,7 @@ Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`, then run:
 docker compose -f compose.image.yaml exec app bun run db:seed:admin
 ```
 
-Change the initial password after you sign in.
+Change the initial password with **Forgot password** on the sign-in page.
 
 </Steps>
 

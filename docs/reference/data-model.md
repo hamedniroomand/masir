@@ -28,10 +28,10 @@ erDiagram
 
 | Table | Purpose |
 |---|---|
-| `users` | Account identity, verification, and session version |
-| `auth_identities` | Password, Google, and Microsoft sign-in methods |
-| `user_tokens` | Single-use verification and password-reset tokens |
-| `workspaces` | Tenant name, slug, plan, link prefix, logo, and state |
+| `users` | Account email, name, last sign-in, and session version |
+| `auth_identities` | Password sign-in method; the `auth_provider` enum holds only `password` |
+| `user_tokens` | Single-use password-reset tokens; the `token_purpose` enum holds only `password_reset` |
+| `workspaces` | Name, slug, link prefix, and logo |
 | `workspace_members` | User role and active state inside a workspace |
 | `workspace_invitations` | Open, accepted, and revoked invitations |
 | `campaigns` | Shared campaign and medium values |
@@ -60,13 +60,18 @@ must not block or cascade a product deletion.
 `users.session_version` lets the server invalidate every sealed cookie for an
 account. Password reset increments the value.
 
-Password hashes live on `auth_identities`, not on the user row. One user can
-connect several providers. The last identity cannot be removed.
+Password hashes live on `auth_identities`, not on the user row.
 
-`user_tokens` stores SHA-256 hashes for email verification and password
-reset. Expired rows are removed during database preparation.
+`user_tokens` stores SHA-256 hashes for password reset. Expired rows are
+removed during database preparation.
+
+Users have no email verification or avatar columns. An invitation proves the
+email address.
 
 ## Workspace constraints
+
+One install holds one workspace. The `member_role` enum holds `owner`,
+`member`, and `viewer`.
 
 `workspace_members` uses `(workspace_id, user_id)` as its primary key.
 A partial unique index permits one owner per workspace.

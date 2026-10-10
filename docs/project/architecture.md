@@ -102,12 +102,11 @@ string.
 
 ## Deployment shapes
 
-The same output runs as a long-lived Bun server or on the Vercel Nitro preset.
-Runtime configuration separates staging and production images.
+Masir runs as a long-lived Bun server. Runtime configuration separates
+staging and production images.
 
-Long-running deployments can use local storage and an in-process alert timer.
-Serverless and multi-instance deployments need external storage, shared rate
-limits, and an external alert schedule.
+A single instance can use local storage and an in-process alert timer.
+Multi-instance deployments need external storage and shared rate limits.
 
 `GET /api/health` checks Postgres for a load balancer or uptime monitor.
 

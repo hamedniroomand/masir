@@ -13,7 +13,6 @@ A workspace has one owner and any number of members and viewers.
 | Create and change links | Yes | Yes | No |
 | Manage the workspace | Yes | No | No |
 | Manage members | Yes | No | No |
-| Delete the workspace | Yes | No | No |
 
 The database permits exactly one owner.
 
@@ -22,8 +21,16 @@ The database permits exactly one owner.
 The owner opens workspace members, enters an email address, and chooses
 **Member** or **Viewer**.
 
-Masir sends a single-use invitation link. The invited person must sign in with
-the same email address before acceptance.
+Masir sends a single-use invitation link. The link opens the invite page. The
+page shows the workspace name, the invited email, and the role.
+
+- A new person sets a password on the page. Masir creates the account and
+  signs the person in.
+- A person who already has an account signs in first. Masir returns them to
+  the invitation. The account must use the invited email address.
+
+An invitation proves the email address. Masir does not send a separate
+verification message.
 
 Only one open invitation can exist for the same workspace and email address.
 

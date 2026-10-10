@@ -18,9 +18,6 @@ curl -sS -X POST https://go.example.com/api/auth/login \
 
 Send `-b cookie.txt` with later requests.
 
-In multi-workspace mode, send workspace requests to that workspace's
-subdomain. The host selects the workspace. A request body cannot select one.
-
 ## Request security
 
 Unsafe browser requests with an `Origin` header must use an origin that
@@ -49,48 +46,35 @@ that a row exists.
 | Method | Route | Authentication | Result |
 |---|---|---|---|
 | `GET` | `/api/health` | Public | App and database health, or `503` |
-| `GET` | `/api/host` | Public | Host and deployment context used by the interface |
+| `GET` | `/api/host` | Public | App origin used by the interface |
 
 ## Authentication
 
 | Method | Route | Input or result |
 |---|---|---|
-| `GET` | `/api/auth/providers` | Enabled providers and registration state |
-| `POST` | `/api/auth/register` | `email`, `password` |
-| `POST` | `/api/auth/demo` | Optional `turnstileToken`; creates or resumes a demo |
-| `POST` | `/api/auth/verify` | Verification `token` |
-| `POST` | `/api/auth/verify/resend` | Sends a new verification link |
 | `POST` | `/api/auth/login` | `email`, `password`; sets the session |
 | `POST` | `/api/auth/logout` | Clears the session |
 | `POST` | `/api/auth/forgot` | `email`; always returns a neutral result |
 | `POST` | `/api/auth/reset` | `token`, `password`; invalidates all sessions |
-| `GET` | `/api/auth/google` | Starts or finishes Google OAuth |
-| `GET` | `/api/auth/microsoft` | Starts or finishes Microsoft OAuth |
-| `GET` | `/api/auth/identities` | Connected sign-in methods |
-| `DELETE` | `/api/auth/identities/:id` | Removes one identity; rejects the last one |
 
-The demo route returns `404` when the feature is off. It returns a workspace
-URL when it creates or resumes a live demo session.
+Masir has no registration route. A new user joins through an invitation.
 
 ## Workspaces
 
 | Method | Route | Required access | Input or result |
 |---|---|---|---|
 | `GET` | `/api/workspaces` | Signed in | Current memberships |
-| `POST` | `/api/workspaces` | Verified account | `name`, optional `slug`, optional `linkPrefix` |
 | `PATCH` | `/api/workspaces` | `workspace.manage` | `name`, `linkPrefix`, optional `pathMode: 'preserve' \| 'replace'` |
-| `DELETE` | `/api/workspaces` | `workspace.delete` | Soft-deletes the current workspace |
 | `GET` | `/api/workspaces/link-prefixes` | `workspace.manage` | Retained link paths |
 | `DELETE` | `/api/workspaces/link-prefixes/:prefix` | `workspace.manage` | Revokes a retained link path |
 | `GET` | `/api/workspaces/analytics` | `analytics.read` | `period`, or `from`/`to` (`YYYY-MM-DD`), optional `compare=previous` |
 | `GET` | `/api/workspaces/analytics.csv` | `analytics.read` | Same filters as `/api/workspaces/analytics` |
-| `GET` | `/api/workspaces/slug-available?slug=` | Signed in | Workspace slug availability |
 | `POST` | `/api/workspaces/logo` | `workspace.manage` | Multipart PNG, JPEG, GIF, or WebP |
 | `DELETE` | `/api/workspaces/logo` | `workspace.manage` | Removes the logo |
 | `POST` | `/api/workspaces/transfer-ownership` | `members.manage` | `userId` |
 
-Single-workspace mode rejects another workspace. Masir also rejects deletion
-of the only workspace on an instance.
+One install serves one workspace. Masir has no route to create or delete a
+workspace.
 
 ## Members and invitations
 
@@ -104,9 +88,17 @@ of the only workspace on an instance.
 | `POST` | `/api/workspaces/invitations` | `members.manage` | `email`, optional `role` |
 | `POST` | `/api/workspaces/invitations/:id/resend` | `members.manage` | Replaces the token and sends again |
 | `DELETE` | `/api/workspaces/invitations/:id` | `members.manage` | Revokes an invitation |
-| `POST` | `/api/workspaces/invitations/accept` | Invited user | `token` |
+| `GET` | `/api/workspaces/invitations/preview?token=` | Public | `workspaceName`, `email`, `role`, `accountExists` |
+| `POST` | `/api/workspaces/invitations/accept` | Public or invited user | `token`, optional `password` |
 
 An invitation role is `MEMBER` or `VIEWER`. The default is `MEMBER`.
+
+The accept route has two paths. A signed-in user must have the invited email
+address. Masir adds that user to the workspace. A person with no account sends
+a `password`. Masir creates the account, adds the membership, and signs the
+person in. A person with an account and no session gets `401` when no `password` is
+sent, and `409` when a `password` is sent. Both answers say "Sign in to accept
+this invitation." The person signs in first. The new-user path uses the `NUXT_RATE_LIMIT_LOGIN_PER_MINUTE` limit.
 
 ## Links
 
@@ -250,7 +242,7 @@ Authorization: Bearer <NUXT_JOBS_SECRET>
 
 It runs every maintenance job that is due. It returns `404` when no secret is
 set and `401` for a wrong secret. On success it returns `sent`, the number of
-alerts sent, and `demosDeleted`, the number of demos deleted. `jobs` holds one
+alerts sent. `jobs` holds one
 report for each job, with `job`, `status` (`ran`, `skipped`, or `failed`), and
 an optional `count`, `detail`, or `error`. The `click_event_partitions` job
 runs every 24 hours. Its `count` is the number of months it checked, and its
@@ -270,7 +262,7 @@ is set, or for an invalid bearer token. On success, it returns:
 
 ```json
 {
-  "version": "1.0.1",
+  "version": "2.0.0",
   "jobs": [
     {
       "job": "expiry_alerts",

@@ -7,8 +7,8 @@
 **Likely cause:** runtime validation rejected a value.
 
 Read the first error line. It names the variable and accepted shape. Common
-causes are a short session password, an invalid origin, missing multi-workspace
-cookie domain, local storage on serverless, or an invalid Sentry value.
+causes are a short session password, an invalid origin, or an invalid
+Sentry value.
 
 ## Health returns 503
 
@@ -25,20 +25,12 @@ Confirm HTTPS and `NUXT_SESSION_COOKIE_SECURE=true`. On private plain HTTP,
 set it to `false`. Also confirm that the public origin matches the address in
 the browser.
 
-## Workspace switching asks for sign-in
+## A signed-in user sees no access
 
-**Likely cause:** the cookie is scoped to one host.
+**Likely cause:** the user is not a member of the workspace.
 
-Set `NUXT_SESSION_COOKIE_DOMAIN` to the parent domain with a leading dot, such
-as `.example.com`. Restart and sign in again.
-
-## OAuth reports a redirect mismatch
-
-**Likely cause:** the callback registered with the provider does not match the
-public application origin.
-
-Check `NUXT_ROOT_DOMAIN`, `NUXT_APP_DOMAIN`, the proxy host, and the exact
-callback in the Google or Microsoft console.
+The owner invites the user from the members page. Open the invite link and
+sign in with the invited email address.
 
 ## Country is empty
 
@@ -66,8 +58,7 @@ Set `NUXT_REDIS_URL` to a shared `rediss://` endpoint.
 **Likely cause:** pool size multiplied by instance count exceeds the database
 limit.
 
-Lower `NUXT_DATABASE_POOL_MAX`, reduce instances, or use a pooler. Serverless
-deployments usually need a value of one or two.
+Lower `NUXT_DATABASE_POOL_MAX`, reduce instances, or use a pooler.
 
 ## Invitation or recovery mail does not arrive
 
@@ -80,7 +71,7 @@ provider, Masir writes the message to the log.
 
 ## A link exists but returns 404
 
-Check the workspace host, link prefix, slug, enabled state, schedule, expiry,
+Check the link prefix, slug, enabled state, schedule, expiry,
 visit limit, and deletion state. An unavailable link can also show the generic
 unavailable page instead of revealing its state.
 
@@ -95,8 +86,8 @@ stale instance. Link writes invalidate the cache by link ID and slug.
 ## The app cannot store a logo
 
 Check the selected storage provider and upload limit. File storage needs a
-writable durable volume. Serverless and multi-instance deployments should use
-S3-compatible storage.
+writable durable volume. Multi-instance deployments should use S3-compatible
+storage.
 
 ## Continue diagnosis
 

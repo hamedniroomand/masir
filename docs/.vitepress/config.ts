@@ -74,7 +74,7 @@ export default defineConfig({
       { text: 'Overview', link: '/' },
       { text: 'Get started', link: '/guide/', activeMatch: '^/guide/(?:$|installation|quickstart)' },
       { text: 'User guide', link: '/features/', activeMatch: '^/(?:features|guide/(?:workspaces|members|authentication))' },
-      { text: 'Self-hosting', link: '/guide/self-hosting', activeMatch: '^/guide/(?:self-hosting|multi-workspace|upgrading|troubleshooting)' },
+      { text: 'Self-hosting', link: '/guide/self-hosting', activeMatch: '^/guide/(?:self-hosting|upgrading|troubleshooting)' },
       { text: 'Reference', link: '/reference/', activeMatch: '/reference/' },
       { text: 'Contributing', link: '/project/', activeMatch: '/project/' },
     ],
@@ -102,7 +102,6 @@ export default defineConfig({
           items: [
             link('server', 'Production setup', '/guide/self-hosting'),
             link('arrow-up-circle', 'Upgrading', '/guide/upgrading'),
-            link('cloud', 'Multi-workspace deployments', '/guide/multi-workspace'),
             link('life-buoy', 'Troubleshooting', '/guide/troubleshooting'),
           ],
         },

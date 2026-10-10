@@ -34,7 +34,7 @@ Masir does not guess a country from the client address. Set
 `NUXT_GEO_COUNTRY_HEADER` to the trusted header that your CDN or reverse
 proxy provides.
 
-Examples include `CF-IPCountry` and `x-vercel-ip-country`.
+An example is `CF-IPCountry`.
 
 Leave the setting empty when no trusted service adds the header. Country rules
 will not match. Device rules still work.

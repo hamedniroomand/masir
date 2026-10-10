@@ -52,12 +52,7 @@ drop and add when the migration tool cannot infer intent.
 The server tests read `TEST_DATABASE_URL`. They create one isolated database
 for each test file and do not use the application database.
 
-Browser tests cover single-workspace, multi-workspace, and cloud shapes. Run
-one shape with:
-
-```sh
-bun run test:browser:run --project multi
-```
+Browser tests run Playwright against one production build.
 
 ## Documentation
 

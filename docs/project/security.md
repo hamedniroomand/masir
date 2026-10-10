@@ -36,7 +36,7 @@ are not stored.
 Sign-in uses the same visible result for an unknown account and a wrong
 password. Password recovery also returns a neutral result.
 
-Verification and reset tokens are stored as SHA-256 hashes. They expire and
+Reset and invitation tokens are stored as SHA-256 hashes. They expire and
 work once.
 
 ## Destination validation
@@ -51,9 +51,8 @@ A link cannot target itself.
 
 ## Rate limits
 
-Masir limits sign-in, registration, recovery, verification resend, redirects,
-link passwords, link creates, link updates, slug checks, workspace creation,
-invitations, demo creation, and abuse reports.
+Masir limits sign-in, recovery, redirects, link passwords, link creates, link
+updates, slug checks, invitations, and abuse reports.
 
 Client counters use a salted address hash instead of the raw address.
 

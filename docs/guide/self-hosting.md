@@ -49,7 +49,7 @@ setting on the public internet.
 
 ## Configure email
 
-Invitations, verification, password recovery, and link alerts need email.
+Invitations, password recovery, and link alerts need email.
 
 <Tabs>
 
@@ -129,10 +129,10 @@ keys that name them.
 
 ## Alerts and maintenance jobs
 
-Masir runs its maintenance work as jobs. The expiry alert sweep and the demo
-sweep are jobs. So is the `click_event_partitions` job. A long-running
-instance checks every minute for jobs that are due. The alert and demo jobs
-run every 15 minutes by default. The partitions job runs every 24 hours and
+Masir runs its maintenance work as jobs. The expiry alert sweep and the
+`click_event_partitions` job are jobs. A long-running instance checks every
+minute for jobs that are due. The alert job runs every 15 minutes by
+default. The partitions job runs every 24 hours and
 does not depend on `NUXT_ALERTS_INTERVAL_MINUTES`.
 
 `POST /api/jobs/alerts` is the single maintenance entry point. Set
@@ -145,8 +145,7 @@ curl -X POST https://go.example.com/api/jobs/alerts \
 
 When the internal loop is on, a call runs only the jobs that are due. Set
 `NUXT_ALERTS_INTERVAL_MINUTES=0` to turn off the internal loop for the alert
-and demo jobs. Each call then runs both of them, and your scheduler sets
-their interval. The partitions job keeps its fixed 24-hour interval either
+job. Each call then runs it, and your scheduler sets its interval. The partitions job keeps its fixed 24-hour interval either
 way.
 
 Many instances can call the route at the same time. When the internal loop is

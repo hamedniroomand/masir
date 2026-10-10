@@ -2,16 +2,33 @@
 
 > Choose how users authenticate and how Masir delivers account messages.
 
-Masir supports email and password, Google, and Microsoft. One account can have
-more than one connected identity.
+Users sign in with an email address and a password. Masir has no public
+registration.
 
-## Email and password
+## Create the first owner
 
-Public registration is off by default. Set `NUXT_ALLOW_REGISTRATION=true` to
-show the registration path.
+The first owner comes from the seed script. Set `ADMIN_EMAIL` and
+`ADMIN_PASSWORD`, then run:
 
-A new password account receives a verification message. Workspace creation and
-other protected actions require a verified address.
+```sh
+bun run db:seed:admin
+```
+
+Change the password with **Forgot password** on the sign-in page.
+
+## Add other users
+
+The owner invites each user by email. The invite link creates the account. The
+invited person sets a password on the invite page and joins the workspace.
+
+A person who already has an account signs in first. Masir then returns them to
+the invitation.
+
+A signed-in user who is not a member of the workspace sees the no-access page.
+
+<ReadMore to="/guide/members#invite-a-person" title="Read the invite flow" />
+
+## Passwords
 
 Passwords use Argon2id through `Bun.password`.
 
@@ -22,36 +39,6 @@ exists or not.
 
 A reset link is single-use and expires. Completing the reset increases the
 account session version and signs out every device.
-
-## Add Google or Microsoft
-
-Set the client ID and secret for a provider. Its button appears after the
-server restarts.
-
-OAuth redirects return to the root application origin. Add the callback shown
-by your provider configuration.
-
-In a self-hosted Microsoft deployment, the default tenant is `common`. In
-cloud mode, Masir requires a specific tenant to prevent accounts from any
-Microsoft tenant from linking by matching email.
-
-## Connect identities
-
-When an OAuth provider returns an address that already belongs to a local
-account, Masir connects the provider to that account.
-
-Users can review connected identities and disconnect one. Masir refuses to
-remove the last sign-in method.
-
-## Add bot protection
-
-Set both Cloudflare Turnstile keys to protect email sign-in, registration, and
-the public demo action.
-
-The site key reaches the browser. Keep the secret key on the server. OAuth
-buttons do not use Turnstile.
-
-If Cloudflare cannot verify a challenge, Masir rejects the request.
 
 ## Configure email
 
@@ -70,4 +57,3 @@ Use Mailpit from `compose.dev.yaml` during local development. Open it at
 `http://localhost:8025` by default.
 
 <ReadMore to="/reference/environment#mail" title="See every mail setting" />
-
