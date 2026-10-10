@@ -18,7 +18,7 @@ export async function findWorkspaceById(id: string) {
 }
 
 // The install holds one workspace. The oldest one wins.
-// ponytail: one indexed LIMIT 1 for every request in single-workspace mode.
+// ponytail: one indexed LIMIT 1 for every request.
 // Measured at 0.04ms of query above a 0.2ms round trip, so a cache would buy
 // ~0.24ms and cost a window where a renamed or deleted workspace still
 // resolves, invisibly across instances. Revisit only if a profile says so.

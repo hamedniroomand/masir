@@ -8,8 +8,7 @@ const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // state-changing request, so absence means a non-browser client. Rejecting it
 // would break every API caller without blocking an attack.
 //
-// Comparing hosts covers every deployment mode, including a workspace
-// subdomain, with no list to keep current.
+// Comparing hosts needs no list of allowed origins to keep current.
 export default defineEventHandler((event) => {
   if (!UNSAFE.has(event.method))
     return;
