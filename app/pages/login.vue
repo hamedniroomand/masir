@@ -5,6 +5,7 @@ import * as v from 'valibot';
 definePageMeta({ layout: 'auth' });
 
 const route = useRoute();
+const { loginNotice } = useRuntimeConfig().public;
 const { fetch: fetchSession } = useUserSession();
 
 const schema = v.object({
@@ -81,6 +82,14 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         Sign in to your link workspace.
       </p>
     </div>
+    <UAlert
+      v-if="loginNotice"
+      :description="loginNotice"
+      icon="i-lucide-info"
+      color="neutral"
+      variant="subtle"
+      class="mb-5 whitespace-pre-line"
+    />
     <UForm ref="form" :schema="schema" :state="state" :validate-on="[]" class="space-y-5" @submit="onSubmit">
       <UFormField label="Email" name="email" required>
         <UInput

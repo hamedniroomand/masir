@@ -35,6 +35,9 @@ curl -fsSL https://raw.githubusercontent.com/hamedniroomand/masir/main/scripts/i
 The demo at [demo.masir.dev](https://demo.masir.dev) is a read-only viewer
 account. You can look at links and analytics. You cannot change them.
 
+- Email: `demo@masir.dev`
+- Password: `masir-demo-2026`
+
 ## Start with your role
 
 <CardGroup :cols="3">

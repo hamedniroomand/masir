@@ -108,6 +108,7 @@ export default defineNuxtConfig({
     rateLimitInvitePerHour: 30,
     public: {
       shortDomain: 'http://localhost:3000',
+      loginNotice: '',
       // Declared so the Umami host and replay env vars can bind.
       scripts: { umamiAnalytics: { hostUrl: '', replays: false } },
       sentry: {
