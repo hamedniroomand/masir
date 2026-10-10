@@ -21,7 +21,7 @@
     "docs:preview": "bun --filter masir-docs preview",
     "postinstall": "nuxt prepare",
     "lint": "bun --bun eslint .",
-    "typecheck": "nuxt typecheck",
+    "typecheck": "nuxt typecheck && bun check",
     "pretest": "sh scripts/test-db.sh",
     "test": "bun --bun vitest run",
     "pretest:coverage": "sh scripts/test-db.sh",
