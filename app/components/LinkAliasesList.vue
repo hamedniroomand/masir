@@ -45,7 +45,9 @@ function add() {
 }
 
 function remove(slug: string) {
-  return run(() => $api(`/api/links/${props.link.id}/aliases/${slug}`, { method: 'DELETE' }));
+  return run(async () => {
+    await $api(`/api/links/${props.link.id}/aliases/${slug}`, { method: 'DELETE' });
+  });
 }
 </script>
 

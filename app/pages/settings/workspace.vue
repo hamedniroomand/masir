@@ -113,14 +113,18 @@ watch(logoFile, (file) => {
   const body = new FormData();
   body.set('workspaceId', current.value.id);
   body.set('file', file);
-  saveLogo(() => $api('/api/workspaces/logo', { method: 'POST', body }), 'We could not save the logo.');
+  saveLogo(async () => {
+    await $api('/api/workspaces/logo', { method: 'POST', body });
+  }, 'We could not save the logo.');
 });
 
 function removeLogo() {
   if (!current.value?.logoUrl)
     return;
   const body = { workspaceId: current.value.id };
-  saveLogo(() => $api('/api/workspaces/logo', { method: 'DELETE', body }), 'We could not remove the logo.');
+  saveLogo(async () => {
+    await $api('/api/workspaces/logo', { method: 'DELETE', body });
+  }, 'We could not remove the logo.');
 }
 
 async function remove() {

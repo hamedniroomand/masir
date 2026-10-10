@@ -46,28 +46,36 @@ function invite() {
 
 function revoke(id: string) {
   return run(
-    () => $api(`/api/workspaces/invitations/${id}`, { method: 'DELETE' }),
+    async () => {
+      await $api(`/api/workspaces/invitations/${id}`, { method: 'DELETE' });
+    },
     'We could not revoke the invitation.',
   );
 }
 
 function resend(id: string) {
   return run(
-    () => $api(`/api/workspaces/invitations/${id}/resend`, { method: 'POST' }),
+    async () => {
+      await $api(`/api/workspaces/invitations/${id}/resend`, { method: 'POST' });
+    },
     'We could not resend the invitation.',
   );
 }
 
 function setRole(userId: string, role: string) {
   return run(
-    () => $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { role } }),
+    async () => {
+      await $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { role } });
+    },
     'We could not change this role.',
   );
 }
 
 function setActive(userId: string, isActive: boolean) {
   return run(
-    () => $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { isActive } }),
+    async () => {
+      await $api(`/api/workspaces/members/${userId}`, { method: 'PATCH', body: { isActive } });
+    },
     'We could not change this member.',
   );
 }
@@ -92,14 +100,18 @@ const dialog = computed(() => pending.value?.kind === 'transfer'
 
 function removeMember(userId: string) {
   return run(
-    () => $api(`/api/workspaces/members/${userId}`, { method: 'DELETE' }),
+    async () => {
+      await $api(`/api/workspaces/members/${userId}`, { method: 'DELETE' });
+    },
     'We could not remove this member.',
   );
 }
 
 async function transfer(userId: string) {
   await run(
-    () => $api('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } }),
+    async () => {
+      await $api('/api/workspaces/transfer-ownership', { method: 'POST', body: { userId } });
+    },
     'We could not transfer ownership.',
   );
   if (error.value)
