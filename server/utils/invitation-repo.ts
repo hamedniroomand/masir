@@ -1,6 +1,6 @@
-import type { MemberRoleLabel } from '#server/database/schema';
+import type { MemberRoleLabel, User } from '#server/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import { users, workspaceInvitations, workspaceMembers } from '#server/database/schema';
+import { authIdentities, users, workspaceInvitations, workspaceMembers } from '#server/database/schema';
 import { hashAuthToken, newAuthToken } from '#server/utils/auth-token';
 import { getDb, isUuid } from '#server/utils/db';
 import { normalizeEmail } from '#server/utils/identity-repo';
@@ -122,4 +122,46 @@ export async function acceptInvitation(invitationId: string, workspaceId: string
     role: role ?? 'member',
   });
   return true;
+}
+
+// All four writes or none. A half-made account would hold the email and
+// block the next try with the same invitation.
+export async function acceptInvitationAsNewUser(input: {
+  invitationId: string;
+  workspaceId: string;
+  email: string;
+  passwordHash: string;
+  role: MemberRoleLabel | null;
+}): Promise<User | null> {
+  const db = await getDb();
+  return db.transaction(async (tx) => {
+    const claimed = await tx.update(workspaceInvitations)
+      .set({ acceptedAt: new Date() })
+      .where(and(eq(workspaceInvitations.id, input.invitationId), isNull(workspaceInvitations.acceptedAt)))
+      .returning({ id: workspaceInvitations.id });
+    if (!claimed.length)
+      return null;
+
+    const [user] = await tx.insert(users)
+      .values({ email: normalizeEmail(input.email), emailVerifiedAt: new Date() })
+      .onConflictDoNothing({ target: users.email })
+      .returning();
+    if (!user) {
+      tx.rollback();
+      return null;
+    }
+
+    await tx.insert(authIdentities).values({
+      userId: user.id,
+      provider: 'password',
+      providerAccountId: user.id,
+      passwordHash: input.passwordHash,
+    });
+    await tx.insert(workspaceMembers).values({
+      workspaceId: input.workspaceId,
+      userId: user.id,
+      role: input.role ?? 'member',
+    });
+    return user;
+  });
 }
