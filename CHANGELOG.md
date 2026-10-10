@@ -1,5 +1,79 @@
 # Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`9dfb121`](https://github.com/hamedniroomand/masir/commit/9dfb121ecb15e06ab426d4ebe8d5d1a89ff9939c) - ### Removed
+  
+  - The demo workspaces, `POST /api/auth/demo`, and `NUXT_DEMO_ENABLED`.
+  - The in-app landing page. The documentation site is the public home page.
+  - Public registration, `/register`, `POST /api/auth/register`, and
+    `NUXT_ALLOW_REGISTRATION`. New users join through an invitation.
+  - Turnstile and `NUXT_PUBLIC_TURNSTILE_SITE_KEY` and `NUXT_TURNSTILE_SECRET_KEY`.
+  - The `demosDeleted` field of `POST /api/jobs/alerts`.
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`ff200ba`](https://github.com/hamedniroomand/masir/commit/ff200ba5785adb8aeca4676fee04a68a8f7fd546) - ### Added
+  
+  - An invite link creates the account for a new teammate. The teammate sets a
+    password on the invite page. `GET /api/workspaces/invitations/preview`
+    returns the workspace name and the invited email.
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`ae9abc5`](https://github.com/hamedniroomand/masir/commit/ae9abc53ede998ca86a32b69a02c7ba8383cf8b3) - ### Removed
+  
+  - Multi-workspace mode, workspace subdomains, and the workspace switcher. One
+    install serves one workspace. Short links on workspace subdomains stop
+    working. Short links on `NUXT_PUBLIC_SHORT_DOMAIN` keep working.
+  - `POST /api/workspaces`, `DELETE /api/workspaces`, and
+    `GET /api/workspaces/slug-available`.
+  - `NUXT_DEPLOYMENT_MODE`, `NUXT_MULTI_WORKSPACE`, `NUXT_APP_DOMAIN`,
+    `NUXT_SESSION_COOKIE_DOMAIN`, and `NUXT_RATE_LIMIT_WORKSPACE_PER_DAY`, and
+    `NUXT_RATE_LIMIT_SLUG_CHECK_PER_MINUTE`. The app ignores them when they are
+    set.
+  - The `multiWorkspace` field of `GET /api/workspaces`.
+  - The `/no-access` page is new, so `no-access` is now a reserved slug. A short link or link prefix named `no-access` stops working. Rename it before the upgrade.
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`0058c9d`](https://github.com/hamedniroomand/masir/commit/0058c9d10acf6f559f56c690f475e5b0c018497d) - ### Removed
+  
+  - Google and Microsoft sign-in, the `/api/auth/identities` routes,
+    `GET /api/auth/providers`, the account settings page, and the five
+    `NUXT_OAUTH_*` variables. A user who signed in only with a provider uses
+    "Forgot password" to set a password.
+  - Email verification, `/verify-email`, and the `/api/auth/verify` routes. An
+    invitation proves the email address.
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`073d52f`](https://github.com/hamedniroomand/masir/commit/073d52f7e231656923b9b6f174dfc9b5a2b3128c) - ### Removed
+  
+  - Vercel and serverless deployment, `vercel.json`, and `NUXT_SERVERLESS`.
+    Run Masir with Docker or Bun on a server.
+
+- [#18](https://github.com/hamedniroomand/masir/pull/18) [`1d4fc97`](https://github.com/hamedniroomand/masir/commit/1d4fc9779fff3c442788e997f7ae328b3c5b0188) - ### Upgrade notes
+  
+  - Back up the database before the upgrade. The 2.0 migration deletes data,
+    and Masir has no down migrations.
+  - Masir 2.0 serves one workspace. The migration stops when more than one live
+    workspace exists. On 1.x, keep one workspace and delete the others. Stay on
+    1.x if you need several workspaces.
+  - A demo workspace counts as live until 1.x deletes it. Delete demo workspaces before the upgrade.
+  - The migration permanently deletes soft-deleted workspaces with their links,
+    Google and Microsoft sign-in records, and email verification tokens.
+  - Stop every instance before the upgrade. 1.x code does not work against the
+    2.0 schema, so a rolling deploy is not supported for this release.
+  - You can delete the removed environment variables. The app ignores them.
+  - The `x-vercel-ip-country` fallback is gone. Set `NUXT_GEO_COUNTRY_HEADER` if your proxy sends the country in another header.
+  
+  ### Changed
+  
+  - The 2.0 migration drops the workspace plan, trial, subscription, demo
+    expiry, and deletion columns, and the user email verification and avatar
+    columns.
+
+### Patch Changes
+
+- [#21](https://github.com/hamedniroomand/masir/pull/21) [`d46315f`](https://github.com/hamedniroomand/masir/commit/d46315f99d37dfbda5363346724e6bdb4ada881d) - `GET /api/admin/status` reports the version from `package.json`. It reported `1.0.1` for every release before.
+
+- [#16](https://github.com/hamedniroomand/masir/pull/16) [`076981b`](https://github.com/hamedniroomand/masir/commit/076981bf38ee5ebbbdbe684c77d48b45a1dd95fc) - The documentation site moves to `https://docs.masir.dev/`. The old `hamedniroomand.github.io/masir` address redirects to it.
+
 All notable changes to Masir are listed here. Changesets writes new sections. The
 project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
