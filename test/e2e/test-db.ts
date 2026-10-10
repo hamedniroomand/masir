@@ -12,7 +12,7 @@ const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), '../../dr
 // hosts is not here. It is an append-only dimension with no workspace scope,
 // and the server process caches host -> id, so a truncate would leave the cache
 // pointing at ids the database no longer holds.
-const TABLES = 'job_runs, click_events, link_daily_stats, audit_events, link_tags, tags, links, link_imports, campaigns, mail_outbox, user_tokens, auth_identities, workspace_invitations, workspace_members, workspaces, users';
+const TABLES = ['job_runs', 'click_events', 'link_daily_stats', 'audit_events', 'link_tags', 'tags', 'links', 'link_imports', 'campaigns', 'mail_outbox', 'user_tokens', 'auth_identities', 'workspace_invitations', 'workspace_members', 'workspaces', 'users'];
 
 const DATABASE_EXISTS = '42P04';
 
@@ -45,6 +45,7 @@ export async function closeTestDatabases() {
 
 export async function createTestDatabase(databaseUrl: string) {
   const name = new URL(databaseUrl).pathname.slice(1);
+  let existed = false;
   const admin = new SQL({ url: maintenanceUrl(), max: 1 });
   try {
     // CREATE DATABASE forces a checkpoint. Test files run together, so the lock
@@ -56,16 +57,26 @@ export async function createTestDatabase(databaseUrl: string) {
   catch (error) {
     if (String((error as { errno?: unknown }).errno) !== DATABASE_EXISTS)
       throw error;
+    existed = true;
   }
   finally {
     await admin.close();
   }
   const db = openTestDatabase(databaseUrl);
+  // Rows from the last run can break a migration guard, for example the 2.0 one-workspace check.
+  if (existed)
+    await truncateExistingTables(db);
   await migrate(db, { migrationsFolder });
   await ensureClickEventPartitions(db);
 }
 
+// An old schema can lack some tables in TABLES. Skip the missing ones.
+async function truncateExistingTables(db: ReturnType<typeof openTestDatabase>) {
+  const list = TABLES.map(table => `'${table}'`).join(', ');
+  await db.execute(sql.raw(`DO $$ DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY[${list}] LOOP IF to_regclass('public.' || t) IS NOT NULL THEN EXECUTE 'TRUNCATE ' || t || ' CASCADE'; END IF; END LOOP; END $$`));
+}
+
 export async function truncateTestDatabase(databaseUrl: string) {
   const db = openTestDatabase(databaseUrl);
-  await db.execute(sql.raw(`TRUNCATE ${TABLES} CASCADE`));
+  await db.execute(sql.raw(`TRUNCATE ${TABLES.join(', ')} CASCADE`));
 }
