@@ -2,6 +2,7 @@
 .output
 .data
 data/
+backups/
 .nuxt
 .nitro
 .cache

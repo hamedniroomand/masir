@@ -1,9 +1,10 @@
 name: ci
 
-# Pushes to main run through deploy.yml. Tag pushes run through release.yml.
-# Both call this workflow, so main is not a push trigger here.
+# Tag pushes run through release.yml, which calls this workflow.
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_call:
 
@@ -52,7 +53,33 @@ jobs:
       - name: Redirect benchmark
         run: bun run scripts/bench-redirect.ts -n 50
 
+  # A pull request that changes only docs, changesets, or Markdown cannot change
+  # what the browser sees. Pushes to main and release tags always run the job.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - name: Checkout
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Changed files
+        id: diff
+        run: |
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            echo app=true >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" | grep -qvE '^(docs/|\.changeset/)|\.md$'; then
+            echo app=true >> "$GITHUB_OUTPUT"
+          else
+            echo app=false >> "$GITHUB_OUTPUT"
+          fi
+
   browser:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
 
     services:
