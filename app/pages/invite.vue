@@ -50,7 +50,7 @@ async function join() {
     </h1>
     <template v-if="previewError || !preview">
       <p role="alert" class="mt-2 text-sm text-error">
-        This invitation link is not valid.
+        {{ errorReason(previewError, 'This invitation link is not valid.') }}
       </p>
       <UButton to="/login" label="Back to sign in" variant="subtle" block class="mt-6" />
     </template>
