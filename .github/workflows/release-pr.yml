@@ -39,7 +39,7 @@ jobs:
         run: bun ci
 
       - name: Release pull request
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           version: bun run changeset:version
           title: 'chore(release): version packages'
