@@ -41,9 +41,9 @@ jobs:
       - name: Release pull request
         uses: changesets/action@v2
         with:
-          version: bun run changeset:version
-          title: 'chore(release): version packages'
-          commit: 'chore(release): version packages'
-          createGithubReleases: false
+          version-script: bun run changeset:version
+          pr-title: 'chore(release): version packages'
+          commit-message: 'chore(release): version packages'
+          create-github-releases: false
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || github.token }}
